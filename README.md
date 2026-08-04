@@ -46,7 +46,7 @@ paragraph:
   be checked in.
 
 - **A real availability engine.** [`src/lib/stay.ts`](src/lib/stay.ts) is a
-  pure, React-free module. A stay occupies the nights `[arrive, departure)`, so
+  pure module with no hooks and no store in it. A stay occupies the nights `[arrive, departure)`, so
   a room given up on the 26th is sellable to somebody arriving on the 26th and
   the calendar shows it as available — getting that wrong loses a hotel a night
   per turnover. Availability across a range is the **minimum** over its nights,
@@ -62,7 +62,7 @@ paragraph:
 
 - **Rules the guest can see.** A Saturday arrival needs two nights and a stay
   runs one to fourteen; both surface as friendly inline messages naming the
-  rule, not as a disabled button with no explanation. A room type with nothing
+  rule, not as a disabled button that says nothing. A room type with nothing
   open shows the earliest date that would work, as a button.
 
 - **A room type, never a room number.** The confirmation names the type and says
