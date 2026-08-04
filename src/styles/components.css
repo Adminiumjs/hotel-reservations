@@ -1,0 +1,1114 @@
+/*
+ * Shared UI: the shell, the dock, and the small pieces every screen reaches for
+ * — buttons, chips, panels, fields, tiles, KPI cards, bars, drawers, toasts.
+ *
+ * One rule governs the tables. A works desk is nine screens of grids with
+ * different column shapes, so rather than nine near-identical rule sets there
+ * is ONE `.wh-grid` whose columns come from a `--cols` custom property set
+ * inline by the screen. Everything else about a table row — padding, the rule
+ * beneath it, the hover, the way it collapses under 900px — is defined once
+ * here and never repeated.
+ */
+
+/* ============================================================== the shell */
+
+.wh-app {
+  display: flex;
+  min-height: 100vh;
+}
+
+.wh-sidebar {
+  inline-size: var(--sidebar-w);
+  flex: 0 0 var(--sidebar-w);
+  background: var(--surface);
+  border-inline-end: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  inset-block-start: 0;
+  block-size: 100vh;
+}
+@media (max-width: 899.98px) {
+  .wh-sidebar {
+    display: none;
+  }
+}
+
+.wh-sidebar__brand {
+  padding: 20px 18px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.wh-sidebar__mark {
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.wh-sidebar__name {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  display: block;
+}
+.wh-sidebar__sub {
+  font-size: 11px;
+  color: var(--fg-subtle);
+  font-weight: 500;
+}
+
+.wh-sidebar__persona {
+  padding: 0 18px 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+}
+
+.wh-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 10px;
+  overflow-y: auto;
+}
+
+.wh-navitem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 11px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 13.5px;
+  font-weight: 500;
+  text-align: start;
+  transition:
+    background 0.14s ease,
+    color 0.14s ease;
+}
+.wh-navitem:hover {
+  background: var(--surface-3);
+}
+.wh-navitem[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.wh-sidebar__foot {
+  margin-block-start: auto;
+  padding: 16px 18px;
+  border-block-start: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg-subtle);
+}
+.wh-sidebar__chip {
+  font-size: 10.5px;
+  padding: 4px 7px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--fg-muted);
+  align-self: flex-start;
+}
+
+.wh-main {
+  flex: 1;
+  min-inline-size: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.wh-topbar {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--z-header);
+  background: var(--surface);
+  border-block-end: 1px solid var(--border);
+  padding: 11px var(--gutter);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.wh-topbar__spacer {
+  margin-inline-start: auto;
+}
+
+.wh-topbar__search {
+  flex: 1;
+  max-inline-size: 440px;
+  min-inline-size: 0;
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.wh-topbar__search > svg {
+  position: absolute;
+  inset-inline-start: 11px;
+  color: var(--fg-subtle);
+  pointer-events: none;
+}
+.wh-topbar__input {
+  inline-size: 100%;
+  padding: 8px 12px;
+  padding-inline-start: 34px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: var(--surface-2);
+  color: var(--fg);
+  font-size: 13px;
+}
+
+.wh-searchpop {
+  position: absolute;
+  inset-block-start: 42px;
+  inset-inline-start: 0;
+  inline-size: 100%;
+  max-block-size: 320px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 11px;
+  box-shadow: var(--shadow-lift);
+  padding: 6px;
+  z-index: 40;
+  animation: wh-pop 0.13s ease-out;
+}
+.wh-searchpop__group {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+  padding: 7px 10px 4px;
+}
+.wh-searchpop__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  inline-size: 100%;
+  padding: 8px 10px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  text-align: start;
+  color: var(--fg);
+}
+.wh-searchpop__row:hover {
+  background: var(--surface-3);
+}
+.wh-searchpop__meta {
+  font-size: 12.5px;
+  color: var(--fg-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-inline-size: 0;
+}
+.wh-searchpop__empty {
+  font-size: 12.5px;
+  color: var(--fg-subtle);
+  padding: 10px;
+  margin: 0;
+}
+
+.wh-userchip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 11px 5px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.wh-avatar {
+  inline-size: 26px;
+  block-size: 26px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  flex: 0 0 auto;
+}
+
+.wh-content {
+  flex: 1;
+  min-block-size: 0;
+  padding: 22px var(--gutter) 110px;
+}
+
+/* --- mobile navigation sheet --- */
+.wh-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-nav);
+  background: var(--scrim-sheet);
+  backdrop-filter: blur(3px);
+  border: 0;
+  padding: 0;
+  animation: wh-scrim 0.14s ease-out;
+}
+.wh-sheet {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: min(272px, 84vw);
+  z-index: calc(var(--z-nav) + 1);
+  background: var(--surface);
+  border-inline-end: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 14px 10px;
+  animation: wh-sheet 0.18s ease-out;
+  overflow-y: auto;
+}
+
+/* ================================================================== dock */
+
+.wh-dock {
+  position: fixed;
+  inset-block-end: 18px;
+  inset-inline-end: 18px;
+  z-index: var(--z-dock);
+  inline-size: min(268px, calc(100vw - 32px));
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 13px;
+  box-shadow: var(--shadow-lift);
+  padding: 10px 11px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  transition: inset-inline 0.2s ease;
+}
+/*
+ * House layout rule 1. When an overlay owns the screen — the run panel, the
+ * receive sheet, the invoice drawer, the movement history, the mobile nav — the
+ * dock moves to the opposite inline corner rather than sitting on top of a
+ * primary action. Swapping the two logical insets mirrors correctly under RTL
+ * without a second rule.
+ */
+.wh-dock--shifted,
+.wh-dock__mini.wh-dock--shifted {
+  inset-inline-end: auto;
+  inset-inline-start: 18px;
+}
+
+.wh-dock__mini {
+  position: fixed;
+  inset-block-end: 18px;
+  inset-inline-end: 18px;
+  z-index: var(--z-dock);
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg-muted);
+  box-shadow: var(--shadow-lift);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.wh-dock__head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+}
+.wh-dock__collapse {
+  margin-inline-start: auto;
+  border: 0;
+  background: transparent;
+  color: var(--fg-subtle);
+  display: grid;
+  place-items: center;
+  padding: 2px;
+  border-radius: 6px;
+}
+.wh-dock__collapse:hover {
+  background: var(--surface-3);
+}
+.wh-dock__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wh-dock__label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  flex: 0 0 auto;
+}
+
+/* ============================================================ primitives */
+
+.wh-seg {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--surface-3);
+  border-radius: 9px;
+  gap: 2px;
+}
+.wh-seg--full {
+  display: flex;
+}
+.wh-seg--full .wh-seg__btn {
+  flex: 1;
+}
+.wh-seg__btn {
+  padding: 6px 13px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--fg-subtle);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: center;
+  transition:
+    background 0.14s ease,
+    color 0.14s ease;
+}
+.wh-seg__btn[aria-pressed="true"] {
+  background: var(--surface);
+  color: var(--fg);
+  box-shadow: var(--shadow);
+}
+
+.wh-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 15px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.wh-button--block {
+  inline-size: 100%;
+  padding: 11px;
+  border-radius: 10px;
+  font-size: 13.5px;
+}
+.wh-button--ghost {
+  background: var(--surface-2);
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+}
+.wh-button--soft {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+.wh-button--warn {
+  background: transparent;
+  color: var(--warn);
+  border: 1px solid var(--warn);
+}
+.wh-button--sm {
+  padding: 5px 11px;
+  font-size: 11.5px;
+  border-radius: 8px;
+}
+.wh-button:disabled {
+  background: var(--surface-3);
+  color: var(--fg-subtle);
+  border-color: transparent;
+  cursor: not-allowed;
+}
+
+.wh-iconbtn {
+  inline-size: 36px;
+  block-size: 36px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: var(--surface-2);
+  color: var(--fg);
+  flex: 0 0 auto;
+}
+.wh-iconbtn--sm {
+  inline-size: 30px;
+  block-size: 30px;
+  border-radius: 8px;
+}
+
+.wh-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  color: var(--fg-muted);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 0;
+}
+.wh-chip--pos {
+  background: var(--pos-soft);
+  color: var(--pos);
+}
+.wh-chip--warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.wh-chip--danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.wh-chip--info {
+  background: var(--info-soft);
+  color: var(--info);
+}
+.wh-chip--accent {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.wh-chip--outline {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--fg-subtle);
+  font-family: var(--font-mono);
+}
+
+/* A pill that filters. Pressed takes the accent, so a live filter is obvious. */
+.wh-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--fg-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.wh-filter[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+.wh-filter__count {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.8;
+}
+.wh-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.wh-select,
+.wh-input {
+  padding: 8px 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: var(--surface-2);
+  color: var(--fg);
+  font-size: 13px;
+  inline-size: 100%;
+}
+.wh-input--num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: 14px;
+  text-align: end;
+}
+.wh-textarea {
+  inline-size: 100%;
+  min-block-size: 96px;
+  padding: 11px 13px;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--fg);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.wh-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-inline-size: 120px;
+}
+.wh-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+}
+/* A read-only twin of an input — a computed yield, a margin. */
+.wh-readout {
+  padding: 9px 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-3);
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  text-align: end;
+}
+
+/* ------------------------------------------------------------- surfaces */
+
+.wh-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  box-shadow: var(--shadow);
+}
+.wh-panel__head {
+  padding: 13px 15px;
+  border-block-end: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+}
+.wh-panel__title {
+  font-size: 13.5px;
+  font-weight: 700;
+  margin: 0;
+}
+.wh-panel__sub {
+  font-size: 11.5px;
+  color: var(--fg-subtle);
+  margin: 0;
+}
+.wh-panel__body {
+  padding: 15px;
+}
+
+.wh-screen__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 16px;
+  margin-block-end: 16px;
+}
+.wh-h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+.wh-sub {
+  font-size: 13px;
+  color: var(--fg-muted);
+  margin: 3px 0 0;
+  text-wrap: pretty;
+}
+
+.wh-kpis {
+  margin-inline-start: auto;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.wh-kpi {
+  padding: 10px 15px;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  background: var(--surface);
+  min-inline-size: 122px;
+}
+.wh-kpi__label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+}
+.wh-kpi__value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-block-start: 2px;
+}
+.wh-kpi__value--lg {
+  font-size: 30px;
+  letter-spacing: -0.8px;
+}
+.wh-kpi__hint {
+  font-size: 11.5px;
+  color: var(--fg-subtle);
+  margin-block-start: 3px;
+}
+
+/* ----------------------------------------------------------------- art */
+
+/*
+ * A piece is its glaze. There is no photography in this app: a finished good is
+ * a two-stop gradient with an oversized icon and a small mono SKU chip, and a
+ * component gets a flat --surface-3 tile instead, so the two read apart at a
+ * glance in a list that holds both.
+ */
+.wh-tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  border: 1px solid var(--border-strong);
+  flex: 0 0 auto;
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.88);
+}
+.wh-tile--component {
+  background: var(--surface-3);
+  color: var(--fg-subtle);
+}
+.wh-tile__sku {
+  position: absolute;
+  inset-block-end: 2px;
+  inset-inline-end: 2px;
+  font-family: var(--font-mono);
+  font-size: 7px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  padding: 1px 3px;
+  border-radius: 3px;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+}
+/* House layout rule 2: a floating badge sits OPPOSITE the tile's own chip. */
+.wh-tile__badge {
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-start: 2px;
+}
+
+/* ----------------------------------------------------------------- bars */
+
+.wh-bar {
+  block-size: 5px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.wh-bar--thin {
+  block-size: 4px;
+}
+.wh-bar__fill {
+  block-size: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: inline-size 0.2s ease;
+}
+.wh-bar__fill--pos {
+  background: var(--pos);
+}
+.wh-bar__fill--warn {
+  background: var(--warn);
+}
+.wh-bar__fill--danger {
+  background: var(--danger);
+}
+.wh-bar__fill--muted {
+  background: var(--fg-subtle);
+}
+.wh-bar__label {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  margin-block-start: 4px;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* --------------------------------------------------------------- grids */
+
+/*
+ * ONE grid class for every table in the app. The screen sets `--cols` inline;
+ * everything else — the header band, the rule under each row, the hover, the
+ * numeric alignment — lives here and is written once.
+ */
+.wh-grid {
+  display: grid;
+  grid-template-columns: var(--cols);
+  gap: 10px;
+  padding: 11px 15px;
+  border-block-end: 1px solid var(--border);
+  align-items: center;
+}
+.wh-grid--head {
+  background: var(--surface-2);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+  padding-block: 10px;
+}
+.wh-grid--row {
+  transition: background 0.13s ease;
+  text-align: start;
+  inline-size: 100%;
+  border-inline: 0;
+  border-block-start: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+button.wh-grid--row:hover {
+  background: var(--surface-2);
+}
+.wh-num {
+  text-align: end;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-size: 12.5px;
+}
+.wh-num--strong {
+  font-weight: 700;
+  font-size: 13px;
+}
+.wh-num--muted {
+  color: var(--fg-muted);
+}
+/* Available is on hand minus allocated, and the rule above it says so. */
+.wh-num--sum {
+  border-block-start: 1px solid var(--border-strong);
+  padding-block-start: 2px;
+}
+
+/* A cell that pairs a tile with two lines of text. */
+.wh-itemcell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-inline-size: 0;
+}
+.wh-itemcell__body {
+  min-inline-size: 0;
+}
+.wh-itemcell__sku {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--fg-muted);
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.wh-itemcell__name {
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.wh-itemcell__meta {
+  font-size: 10.5px;
+  color: var(--fg-subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A table that must keep its shape gets a floor and scrolls inside its card. */
+.wh-scrollx {
+  overflow-x: auto;
+}
+.wh-minw {
+  min-inline-size: 600px;
+}
+
+/* ------------------------------------------------------------- drawers */
+
+.wh-drawer__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drawer);
+  background: var(--scrim-sheet);
+  backdrop-filter: blur(3px);
+  border: 0;
+  padding: 0;
+  animation: wh-scrim 0.14s ease-out;
+}
+.wh-drawer {
+  position: fixed;
+  inset-block: 0;
+  inset-inline-end: 0;
+  z-index: calc(var(--z-drawer) + 1);
+  inline-size: min(620px, 100%);
+  background: var(--bg);
+  border-inline-start: 1px solid var(--border-strong);
+  overflow-y: auto;
+  animation: wh-drawer 0.2s ease-out;
+}
+.wh-drawer--narrow {
+  inline-size: min(560px, 100%);
+}
+.wh-drawer__head {
+  position: sticky;
+  inset-block-start: 0;
+  background: var(--surface);
+  border-block-end: 1px solid var(--border);
+  padding: 16px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  z-index: 5;
+}
+.wh-drawer__body {
+  padding: 18px 20px 44px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+.wh-drawer__title {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+.wh-drawer__meta {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--fg-subtle);
+  margin-block-start: 2px;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* ---------------------------------------------------------- ledger rows */
+
+/*
+ * House layout rule 4: an absolutely-positioned marker on a history row needs
+ * a reserved gutter, so the icon column is a real grid track rather than an
+ * overlay on the text.
+ */
+.wh-ledger {
+  display: grid;
+  grid-template-columns: 26px minmax(110px, 1.7fr) 96px 96px;
+  gap: 10px;
+  padding: 11px 15px;
+  border-block-end: 1px solid var(--border);
+  align-items: center;
+}
+.wh-ledger__dot {
+  position: relative;
+  inline-size: 26px;
+  block-size: 26px;
+}
+.wh-ledger__dot > span {
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-start: 3px;
+  inline-size: 20px;
+  block-size: 20px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: var(--surface-3);
+  color: var(--fg-muted);
+}
+.wh-ledger__dot--pos > span {
+  background: var(--pos-soft);
+  color: var(--pos);
+}
+.wh-ledger__label {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.wh-ledger__meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--fg-subtle);
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.wh-ledger--opening {
+  background: var(--surface-2);
+  border-block-end: 0;
+}
+
+/* A totals stack under a line table. */
+.wh-totals {
+  padding: 13px 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wh-totals__row {
+  display: flex;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--fg-muted);
+}
+.wh-totals__row > :last-child {
+  margin-inline-start: auto;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+  color: var(--fg);
+}
+.wh-totals__row--grand {
+  padding-block-start: 6px;
+  border-block-start: 1px solid var(--border-strong);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--fg);
+}
+.wh-totals__row--grand > :last-child {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------- empty + honest */
+
+.wh-empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--fg-subtle);
+}
+.wh-empty__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--fg-muted);
+}
+.wh-empty__body {
+  font-size: 12.5px;
+  margin: 6px 0 0;
+  text-wrap: pretty;
+}
+
+/* The line that says what this workspace deliberately is not (21 D15). */
+.wh-honest {
+  font-size: 12.5px;
+  color: var(--fg-subtle);
+  line-height: 1.6;
+  margin-block: 14px 0;
+  text-wrap: pretty;
+}
+
+/* An honest inline explanation of why something is refused. */
+.wh-notice {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 9px 11px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+.wh-notice--danger {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.wh-notice--warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.wh-notice--info {
+  background: var(--info-soft);
+  color: var(--info);
+}
+.wh-notice--pos {
+  background: var(--pos-soft);
+  color: var(--pos);
+}
+
+/* --------------------------------------------------------------- toasts */
+
+.wh-toasts {
+  position: fixed;
+  inset-block-end: 22px;
+  inset-inline: 0;
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.wh-toast {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 17px;
+  border-radius: 999px;
+  background: var(--fg);
+  color: var(--bg);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: var(--shadow-lift);
+  animation: wh-pop 0.16s ease-out;
+  max-inline-size: min(560px, 92vw);
+  text-align: center;
+}
+
+/* ------------------------------------------------- narrow-screen tables */
+
+/*
+ * Under 900px a dense grid collapses to a stacked row. The numeric columns keep
+ * their end alignment and stay in mono, because a column of quantities that
+ * stops lining up is the first thing a reader notices and the last thing they
+ * forgive.
+ */
+@media (max-width: 899.98px) {
+  .wh-grid--collapse {
+    grid-template-columns: 1fr 1fr;
+    row-gap: 8px;
+  }
+  .wh-grid--collapse > .wh-span {
+    grid-column: 1 / -1;
+  }
+  .wh-grid--head.wh-grid--collapse {
+    display: none;
+  }
+  .wh-minw {
+    min-inline-size: 520px;
+  }
+}
