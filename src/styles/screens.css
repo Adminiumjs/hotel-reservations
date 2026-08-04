@@ -827,3 +827,371 @@
   line-height: 1.6;
   text-wrap: pretty;
 }
+
+/* ============================================================ the house */
+
+.wh-guest {
+  max-inline-size: 940px;
+  margin-inline: auto;
+}
+.wh-guest--narrow {
+  max-inline-size: 640px;
+}
+
+/*
+ * The hero is a layered gradient rather than a photograph, like every other
+ * surface in this app. The wordmark sits over it at a size that survives the
+ * drop to 390px.
+ */
+.wh-hero {
+  position: relative;
+  border-radius: 18px;
+  overflow: hidden;
+  padding: clamp(26px, 5vw, 44px) clamp(20px, 4vw, 34px) clamp(40px, 7vw, 60px);
+  background:
+    radial-gradient(120% 90% at 20% 0%, rgba(255, 255, 255, 0.22), transparent 60%),
+    linear-gradient(140deg, #4a6f96, #1e3a8a);
+  color: #fff;
+}
+:root[data-theme="dark"] .wh-hero {
+  background:
+    radial-gradient(120% 90% at 20% 0%, rgba(255, 255, 255, 0.1), transparent 60%),
+    linear-gradient(140deg, #2b3f66, #101a3a);
+}
+.wh-hero__name {
+  font-size: clamp(34px, 6vw, 56px);
+  font-weight: 800;
+  letter-spacing: -1.4px;
+  margin: 0;
+  line-height: 1;
+}
+.wh-hero__tag {
+  font-size: clamp(14px, 2vw, 17px);
+  margin: 10px 0 0;
+  max-inline-size: 30ch;
+  opacity: 0.92;
+  text-wrap: pretty;
+}
+
+/* The stay search sits over the foot of the hero, front and centre. */
+.wh-search {
+  margin-block-start: -34px;
+  position: relative;
+  z-index: 2;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lift);
+  padding: 16px;
+}
+.wh-search__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.8fr auto;
+  gap: 12px;
+  align-items: end;
+}
+@media (max-width: 899.98px) {
+  .wh-search__row {
+    grid-template-columns: 1fr;
+  }
+}
+.wh-search__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-block-start: 12px;
+  font-size: 12.5px;
+  color: var(--fg-subtle);
+}
+
+.wh-tri {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin-block-start: 26px;
+}
+
+/* --- results --------------------------------------------------------- */
+
+.wh-offer {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  align-items: flex-start;
+}
+@media (max-width: 599.98px) {
+  .wh-offer {
+    flex-direction: column;
+  }
+}
+.wh-offer__body {
+  flex: 1;
+  min-inline-size: 0;
+}
+.wh-offer__price {
+  text-align: end;
+  flex: 0 0 auto;
+}
+@media (max-width: 599.98px) {
+  .wh-offer__price {
+    text-align: start;
+    inline-size: 100%;
+  }
+}
+.wh-offer__rate {
+  font-family: var(--font-mono);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.wh-nightlist {
+  margin-block-start: 12px;
+  border-block-start: 1px solid var(--border);
+  padding-block-start: 10px;
+}
+.wh-nightlist__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-block: 5px;
+  font-size: 12.5px;
+}
+.wh-nightlist__row > :last-child {
+  margin-inline-start: auto;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.wh-nightlist__sum {
+  border-block-start: 1px solid var(--border-strong);
+  margin-block-start: 6px;
+  padding-block-start: 8px;
+  font-weight: 700;
+}
+
+.wh-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.wh-feature {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg-muted);
+}
+
+/* --- the desk's day -------------------------------------------------- */
+
+.wh-board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-block-start: 16px;
+  align-items: start;
+}
+@media (max-width: 899.98px) {
+  .wh-board {
+    grid-template-columns: 1fr;
+  }
+}
+.wh-board__col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.wh-board__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding-inline: 2px;
+}
+
+.wh-guestcard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 13px;
+  box-shadow: var(--shadow);
+}
+.wh-guestcard__name {
+  font-size: 14px;
+  font-weight: 700;
+}
+.wh-guestcard__meta {
+  font-size: 12px;
+  color: var(--fg-subtle);
+  margin-block-start: 2px;
+}
+
+/* --- the rack -------------------------------------------------------- */
+
+.wh-rack__floor {
+  margin-block-start: 20px;
+}
+.wh-rack__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+  gap: 10px;
+  margin-block-start: 10px;
+}
+.wh-roomtile {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  padding: 10px 11px;
+  background: var(--surface);
+  min-block-size: 84px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.wh-roomtile__n {
+  font-family: var(--font-mono);
+  font-size: 16px;
+  font-weight: 700;
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+.wh-roomtile__type {
+  block-size: 4px;
+  border-radius: 999px;
+}
+.wh-roomtile__status {
+  font-size: 11px;
+  font-weight: 700;
+  margin-block-start: auto;
+}
+.wh-roomtile--ready {
+  border-color: color-mix(in srgb, var(--pos) 35%, transparent);
+}
+.wh-roomtile--ready .wh-roomtile__status {
+  color: var(--pos);
+}
+.wh-roomtile--occupied {
+  border-color: var(--accent-border);
+  background: var(--accent-soft);
+}
+.wh-roomtile--occupied .wh-roomtile__status {
+  color: var(--accent);
+}
+.wh-roomtile--cleaning {
+  border-color: color-mix(in srgb, var(--warn) 35%, transparent);
+  background: var(--warn-soft);
+}
+.wh-roomtile--cleaning .wh-roomtile__status {
+  color: var(--warn);
+}
+.wh-roomtile--oos {
+  opacity: 0.62;
+}
+.wh-roomtile--oos .wh-roomtile__status {
+  color: var(--fg-subtle);
+}
+.wh-roomtile__note {
+  font-size: 10.5px;
+  color: var(--fg-subtle);
+  line-height: 1.35;
+  text-wrap: pretty;
+}
+
+/* --- the calendar ---------------------------------------------------- */
+
+.wh-cal {
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+}
+.wh-cal__grid {
+  min-inline-size: 900px;
+  display: grid;
+  grid-template-columns: 150px repeat(14, minmax(52px, 1fr));
+  gap: 4px;
+}
+.wh-cal__head {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--fg-subtle);
+  text-align: center;
+  padding-block: 6px;
+  scroll-snap-align: start;
+}
+.wh-cal__row {
+  display: contents;
+}
+.wh-cal__label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding-inline-end: 8px;
+}
+/* House layout rule 4: the "full" mark needs a reserved gutter on each row. */
+.wh-cal__cell {
+  position: relative;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 4px 6px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  direction: ltr;
+  unicode-bidi: isolate;
+  background: var(--surface);
+  color: var(--fg-muted);
+}
+.wh-cal__cell--full {
+  border-color: var(--danger);
+  color: var(--danger);
+  font-weight: 700;
+}
+.wh-cal__mark {
+  position: absolute;
+  inset-block-start: 3px;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--danger);
+}
+
+/* --- the folio ------------------------------------------------------- */
+
+.wh-folio__row {
+  display: grid;
+  grid-template-columns: 24px minmax(120px, 1fr) 96px 96px;
+  gap: 10px;
+  padding: 11px 15px;
+  border-block-end: 1px solid var(--border);
+  align-items: center;
+}
+@media (max-width: 599.98px) {
+  .wh-folio__row {
+    grid-template-columns: 24px 1fr 90px;
+  }
+  .wh-folio__row > .wh-folio__balance {
+    display: none;
+  }
+}
+.wh-folio__label {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.wh-folio__meta {
+  font-size: 10.5px;
+  color: var(--fg-subtle);
+}

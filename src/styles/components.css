@@ -1112,3 +1112,108 @@ button.wh-grid--row:hover {
     min-inline-size: 520px;
   }
 }
+
+/* =========================================================== guest site */
+
+/*
+ * The public shell. Deliberately unlike the desk: a centred column, generous
+ * measure, no sidebar and no density. A guest reading this should not be able
+ * to tell that the same build also runs a front office.
+ */
+.wh-site {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.wh-site__head {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: var(--z-header);
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 14px var(--gutter);
+  background: var(--surface);
+  border-block-end: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.wh-site__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  text-align: start;
+}
+.wh-site__mark {
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+}
+.wh-site__wordmark {
+  display: block;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+}
+.wh-site__tag {
+  display: block;
+  font-size: 11px;
+  color: var(--fg-subtle);
+  font-weight: 500;
+}
+.wh-site__nav {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.wh-site__link {
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background 0.13s ease, color 0.13s ease;
+}
+.wh-site__link:hover {
+  background: var(--surface-3);
+}
+.wh-site__link[aria-current="page"] {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.wh-site__body {
+  flex: 1;
+  padding: 26px var(--gutter) 120px;
+}
+
+.wh-site__foot {
+  padding: 20px var(--gutter);
+  border-block-start: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 11.5px;
+  color: var(--fg-subtle);
+  background: var(--surface);
+}
+.wh-site__where {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--fg-muted);
+}
