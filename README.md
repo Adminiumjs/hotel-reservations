@@ -166,9 +166,9 @@ and the desk up by themselves, running on the bundled demo Tuesday. No
 database, no dashboard — a fully static preview.
 
 **One command — the whole stack.**
-[`docker-compose.yml`](docker-compose.yml) stands up Postgres (seeded with the
-*same* rooms, reservations, extras and payments), an auto-generated Adminium
-dashboard that runs that real database, and the desk:
+[`docker-compose.yml`](docker-compose.yml) stands up Postgres (seeded by default
+with the *same* rooms, reservations, extras and payments), an auto-generated
+Adminium dashboard that runs that real database, and the desk:
 
 ```bash
 cp .env.example .env      # then set ADMINIUM_SECRET — e.g. openssl rand -hex 32
@@ -181,10 +181,11 @@ docker compose up
 - **Reservations desk** → http://localhost:8080
 - **Adminium dashboard** → http://localhost:4600
 
-On first boot, `house-db` applies [`db/schema.sql`](db/schema.sql) then
-[`db/seed.sql`](db/seed.sql), and Adminium imports the hotel database
-(`wrenhouse`) as its first source connection, introspects the schema, and
-generates the back office. The install spec Adminium reads is
+On first boot, `house-db` applies [`db/schema.sql`](db/schema.sql), installs the
+demo bookkeeping, and then loads [`db/seed.sql`](db/seed.sql) unless you set
+`DEMO_DATA=0` — see [Demo data](#demo-data) below. Adminium imports the hotel
+database (`wrenhouse`) as its first source connection, introspects the schema,
+and generates the back office. The install spec Adminium reads is
 [`manifest.json`](manifest.json).
 
 The seed is the app's own Tuesday, not a second fiction: the same 34 rooms, the
@@ -200,6 +201,31 @@ npx esbuild src/data/demo.ts --bundle --format=esm --outfile=/tmp/demo.mjs
 ```
 
 …then run the small emitter documented at the top of `db/seed.sql`.
+
+### Demo data
+
+Wren House comes seeded: bring the stack up and the Tuesday above is already in
+the database. To start empty instead — the same full schema, no rows — set
+`DEMO_DATA=0` in `.env` before the first `docker compose up`. Neither choice is
+permanent; the demo rows can be loaded and removed again at any time.
+
+| Command | What it does |
+| --- | --- |
+| `npm run demo:status` | What is loaded right now, table by table. |
+| `npm run demo:import` | Load `db/seed.sql`. |
+| `npm run demo:wipe` | Remove the demo rows — the schema and your own rows stay. |
+| `npm run demo:reset` | Wipe, then import a fresh copy. |
+
+A wipe deletes only the rows the seed added, tracked in a ledger the toolkit
+keeps in its own `adminium_demo` schema, out of `public`. A reservation you took
+yourself survives it, and a demo row your own data depends on is kept rather
+than force-deleted — the wipe reports it under `kept`. `ON DELETE CASCADE` still
+applies, though: removing a demo stay takes its charges and payments with it,
+including one you added at the desk, and those rows are counted separately as
+`cascaded`. `wipe` and `reset` ask before they act; `npm run demo:wipe -- --yes`
+skips the question, which is what a script needs, where there is nobody to ask.
+Set `DATABASE_URL` and the commands run against any Postgres — Neon, Supabase or
+RDS — instead of the container. The details are in [db/README.md](db/README.md).
 
 ## The split: the desk and the back office
 
@@ -256,7 +282,8 @@ src/
   components/  two shells, demo dock, overlays, primitives
   styles/      tokens.css (canonical design tokens), base.css, components.css,
                screens.css
-db/            schema.sql + generated seed.sql for the full self-host stack
+db/            schema.sql + generated seed.sql for the full self-host stack,
+               and the demo-data toolkit behind npm run demo:*
 public/fonts/  self-hosted Manrope + JetBrains Mono (woff2)
 manifest.json  the Adminium install spec (8 tables)
 ```
