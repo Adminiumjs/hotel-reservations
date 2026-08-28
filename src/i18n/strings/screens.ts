@@ -94,7 +94,7 @@ const EN = {
 
   /* --------------------------------------------------------------- confirm */
   "confirm.title": "That is booked",
-  "confirm.sub": "We have sent the details to {email}.",
+  "confirm.sub": "Your reference is below. This is a demo, so no real email is sent to {email}.",
   "confirm.ref": "Your reference",
   "confirm.arriving": "Arriving",
   "confirm.leaving": "Leaving",
@@ -325,7 +325,7 @@ const DE: Bundle = {
   "reserve.missing": "Wir brauchen einen Namen und einen Weg, Sie zu erreichen.",
 
   "confirm.title": "Das ist gebucht",
-  "confirm.sub": "Die Angaben sind an {email} unterwegs.",
+  "confirm.sub": "Ihre Referenz steht unten. Dies ist eine Demo, es wird keine echte E-Mail an {email} verschickt.",
   "confirm.ref": "Ihre Referenz",
   "confirm.arriving": "Anreise",
   "confirm.leaving": "Abreise",
@@ -544,7 +544,7 @@ const FR: Bundle = {
   "reserve.missing": "Il nous faut un nom et un moyen de vous joindre.",
 
   "confirm.title": "C’est réservé",
-  "confirm.sub": "Nous avons envoyé les détails à {email}.",
+  "confirm.sub": "Votre référence figure ci-dessous. Ceci est une démonstration, aucun e-mail réel n’est envoyé à {email}.",
   "confirm.ref": "Votre référence",
   "confirm.arriving": "Arrivée",
   "confirm.leaving": "Départ",
@@ -762,7 +762,7 @@ const CS: Bundle = {
   "reserve.missing": "Potřebujeme jméno a způsob, jak vás zastihnout.",
 
   "confirm.title": "Je to zarezervováno",
-  "confirm.sub": "Podrobnosti jsme poslali na {email}.",
+  "confirm.sub": "Číslo vaší rezervace najdete níže. Toto je ukázka, na {email} se neposílá žádný skutečný e-mail.",
   "confirm.ref": "Vaše rezervace",
   "confirm.arriving": "Příjezd",
   "confirm.leaving": "Odjezd",
@@ -979,7 +979,7 @@ const DA: Bundle = {
   "reserve.missing": "Vi skal bruge et navn og en måde at få fat i dig på.",
 
   "confirm.title": "Det er booket",
-  "confirm.sub": "Vi har sendt detaljerne til {email}.",
+  "confirm.sub": "Din reference står nedenfor. Dette er en demo, der sendes ingen rigtig e-mail til {email}.",
   "confirm.ref": "Din reference",
   "confirm.arriving": "Ankomst",
   "confirm.leaving": "Afrejse",
@@ -1195,7 +1195,7 @@ const ZH_CN: Bundle = {
   "reserve.missing": "我们需要一个姓名和一种联系方式。",
 
   "confirm.title": "订好了",
-  "confirm.sub": "详情已发送到 {email}。",
+  "confirm.sub": "您的预订号见下方。这是演示，不会真的向 {email} 发送邮件。",
   "confirm.ref": "您的预订号",
   "confirm.arriving": "入住",
   "confirm.leaving": "退房",
@@ -1408,7 +1408,7 @@ const ZH_TW: Bundle = {
   "reserve.missing": "我們需要一個姓名和一種聯絡方式。",
 
   "confirm.title": "訂好了",
-  "confirm.sub": "詳細資料已寄到 {email}。",
+  "confirm.sub": "您的訂房編號見下方。這是示範，不會真的寄送郵件到 {email}。",
   "confirm.ref": "您的訂房編號",
   "confirm.arriving": "入住",
   "confirm.leaving": "退房",
@@ -1621,7 +1621,7 @@ const AR: Bundle = {
   "reserve.missing": "نحتاج اسمًا ووسيلة للوصول إليك.",
 
   "confirm.title": "تم الحجز",
-  "confirm.sub": "أرسلنا التفاصيل إلى {email}.",
+  "confirm.sub": "رقم حجزك موجود أدناه. هذا عرض تجريبي، ولا يُرسَل بريد إلكتروني حقيقي إلى {email}.",
   "confirm.ref": "رقم حجزك",
   "confirm.arriving": "الوصول",
   "confirm.leaving": "المغادرة",
