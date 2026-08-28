@@ -57,6 +57,13 @@ const EN = {
   "chrome.dock.language": "Language",
   "chrome.dock.reset": "Reset the demo",
 
+  "chrome.utc.notice": "Dates shown in UTC",
+  "chrome.utc.why":
+    "This connection has no timezone set in Adminium, so dates render in UTC instead of the business's zone.",
+  "chrome.zone.notice": "Dates shown in {zone}",
+  "chrome.zone.why":
+    "This zone came from the server running Adminium, not from anyone here. Confirm it on the connection (Connections → this database) if it is the business's zone.",
+
   "chrome.clock.morning": "before check-out",
   "chrome.clock.after": "after check-out",
 
@@ -139,6 +146,13 @@ const DE: Bundle = {
   "chrome.dock.language": "Sprache",
   "chrome.dock.reset": "Demo zurücksetzen",
 
+  "chrome.utc.notice": "Datumsangaben in UTC",
+  "chrome.utc.why":
+    "Für diese Verbindung ist in Adminium keine Zeitzone hinterlegt; Datumsangaben erscheinen daher in UTC statt in der Zeitzone des Unternehmens.",
+  "chrome.zone.notice": "Datumsangaben in {zone}",
+  "chrome.zone.why":
+    "Diese Zeitzone stammt vom Server, auf dem Adminium läuft, und wurde hier von niemandem gewählt. Bestätigen Sie sie an der Verbindung (Verbindungen → diese Datenbank), wenn es die Zeitzone des Unternehmens ist.",
+
   "chrome.clock.morning": "vor der Abreisezeit",
   "chrome.clock.after": "nach der Abreisezeit",
 
@@ -218,6 +232,13 @@ const FR: Bundle = {
   "chrome.dock.theme.dark": "Passer au thème sombre",
   "chrome.dock.language": "Langue",
   "chrome.dock.reset": "Réinitialiser la démonstration",
+
+  "chrome.utc.notice": "Dates affichées en UTC",
+  "chrome.utc.why":
+    "Aucun fuseau horaire n'est défini pour cette connexion dans Adminium ; les dates s'affichent donc en UTC plutôt que dans le fuseau de l'entreprise.",
+  "chrome.zone.notice": "Dates affichées en {zone}",
+  "chrome.zone.why":
+    "Ce fuseau vient du serveur qui exécute Adminium ; personne ne l'a choisi ici. Confirmez-le sur la connexion (Connexions → cette base de données) s'il s'agit du fuseau de l'entreprise.",
 
   "chrome.clock.morning": "avant l’heure des départs",
   "chrome.clock.after": "après l’heure des départs",
@@ -299,6 +320,13 @@ const CS: Bundle = {
   "chrome.dock.language": "Jazyk",
   "chrome.dock.reset": "Obnovit ukázku",
 
+  "chrome.utc.notice": "Data se zobrazují v UTC",
+  "chrome.utc.why":
+    "Toto připojení nemá v Adminiu nastavené časové pásmo, data se proto zobrazují v UTC místo v pásmu firmy.",
+  "chrome.zone.notice": "Data se zobrazují v {zone}",
+  "chrome.zone.why":
+    "Toto pásmo pochází ze serveru, na kterém běží Adminium, nikdo je zde nezvolil. Pokud jde o pásmo firmy, potvrďte je u připojení (Připojení → tato databáze).",
+
   "chrome.clock.morning": "před časem odjezdů",
   "chrome.clock.after": "po čase odjezdů",
 
@@ -378,6 +406,13 @@ const DA: Bundle = {
   "chrome.dock.theme.dark": "Skift til mørkt tema",
   "chrome.dock.language": "Sprog",
   "chrome.dock.reset": "Nulstil demoen",
+
+  "chrome.utc.notice": "Datoer vises i UTC",
+  "chrome.utc.why":
+    "Denne forbindelse har ingen tidszone angivet i Adminium, så datoer vises i UTC i stedet for virksomhedens tidszone.",
+  "chrome.zone.notice": "Datoer vises i {zone}",
+  "chrome.zone.why":
+    "Denne tidszone kom fra serveren, der kører Adminium — ingen her har valgt den. Bekræft den på forbindelsen (Forbindelser → denne database), hvis det er virksomhedens tidszone.",
 
   "chrome.clock.morning": "før udtjekning",
   "chrome.clock.after": "efter udtjekning",
@@ -459,6 +494,12 @@ const ZH_CN: Bundle = {
   "chrome.dock.language": "语言",
   "chrome.dock.reset": "重置演示",
 
+  "chrome.utc.notice": "日期以 UTC 显示",
+  "chrome.utc.why": "此连接在 Adminium 中未设置时区，日期因此以 UTC 显示，而非商家所在时区。",
+  "chrome.zone.notice": "日期以 {zone} 显示",
+  "chrome.zone.why":
+    "此时区来自运行 Adminium 的服务器，并非有人在此选择。若它确实是该商家的时区，请在连接上确认（连接 → 此数据库）。",
+
   "chrome.clock.morning": "退房时间之前",
   "chrome.clock.after": "退房时间之后",
 
@@ -539,6 +580,12 @@ const ZH_TW: Bundle = {
   "chrome.dock.language": "語言",
   "chrome.dock.reset": "重設示範",
 
+  "chrome.utc.notice": "日期以 UTC 顯示",
+  "chrome.utc.why": "此連線在 Adminium 中未設定時區，日期因此以 UTC 顯示，而非商家所在時區。",
+  "chrome.zone.notice": "日期以 {zone} 顯示",
+  "chrome.zone.why":
+    "此時區來自執行 Adminium 的伺服器，並非有人在此選擇。若它確實是該商家的時區，請在連線上確認（連線 → 此資料庫）。",
+
   "chrome.clock.morning": "退房時間之前",
   "chrome.clock.after": "退房時間之後",
 
@@ -618,6 +665,13 @@ const AR: Bundle = {
   "chrome.dock.theme.dark": "التبديل إلى المظهر الداكن",
   "chrome.dock.language": "اللغة",
   "chrome.dock.reset": "إعادة ضبط العرض",
+
+  "chrome.utc.notice": "التواريخ معروضة بتوقيت UTC",
+  "chrome.utc.why":
+    "لا توجد منطقة زمنية محدّدة لهذا الاتصال في Adminium، لذا تُعرض التواريخ بتوقيت UTC بدلاً من المنطقة الزمنية للنشاط التجاري.",
+  "chrome.zone.notice": "التواريخ معروضة بتوقيت {zone}",
+  "chrome.zone.why":
+    "جاءت هذه المنطقة الزمنية من الخادم الذي يشغّل Adminium ، ولم يخترها أحد هنا. أكّدها على الاتصال (الاتصالات → هذه قاعدة البيانات) إذا كانت منطقة النشاط التجاري.",
 
   "chrome.clock.morning": "قبل موعد المغادرة",
   "chrome.clock.after": "بعد موعد المغادرة",
