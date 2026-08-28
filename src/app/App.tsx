@@ -16,6 +16,7 @@ import { useEffect } from "react";
 import type { ComponentType } from "react";
 
 import DemoDock from "../components/DemoDock.tsx";
+import { DEMO, SURFACE_SIDE } from "../surface.ts";
 import {
   CancelDialog,
   CheckinSheet,
@@ -41,7 +42,15 @@ import {
 } from "../screens/Guest.tsx";
 import NotFound from "../screens/NotFound.tsx";
 
-const SCREENS: Record<View, ComponentType> = {
+const DESK_SCREENS = {
+  today: Today,
+  rack: Rack,
+  calendar: Calendar,
+  reservations: Reservations,
+  folio: Folio,
+} satisfies Partial<Record<View, ComponentType>>;
+
+const GUEST_SCREENS = {
   home: Home,
   results: Results,
   roomtype: RoomTypePage,
@@ -50,13 +59,22 @@ const SCREENS: Record<View, ComponentType> = {
   myreservation: MyReservation,
   rooms: Rooms,
   findus: FindUs,
-  today: Today,
-  rack: Rack,
-  calendar: Calendar,
-  reservations: Reservations,
-  folio: Folio,
-  notfound: NotFound,
-};
+} satisfies Partial<Record<View, ComponentType>>;
+
+/*
+ * A surface build ships ONE side's screens. `SURFACE_SIDE` folds to a literal,
+ * so the branch not taken is eliminated and every screen only it referenced
+ * goes with it — which is what stops the PUBLIC guest bundle from carrying the
+ * rack, the folio and the reservations ledger.
+ *
+ * `notfound` is in every build: an unknown view has to land somewhere.
+ */
+const SCREENS: Partial<Record<View, ComponentType>> =
+  SURFACE_SIDE === "staff"
+    ? { ...DESK_SCREENS, notfound: NotFound }
+    : SURFACE_SIDE === "customer"
+      ? { ...GUEST_SCREENS, notfound: NotFound }
+      : { ...DESK_SCREENS, ...GUEST_SCREENS, notfound: NotFound };
 
 function CurrentScreen() {
   const view = useStore((s) => s.view);
@@ -101,7 +119,13 @@ export default function App() {
       <Shell>
         <CurrentScreen />
       </Shell>
-      <DemoDock />
+      {/* §5.2 item 8 — the dock resets and advances seeded fiction. Against
+          real rows those controls either lie or do damage. */}
+      {/*
+        Build-time, not runtime. `DEMO` folds to a literal, so a hosted or
+        connected build does not CONTAIN the dock — it is not merely hidden.
+      */}
+      {DEMO && <DemoDock />}
       <ToastLayer />
       <CheckinSheet />
       <CancelDialog />
