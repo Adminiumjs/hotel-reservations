@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "releases": [
+    {
+      "name": "@adminiumjs/app-hotel",
+      "version": "0.1.0",
+      "integrity": "sha512-wEeHU1VS8n8EfqSzFkaQvT5bl6lSE486CnFMewteufx6bGr1B13/pxgGP5ZPKgVu9MGBHsU854lFpH+wqQLl+w==",
+      "publishedAt": "2026-09-13T09:41:36.679Z"
+    }
+  ]
+}
