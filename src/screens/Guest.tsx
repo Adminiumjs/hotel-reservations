@@ -20,6 +20,7 @@ import {
   Search,
 } from "lucide-react";
 
+import { appName } from "../i18n/ambient.ts";
 import { useI18n } from "../i18n/index.tsx";
 import {
   dateLong,
@@ -73,6 +74,23 @@ const TAX_PCT = `${Math.round(TAX * 100)}%`;
 /* ------------------------------------------------------------ the search */
 
 /** The stay search. Shared by the home hero and the results header. */
+/**
+ * What this app is CALLED on screen.
+ *
+ * The operator's name from Adminium when they set one, else the name this
+ * build ships with. One helper rather than a `??` at each render site: a
+ * sidebar, a wordmark and a dialog label that disagree about the name of the
+ * app is a worse bug than any of them being wrong alone.
+ *
+ * Not localized, deliberately — an operator types one business name and it is
+ * not Adminium's to translate. `chrome.brand` still is, for the apps that keep
+ * the shipped one.
+ */
+function useBrand(): string {
+  const { t } = useI18n();
+  return appName() ?? t("chrome.brand");
+}
+
 function StaySearch({ onGo }: { onGo: () => void }) {
   const { t } = useI18n();
   const search = useStore((s) => s.search);
@@ -146,13 +164,14 @@ function StaySearch({ onGo }: { onGo: () => void }) {
 /* ------------------------------------------------------------------ home */
 
 export function Home() {
+  const brand = useBrand();
   const { t } = useI18n();
   const go = useStore((s) => s.go);
 
   return (
     <section className="wh-guest wh-screen">
       <div className="wh-hero">
-        <h1 className="wh-hero__name">{t("chrome.brand")}</h1>
+        <h1 className="wh-hero__name">{brand}</h1>
         <p className="wh-hero__tag">{t("home.tagline")}</p>
       </div>
 
