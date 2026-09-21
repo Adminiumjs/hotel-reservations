@@ -282,6 +282,15 @@
             "references": "extras",
             "ref": "extra_id",
             "nullable": false
+          },
+          {
+            "ref": "note",
+            "type": "text"
+          },
+          {
+            "ref": "added_at",
+            "type": "timestamptz",
+            "role": "created_at"
           }
         ]
       },

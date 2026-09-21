@@ -137,6 +137,12 @@ CREATE TABLE stay_extras (
   id       serial PRIMARY KEY,
   stay_ref text NOT NULL REFERENCES stays (ref) ON DELETE CASCADE,
   extra_id text NOT NULL REFERENCES extras (id),
+  -- A desk note on this extra for this stay ("gluten-free breakfast"), and when
+  -- it was added. They also make this a record the desk edits, not a bare link:
+  -- two links with only an id and a timestamp beside them read as a join table,
+  -- and Adminium gives a join table no page of its own.
+  note     text,
+  added_at timestamptz NOT NULL DEFAULT now(),
   UNIQUE (stay_ref, extra_id)
 );
 
