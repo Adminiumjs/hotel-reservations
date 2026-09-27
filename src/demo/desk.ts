@@ -6,7 +6,7 @@
  * DEMO BUILD ONLY — nothing in a real build imports it.
  */
 import type { DeskHouse, DeskPerson, DeskPort, Folio, StayWithLines } from "../data/ports.ts";
-import { ApiError, type Id, type LiveFrame, type NightCount, type QuoteReply, type Row, type StayBody, type StayReply } from "../data/wire.ts";
+import { ApiError, isApiError, type Id, type LiveFrame, type NightCount, type QuoteReply, type Row, type StayBody, type StayReply } from "../data/wire.ts";
 import { addDays } from "../lib/venueTime.ts";
 import { byPosition, Engine, notFound, refusedValue, type Writer } from "./engine.ts";
 
@@ -20,6 +20,8 @@ export const PEOPLE: Record<"desk" | "manager" | "housekeeping", DeskPerson> = {
 const MONEY = /^\d+(\.\d{1,2})?$/;
 
 export class DemoDesk implements DeskPort {
+  /** A fault the demo card arms for the next booking: the type goes while the desk saves. */
+  fault: "type-gone" | null = null;
   person: DeskPerson = PEOPLE.desk;
   readonly engine: Engine;
   constructor(engine: Engine) {
@@ -120,6 +122,10 @@ export class DemoDesk implements DeskPort {
   }
 
   async book(body: StayBody): Promise<StayReply> {
+    if (this.fault === "type-gone") {
+      this.fault = null;
+      throw new ApiError(409, "CAPACITY_FULL", "That room type is full on those nights.", { column: "room_type_id" });
+    }
     const values = this.bookingValues(body.values);
     const extras = body.children.stay_extras.map((c) => Number(c.values["extra_id"]));
     const made = this.engine.write(() => {
@@ -135,10 +141,24 @@ export class DemoDesk implements DeskPort {
     return { data: { ...this.world.get("stays", made.stay.id)! }, children: { stay_extras: made.lines.map((l) => ({ data: { ...l } })) } };
   }
 
-  async quoteEdit(id: Id, values: Record<string, unknown>): Promise<QuoteReply> {
+  async quoteEdit(id: Id, values: Record<string, unknown>, extras: { extraId: Id; on: boolean }[] = []): Promise<QuoteReply> {
     return this.engine.dry(() => {
-      const row = this.engine.updateStay(id, values, this.writer);
-      return () => ({ data: { ...this.world.get("stays", row.id)! }, nights: this.engine.nights(row), capacity: [], exact: true });
+      const row = Object.keys(values).length > 0 ? this.engine.updateStay(id, values, this.writer) : this.world.get("stays", id);
+      if (row === undefined) throw notFound("staff");
+      for (const { extraId, on } of extras) {
+        const line = this.world.where("stay_extras", (l) => l["stay_id"] === id && l["extra_id"] === extraId)[0];
+        if (on) {
+          if (line !== undefined && line["state"] === "off") this.world.update("stay_extras", line.id, { state: "on" });
+          else if (line === undefined) this.engine.addLine(this.world.get("stays", id)!, extraId, this.writer);
+        } else if (line !== undefined && line["state"] !== "off") this.world.update("stay_extras", line.id, { state: "off" });
+      }
+      return () => ({
+        data: { ...this.world.get("stays", id)! },
+        nights: this.engine.nights(this.world.get("stays", id)!),
+        children: { stay_extras: this.world.where("stay_extras", (l) => l["stay_id"] === id).map((l) => ({ data: { ...l } })) },
+        capacity: [],
+        exact: true,
+      });
     });
   }
 
@@ -150,6 +170,22 @@ export class DemoDesk implements DeskPort {
         throw new ApiError(409, "PRICE_CHANGED", "The price has changed.", { total: Number(row["total"]).toFixed(2) });
       }
       return { ...row };
+    });
+  }
+
+  async setExtra(stayId: Id, extraId: Id, on: boolean): Promise<Row> {
+    return this.engine.write(() => {
+      const stay = this.world.get("stays", stayId);
+      if (stay === undefined) throw notFound("staff");
+      const line = this.world.where("stay_extras", (l) => l["stay_id"] === stayId && l["extra_id"] === extraId)[0];
+      if (on) {
+        const row = line !== undefined && line["state"] === "off" ? this.world.update("stay_extras", line.id, { state: "on" }) : this.engine.addLine(stay, extraId, this.writer);
+        this.engine.judgeExtras(stayId, "staff");
+        return { ...row };
+      }
+      if (line === undefined || line["state"] === "off") throw new ApiError(409, "STATE_UNCHANGED", "It is off already.");
+      this.engine.judgeChildState(stay, "stay_extras");
+      return { ...this.world.update("stay_extras", line.id, { state: "off" }) };
     });
   }
 
@@ -178,6 +214,26 @@ export class DemoDesk implements DeskPort {
       Object.assign(row, this.engine.stampsFor("stay_credits", null, row, this.writer));
       return row;
     });
+  }
+
+  async quoteTakeOff(id: Id, from: string): Promise<{ total: number; refused: boolean; data: Record<string, unknown>; credit: number }> {
+    try {
+      return this.engine.dry(() => {
+        const stay = this.world.get("stays", id);
+        if (stay === undefined) throw notFound("staff");
+        const credit = this.world.insert("stay_credits", { stay_id: id, reason: "left_early", from_date: from, to_date: stay["depart"], voided: false });
+        return () => {
+          const after = this.world.get("stays", id)!;
+          return { total: Number(after["total"]), refused: false, data: { ...after }, credit: Number(this.world.get("stay_credits", credit.id)!["amount"]) };
+        };
+      });
+    } catch (error) {
+      if (isApiError(error) && error.code === "BALANCE_EXCEEDED") {
+        const now = this.world.get("stays", id)!;
+        return { total: Number(now["total"]), refused: true, data: { ...now }, credit: 0 };
+      }
+      throw error;
+    }
   }
 
   async cancel(id: Id, code: "guest_asked" | "house"): Promise<Row> {
@@ -223,7 +279,7 @@ export class DemoDesk implements DeskPort {
 
   // ── the folio's money ──────────────────────────────────────────────────────
 
-  async addCharge(stayId: Id, charge: { itemId: Id } | { label: string; amount: string; note: string }): Promise<Row> {
+  async addCharge(stayId: Id, charge: { itemId: Id; note?: string | null } | { label: string; amount: string; note: string }): Promise<Row> {
     return this.engine.write(() => {
       this.engine.judgeCreate("charges", this.writer);
       const stay = this.world.get("stays", stayId);
@@ -232,7 +288,7 @@ export class DemoDesk implements DeskPort {
       let values: Record<string, unknown>;
       if ("itemId" in charge) {
         if (this.world.get("charge_items", charge.itemId) === undefined) throw refusedValue("charge_item_id", "invalid", "staff");
-        values = { charge_item_id: charge.itemId, note: null };
+        values = { charge_item_id: charge.itemId, note: empty(charge.note) ? null : charge.note!.trim() };
       } else {
         if (!MONEY.test(charge.amount.trim())) throw refusedValue("amount", "invalid", "staff");
         if (empty(charge.note)) throw refusedValue("note", "required", "staff");
@@ -280,6 +336,21 @@ export class DemoDesk implements DeskPort {
       Object.assign(updated, this.engine.stampsFor(table, before, updated, this.writer));
       return { ...updated };
     });
+  }
+
+  async quoteVoid(table: "charges" | "payments" | "stay_credits", id: Id): Promise<{ refused: boolean; paid: number; total: number }> {
+    const row = this.world.get(table, id);
+    if (row === undefined) throw notFound("staff");
+    const stayOf = () => this.world.get("stays", row["stay_id"] as Id)!;
+    try {
+      return this.engine.dry(() => {
+        this.world.update(table, id, { voided: true });
+        return () => ({ refused: false, paid: Number(stayOf()["paid"]), total: Number(stayOf()["total"]) });
+      });
+    } catch (error) {
+      if (isApiError(error) && error.code === "BALANCE_EXCEEDED") return { refused: true, paid: Number(stayOf()["paid"]), total: Number(stayOf()["total"]) };
+      throw error;
+    }
   }
 
   // ── rooms ──────────────────────────────────────────────────────────────────

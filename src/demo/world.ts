@@ -12,6 +12,7 @@
 import bundleJson from "../../seeds/hotel.sample.json" with { type: "json" };
 import { resolveSample, settle, type SampleBundleRows } from "../data/sampleRows.ts";
 import type { Id, LiveFrame, Row } from "../data/wire.ts";
+import { randomCode } from "./engine.ts";
 
 export const DEMO_BUNDLE = bundleJson as unknown as SampleBundleRows;
 
@@ -55,6 +56,8 @@ export class World {
     this.now = now;
     const resolved = resolveSample(DEMO_BUNDLE, { now, zone: DEMO_ZONE, locale: "en-US", currency: DEMO_CURRENCY });
     this.rows = Object.fromEntries(TABLES.map((t) => [t, ((resolved[t] ?? []) as Row[]).map((row) => ({ ...row }))])) as Record<Table, Row[]>;
+    // A stay's link code is minted as the row goes in, the sample's rows as much as any.
+    for (const stay of this.rows.stays) if (stay["link_token"] === null || stay["link_token"] === undefined) stay["link_token"] = randomCode(16);
     this.nextIds = Object.fromEntries(TABLES.map((t) => [t, Math.max(0, ...this.rows[t].map((r) => r.id)) + 1])) as Record<Table, number>;
   }
 

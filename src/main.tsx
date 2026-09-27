@@ -1,19 +1,16 @@
 /*
  * Entry point.
  *
- * The four global stylesheets are imported here, before `App`, so the cascade
- * order is deterministic in the built bundle: tokens (custom properties) →
- * base (reset, fonts, behaviour classes) → components (shared UI) → screens
- * (view-specific rules, which therefore always win a tie).
+ * The demo build draws the house's screens (`app/HouseRoot.tsx`, with their
+ * own stylesheet). The connected and hosted builds load the earlier screens'
+ * four global stylesheets, in order, before `App`: tokens (custom
+ * properties) → base (reset, fonts, behaviour classes) → components (shared
+ * UI) → screens (view-specific rules, which therefore always win a tie).
  */
 
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import "./styles/tokens.css";
-import "./styles/base.css";
-import "./styles/components.css";
-import "./styles/screens.css";
 
 import { I18nProvider } from "./i18n/index.tsx";
 import { setDataSource } from "./data/source.ts";
@@ -119,7 +116,45 @@ function codeOf(reason: Error | null): string | null {
   return typeof code === "string" ? code : null;
 }
 
+/**
+ * The demo build: the house's screens on the demo's own Adminium, in this
+ * browser. `?side=desk` opens the desk (the demo card switches sides).
+ */
+async function bootDemo(mount: HTMLElement): Promise<void> {
+  const [{ DemoAdminium }, { HouseApp }, { HouseRoot }, { Scenes }, { startDemoBridge }] = await Promise.all([
+    import("./demo/adminium.ts"),
+    import("./app/house.ts"),
+    import("./app/HouseRoot.tsx"),
+    import("./demo/scenes.ts"),
+    import("./demoBridge.ts"),
+  ]);
+  const demo = new DemoAdminium();
+  const params = new URLSearchParams(window.location.search);
+  const side = params.get("side") === "desk" ? "desk" : "guest";
+  const dark = window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+  const app = new HouseApp({ guest: demo.guest, desk: demo.desk }, side, { lang: params.get("lang") ?? "en-US", theme: params.get("theme") === "dark" || (params.get("theme") === null && dark) ? "dark" : "light" });
+  app.demo = { onClock: (fn) => demo.onClock(fn) };
+  const scenes = new Scenes(app, demo);
+  (window as unknown as { __house?: unknown }).__house = { app, demo, scenes };
+  await app.start();
+  startDemoBridge(app, scenes);
+  createRoot(mount).render(
+    <StrictMode>
+      <HouseRoot app={app} />
+    </StrictMode>,
+  );
+}
+
 async function boot(): Promise<void> {
+  if (DEMO) {
+    await bootDemo(container as HTMLElement);
+    return;
+  }
+  // The connected and hosted builds still draw the earlier screens, with their stylesheets, in this order.
+  await import("./styles/tokens.css");
+  await import("./styles/base.css");
+  await import("./styles/components.css");
+  await import("./styles/screens.css");
   /*
    * A NON-DEMO BUILD NEVER RENDERS DEMO DATA.
    *

@@ -12,7 +12,6 @@
  */
 
 import { isEmbedded } from "../embed.ts";
-import { DEMO } from "../surface.ts";
 import { useMemo, useState } from "react";
 import {
   BedDouble,
@@ -108,29 +107,6 @@ function Brand({ sub }: { sub: MessageKey }) {
         <span className="wh-sidebar__name">{brand}</span>
         <span className="wh-sidebar__sub">{t(sub)}</span>
       </span>
-    </div>
-  );
-}
-
-/**
- * The demo's own footer — and ONLY the demo's.
- *
- * It named the app a demo beside an `adminium.dev/demo/<key>` chip. True of the
- * marketplace demo; a falsehood on an operator's own deployment, where it told
- * their staff and their customers that the thing they were working in was a
- * sample. It shipped that way in all eight locales, in the hosted bundles both.
- *
- * `DEMO` folds to a literal at build time (`surface.ts`), so in every other
- * build this markup is eliminated rather than merely skipped — the same rule
- * D24 applied to the demo dock, which this footer was simply missed by.
- */
-function Footer() {
-  const { t } = useI18n();
-  if (!DEMO) return null;
-  return (
-    <div className="wh-sidebar__foot">
-      {t("chrome.footer.copy")}
-      <span className="wh-sidebar__chip wh-mono">{t("chrome.footer.chip")}</span>
     </div>
   );
 }
@@ -250,7 +226,6 @@ function DeskShell({ children }: { children: React.ReactNode }) {
       <aside className="wh-sidebar">
         <Brand sub="chrome.brand.desk" />
         <NavList />
-        <Footer />
       </aside>
 
       {navOpen && (
@@ -275,7 +250,6 @@ function DeskShell({ children }: { children: React.ReactNode }) {
               </button>
             </div>
             <NavList onPick={() => setNavOpen(false)} />
-            <Footer />
           </div>
         </>
       )}
@@ -372,14 +346,6 @@ function GuestShell({ children }: { children: React.ReactNode }) {
           <MapPin size={13} aria-hidden="true" />
           {ADDRESS}
         </span>
-        {/* Demo-only, like the sidebar's <Footer/>. The address above it is
-            real content and stays in every build. */}
-        {DEMO && (
-          <>
-            <span>{t("chrome.footer.copy")}</span>
-            <span className="wh-sidebar__chip wh-mono">{t("chrome.footer.chip")}</span>
-          </>
-        )}
       </footer>
     </div>
   );

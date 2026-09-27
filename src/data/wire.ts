@@ -108,8 +108,9 @@ export interface ClaimReply {
 
 /**
  * One night of one pool, as the staff counts answer it: a room type's (or an
- * extra's) size that night, what is out of service, what is taken and what
- * is left. `left` below zero is a night over-sold.
+ * extra's) size that night — the rooms out of service already left out, and
+ * counted in `outOfService` — what is taken and what is left. `left` below
+ * zero is a night over-sold.
  */
 export interface NightCount {
   table: "stays" | "stay_extras";

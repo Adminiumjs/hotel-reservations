@@ -128,10 +128,12 @@ export interface DeskPort {
   /** A booking priced, written nowhere; and made. */
   quote(body: StayBody): Promise<QuoteReply>;
   book(body: StayBody): Promise<StayReply>;
-  /** A change to a stay priced, written nowhere; and made. */
-  quoteEdit(id: Id, values: Record<string, unknown>): Promise<QuoteReply>;
+  /** A change to a stay priced, written nowhere (its extras as ticked); and made. */
+  quoteEdit(id: Id, values: Record<string, unknown>, extras?: { extraId: Id; on: boolean }[]): Promise<QuoteReply>;
   edit(id: Id, values: Record<string, unknown>, expectTotal?: string): Promise<Row>;
 
+  /** An extra put on a stay, or dropped (and put back). */
+  setExtra(stayId: Id, extraId: Id, on: boolean): Promise<Row>;
   checkIn(id: Id, roomId: Id): Promise<Row>;
   checkOut(id: Id): Promise<Row>;
   /**
@@ -139,6 +141,8 @@ export interface DeskPort {
    * priced by Adminium (the stay is checked out after, once it is settled).
    */
   takeOffNights(id: Id, from: string): Promise<Row>;
+  /** What the stay would come to with the nights from `from` taken off, written nowhere. */
+  quoteTakeOff(id: Id, from: string): Promise<{ total: number; refused: boolean; data: Record<string, unknown>; credit: number }>;
   cancel(id: Id, code: "guest_asked" | "house"): Promise<Row>;
   noShow(id: Id): Promise<Row>;
   /** They came after all: back to booked, or checked in to a room, the missed night charged or not. */
@@ -148,14 +152,19 @@ export interface DeskPort {
   giveRoom(id: Id, roomId: Id | null): Promise<Row>;
   moveRoom(id: Id, roomId: Id): Promise<Row>;
 
-  addCharge(stayId: Id, charge: { itemId: Id } | { label: string; amount: string; note: string }): Promise<Row>;
+  addCharge(stayId: Id, charge: { itemId: Id; note?: string | null } | { label: string; amount: string; note: string }): Promise<Row>;
   recordPayment(stayId: Id, payment: { kind: "taken" | "given_back"; amount: string; method: "card" | "cash" | "transfer"; reference?: string | null; note?: string | null }): Promise<Row>;
   /** A manager's: a charge, a payment or a credit voided, with the reason. */
   voidRow(table: "charges" | "payments" | "stay_credits", id: Id, reason: string): Promise<Row>;
+  /** Whether a void would go through, written nowhere: refused when it would leave more paid than the stay costs. */
+  quoteVoid(table: "charges" | "payments" | "stay_credits", id: Id): Promise<{ refused: boolean; paid: number; total: number }>;
 
   setRoom(id: Id, values: { status?: "ready" | "cleaning" | "occupied"; note?: string | null }): Promise<Row>;
   closeRoom(values: { room_id: Id; from_date: string; to_date: string | null; reason: string | null }): Promise<Row>;
   endClosure(id: Id): Promise<Row>;
+
+  /** Ends the desk session (Adminium's own sign-out); the demo has none. */
+  signOut?(): Promise<void>;
 
   /** Every change the live stream announces; returns the unsubscribe. */
   subscribe(listener: (frame: LiveFrame) => void, onState?: (state: "live" | "reconnecting") => void): () => void;

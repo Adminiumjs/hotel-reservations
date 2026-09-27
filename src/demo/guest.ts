@@ -68,6 +68,8 @@ export class DemoGuest implements GuestPort {
   private challenge: { email: string; tries: number; lockedUntil: number } | null = null;
   private readonly keys = new Map<string, Id>();
   fault: GuestFault = null;
+  /** The demo card's "the house does not answer" on a search: the next availability read fails. */
+  readsDown = false;
 
   readonly engine: Engine;
   readonly latency: Latency;
@@ -111,6 +113,10 @@ export class DemoGuest implements GuestPort {
 
   async availability(q: NightQuestion): Promise<NightAnswer> {
     await this.wait(this.latency.read);
+    if (this.readsDown) {
+      this.readsDown = false;
+      throw new ApiError(0, "PUBLIC_NETWORK_UNAVAILABLE", "The house did not answer.");
+    }
     const exclude = q.exclude !== undefined && this.ownStay(q.exclude, false) !== undefined ? q.exclude : undefined;
     return this.engine.availability({ ...q, ...(exclude === undefined ? {} : { exclude }) });
   }
