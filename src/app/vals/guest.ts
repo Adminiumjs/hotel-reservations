@@ -6,8 +6,8 @@
  * availability and every price from its dry run.
  */
 import type { NightAnswer, QuoteReply, TypeAvailability } from "../../data/wire.ts";
-import { locale, tr } from "../../i18n/tr.ts";
-import { days, dow, fD, fDW, fT, guestsW, iso, money, money0, nights, nightsOf, people, plus, strip, taxWords } from "../fmt.ts";
+import { key, locale, tr } from "../../i18n/tr.ts";
+import { days, dow, fD, fDW, fT, guestsW, fsi, iso, money, money0, nights, nightsOf, people, plus, strip, taxWords } from "../fmt.ts";
 import { okEmail, type HouseApp } from "../house.ts";
 import type { ExtraV, StV, TypeV, WorldV } from "../world.ts";
 
@@ -52,11 +52,11 @@ export function floorSpread(floors: number[]): string {
 }
 
 /** The times a guest may say they will come. */
-export function timeOptions(current: string) {
+export function timeOptions(current: string, lateNote = "") {
   const list = ["15:00", "16:00", "17:00", "18:00", "19:00", "20:00", "21:00", "22:00", "22:30"];
   if (current && !list.includes(current)) list.push(current);
   list.sort();
-  return list.map((t) => ({ value: t, label: t === "22:30" ? tr("After 22:00 — we will leave your key") : t === "15:00" ? tr("{time} — as early as we can", { time: strip(fT(t)) }) : strip(fT(t)) }));
+  return list.map((t) => ({ value: t, label: t === "22:30" ? lateNote || tr("After 22:00 — we will leave your key") : t === "15:00" ? tr("{time} — as early as we can", { time: strip(fT(t)) }) : strip(fT(t)) }));
 }
 
 /** An extra's line: what it is and how it adds up on a stay. */
@@ -95,7 +95,7 @@ export function cancelStage(app: HouseApp, arrive: string, cancelBy?: number | n
 }
 export function momentWords(app: HouseApp, arrive: string, cancelBy?: number | null): string {
   const m = cancelMoment(app, arrive, cancelBy);
-  return iso(tr("{time} on {day}", { time: strip(fT(m.time)), day: strip(fDW(m.day)) }));
+  return fsi(tr("{time} on {day}", { time: strip(fT(m.time)), day: strip(fDW(m.day)) }));
 }
 export function cancelNote(app: HouseApp, arrive: string, booked: boolean, cancelBy?: number | null): string {
   const H = app.world()!.H;
@@ -226,17 +226,17 @@ export function guestVals(app: HouseApp, w: WorldV): V {
       code: t.code,
       long: t.long,
       sleeps: sleepsLine(t.sleeps),
-      count: iso(tr("{n} of them", { n: mine.length })),
+      count: fsi(tr("{n} of them", { n: mine.length })),
       from: money0(t.base),
       fromNote: tr("on a quiet weeknight — weekends and some seasons are dearer"),
       has: t.has.map((h) => ({ label: h, icon: hasIcon(h) })),
       hasOpenNote: s.searched && problem === null && answer !== undefined && byType.has(t.id),
       openNote:
         left === Number.POSITIVE_INFINITY
-          ? iso(tr("Open for {range}", { range }))
+          ? fsi(tr("Open for {range}", { range }))
           : left > 0
-            ? iso(tr("{n} left for {range}", { n: left, range }))
-            : iso(tr("Nothing open for {range}", { range })),
+            ? fsi(tr("{n} left for {range}", { n: left, range }))
+            : fsi(tr("Nothing open for {range}", { range })),
       numbers: iso(mine.map((r) => r.n).join("   ")),
       floors: floorSpread(mine.map((r) => r.floor)),
       goType: () => app.go("type", { pickedType: t.id }),
@@ -254,7 +254,7 @@ export function guestVals(app: HouseApp, w: WorldV): V {
     return {
       name: t.name,
       flat: t.flat,
-      count: tonight === undefined ? iso("…") : a?.left !== undefined ? iso(String(a.left)) : open ? iso(tr("open")) : iso("0"),
+      count: tonight === undefined ? iso("…") : a?.left !== undefined ? iso(String(a.left)) : open ? fsi(tr("open")) : iso("0"),
       fg: open ? "var(--fg)" : "var(--fg-subtle)",
       opacity: open || tonight === undefined ? "1" : ".55",
     };
@@ -363,7 +363,7 @@ export function guestVals(app: HouseApp, w: WorldV): V {
       sticky: narrow ? "static" : "sticky",
       tint: pt.tint,
       icon: pt.icon,
-      chip: `${pt.code} · ${sleepsLine(pt.sleeps).toLowerCase()}`,
+      chip: `${pt.code} · ${tr("sleeps {n}", { n: pt.sleeps })}`,
       hasLeft: left > 0 && left <= 4,
       leftText: tr("{n} left", { n: left }),
       leftBg: left <= 2 ? "var(--warn)" : "rgba(10,10,15,.42)",
@@ -573,7 +573,7 @@ function offer(app: HouseApp, t: TypeV, a: TypeAvailability | undefined, q: Quot
     tint: t.tint,
     tileOpacity: open ? "1" : ".45",
     icon: t.icon,
-    chip: `${t.code} · ${sleepsLine(t.sleeps).toLowerCase()}`,
+    chip: `${t.code} · ${tr("sleeps {n}", { n: t.sleeps })}`,
     hasLeft: open && left <= 4,
     leftText: tr("{n} left", { n: left }),
     leftBg: left <= 2 ? "var(--warn)" : "rgba(10,10,15,.42)",
@@ -676,7 +676,7 @@ function reserveVals(app: HouseApp, w: WorldV, pt: TypeV, n: number, guests: num
     emailInv: emailErr ? "true" : "false",
     emailBorder: emailErr ? "var(--danger)" : "var(--border-strong)",
     arrivalTime: f.arrivalTime,
-    times: timeOptions(f.arrivalTime),
+    times: timeOptions(f.arrivalTime, w.H.lateArrival),
     extras: w.extras.map((e: ExtraV) => {
       const on = !!f.extras[e.id];
       const amount = e.per === "person_night" ? e.amount * guests * Math.max(0, n) : e.per === "night" ? e.amount * Math.max(0, n) : e.amount;
@@ -738,12 +738,10 @@ function oneVals(app: HouseApp, w: WorldV, st: StV, gp: (x: StV) => [string, str
   const live = booked && !cut;
   const n = nightsOf(st.arrive, st.depart);
   const paid = st.m.paid;
+  // A note with {phone} is drawn with the house's number as a link (`trx` in the view): its English is the key.
   let deadNote = "";
-  let deadAfter = ".";
-  if (booked && st.arrive < today) {
-    deadNote = tr("We expected you yesterday — ring us on ");
-    deadAfter = tr(" so we keep your room.");
-  } else if (booked && cut) deadNote = tr("It is your arrival day. Anything to change, ring us on ");
+  if (booked && st.arrive < today) deadNote = key("We expected you yesterday — ring us on {phone} so we keep your room.");
+  else if (booked && cut) deadNote = key("It is your arrival day. Anything to change, ring us on {phone}.");
   else if (st.state === "in") deadNote = tr("You are with us — anything you need, ask at the desk.");
   else if (st.state === "out") deadNote = tr("This stay has finished.");
   else if (st.state === "cancelled") deadNote = st.cancelCode === "house" ? tr("We had to cancel this stay on {day}. Ring us on {phone} and we will help you find another room.", { day: strip(fDW(st.cancelled?.date ?? today)), phone: H.phone }) : tr("Cancelled on {day}.", { day: strip(fDW(st.cancelled?.date ?? today)) });
@@ -776,18 +774,17 @@ function oneVals(app: HouseApp, w: WorldV, st: StV, gp: (x: StV) => [string, str
     live,
     dead: !live,
     deadNote,
-    deadAfter,
     deadPhone: booked && cut,
     phone: H.phone,
     outside: live && !inside,
     inside: live && inside,
     lineMoment: momentWords(app, st.arrive, st.cancelBy),
-    cutMoment: iso(tr("{time} on {day}", { time: strip(fT(H.arriveFrom)), day: strip(fDW(st.arrive)) })),
+    cutMoment: fsi(tr("{time} on {day}", { time: strip(fT(H.arriveFrom)), day: strip(fDW(st.arrive)) })),
     outsideMsg: tr("Cancel at no charge until {moment}.", { moment: strip(momentWords(app, st.arrive, st.cancelBy)) }),
     insideMsg: tr("You are inside the two days before your arrival. You can still cancel until {time} on {day}; it will be marked as a late cancellation. Nothing is charged.", { time: strip(fT(H.arriveFrom)), day: strip(fDW(st.arrive)) }),
     daysAhead: st.state !== "booked" ? "" : st.arrive > today ? tr("{days} from today", { days: strip(days(nightsOf(today, st.arrive))) }) : st.arrive === today ? tr("Today") : "",
     arrivalTime: st.arrivalTime,
-    times: timeOptions(st.arrivalTime),
+    times: timeOptions(st.arrivalTime, H.lateArrival),
     onTime: (e: { target: { value: string } }) => void app.changeTime(st, e.target.value),
     extras: w.extras.map((e) => {
       const on = st.extras.includes(e.id);
@@ -909,7 +906,6 @@ export function chgVals(app: HouseApp, w: WorldV): V {
       lineFg: stage === "outside" ? "var(--pos)" : "var(--warn)",
       lineIcon: stage === "outside" ? "shield-check" : "triangle-alert",
       roomKeptOn: roomRefused,
-      roomKept: tr("Your room is kept for your current dates. To move them, ring us on "),
       movedOn: c.moved,
       movedMsg: tr("The price is now {total} — change at this price?", { total: strip(money(total)) }),
       busy: c.busy,

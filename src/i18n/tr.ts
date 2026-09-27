@@ -58,3 +58,6 @@ export function tr(en: string, params?: Record<string, string | number>): string
   if (params === undefined) return raw;
   return raw.replace(/\{(\w+)\}/g, (m, name: string) => (name in params ? String(params[name]) : m));
 }
+
+/** A sentence translated where it is drawn (a view's `trx`), marked so the catalog finds it. */
+export const key = (en: string): string => en;

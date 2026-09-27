@@ -11,6 +11,10 @@
 import type { DeskHouse, House, StayWithLines } from "../data/ports.ts";
 import type { Id, Row } from "../data/wire.ts";
 import { venueDay, venueMinutes } from "../lib/venueTime.ts";
+import { fsi } from "./fmt.ts";
+
+/** The house's own words, as it wrote them: one run in their own direction wherever the page reads right to left. */
+const own = (v: unknown): string => (v === null || v === undefined || v === "" ? "" : fsi(String(v)));
 
 export type StateKey = "booked" | "in" | "out" | "cancelled" | "noshow";
 
@@ -211,14 +215,14 @@ export function houseOf(settings: Row): HouseV {
     tel: `tel:${phone.replace(/[^0-9+]/g, "")}`,
     email: str(settings["email"]),
     since: settings["since"] === null || settings["since"] === undefined ? null : n(settings["since"]),
-    about: str(settings["about"]),
-    finding: str(settings["finding"]),
-    morning: str(settings["morning"]),
-    train: str(settings["directions_train"]),
-    car: str(settings["directions_car"]),
-    foot: str(settings["directions_foot"]),
+    about: own(settings["about"]),
+    finding: own(settings["finding"]),
+    morning: own(settings["morning"]),
+    train: own(settings["directions_train"]),
+    car: own(settings["directions_car"]),
+    foot: own(settings["directions_foot"]),
     breakfastHours: str(settings["breakfast_hours"]),
-    lateArrival: str(settings["late_arrival_note"]),
+    lateArrival: own(settings["late_arrival_note"]),
     arriveFrom: str(settings["arrive_from"]) || "15:00",
     leaveBy: str(settings["leave_by"]) || "11:00",
     lateUntil: str(settings["late_until"]) || "14:00",
@@ -252,9 +256,9 @@ export function worldOf(house: House | DeskHouse, stays: StayWithLines[], zone: 
       flat,
       tint: tintOf(flat),
       icon: str(t["icon"]) || "bed-double",
-      line: str(t["blurb"]),
-      long: str(t["description"]),
-      has: house.features.filter((f) => f["room_type_id"] === t.id).sort((a, b) => n(a["position"]) - n(b["position"])).map((f) => str(f["feature"])),
+      line: own(t["blurb"]),
+      long: own(t["description"]),
+      has: house.features.filter((f) => f["room_type_id"] === t.id).sort((a, b) => n(a["position"]) - n(b["position"])).map((f) => own(f["feature"])),
     };
   });
   const closures = "closures" in house ? house.closures : [];
@@ -275,7 +279,7 @@ export function worldOf(house: House | DeskHouse, stays: StayWithLines[], zone: 
     code: str(e["code"]),
     label: str(e["label"]),
     short: str(e["short"]) || str(e["label"]),
-    how: str(e["how"]),
+    how: own(e["how"]),
     icon: str(e["icon"]) || "sparkles",
     amount: n(e["amount"]),
     per: (str(e["per"]) || "night") as ExtraV["per"],
@@ -390,7 +394,7 @@ export function worldOf(house: House | DeskHouse, stays: StayWithLines[], zone: 
     rooms,
     extras,
     items,
-    notes: house.notes.map((x) => ({ icon: str(x["icon"]) || "info", text: str(x["text"]) })),
+    notes: house.notes.map((x) => ({ icon: str(x["icon"]) || "info", text: own(x["text"]) })),
     stays: staysV,
   };
 }

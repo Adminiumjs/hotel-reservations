@@ -7,7 +7,9 @@
  * win over the inline style; an icon is a Lucide SVG filling the span the
  * design sized for it.
  */
-import type { CSSProperties } from "react";
+import { Fragment, type CSSProperties, type ReactNode } from "react";
+
+import { tr } from "../i18n/tr.ts";
 
 import { ICONS } from "./icons.ts";
 
@@ -87,4 +89,17 @@ export function fx(hover: string | null, active: string | null): string {
 export function Icon({ name }: { name: string | null | undefined }) {
   const Svg = ICONS[name ?? ""] ?? ICONS["circle"]!;
   return <Svg width="100%" height="100%" strokeWidth={2} aria-hidden="true" focusable="false" />;
+}
+
+/**
+ * A whole sentence with parts drawn in it — a telephone link, a figure in the
+ * mono face: the sentence is translated as one (`tr`), then each `{name}` in
+ * the reader's words is replaced by its part. `n` picks a plural variant.
+ */
+export function trx(en: string, parts: Record<string, ReactNode>, n?: number): ReactNode {
+  const words = tr(en, n === undefined ? undefined : { n });
+  return words.split(/(\{\w+\})/).map((piece, i) => {
+    const name = /^\{(\w+)\}$/.exec(piece)?.[1];
+    return <Fragment key={i}>{name !== undefined && name in parts ? parts[name] : piece}</Fragment>;
+  });
 }

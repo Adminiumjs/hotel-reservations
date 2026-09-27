@@ -8,10 +8,10 @@ import type { NightCount, QuoteReply } from "../../data/wire.ts";
 import type { Id } from "../../data/wire.ts";
 import { LOCALE_TAGS } from "../../i18n/locales.ts";
 import { tr } from "../../i18n/tr.ts";
-import { dow, fD, fDW, fLong, fT, fWd, guestsW, iso, money, nights, nightsOf, pct, plus, runMoney, strip, taxWords } from "../fmt.ts";
+import { dow, fD, fDW, fLong, fT, fWd, guestsW, fsi, iso, money, nights, nightsOf, pct, plus, runMoney, strip, taxWords } from "../fmt.ts";
 import { okEmail, type HouseApp, type View } from "../house.ts";
 import type { RoomV, StV, WorldV } from "../world.ts";
-import { creditLabel, extraDetail, pillOf, sleepsLine, timeOptions } from "./guest.ts";
+import { creditLabel, extraDetail, pillOf, timeOptions } from "./guest.ts";
 
 type V = Record<string, unknown>;
 export type RoomState = "ready" | "occupied" | "cleaning" | "oos";
@@ -20,6 +20,16 @@ export const statusWord = (k: RoomState): string =>
   k === "ready" ? tr("Ready") : k === "occupied" ? tr("Occupied") : k === "cleaning" ? tr("Being cleaned") : tr("Out of service");
 export const STATUS_COLOR: Record<RoomState, string> = { ready: "var(--pos)", occupied: "var(--accent)", cleaning: "var(--warn)", oos: "var(--fg-subtle)" };
 
+/** A room's state inside a sentence ("12 ready of 34"). */
+export const statusInLine = (k: RoomState): string =>
+  k === "ready" ? tr("ready") : k === "occupied" ? tr("occupied") : k === "cleaning" ? tr("being cleaned") : tr("out of service");
+/** A floor inside a sentence ("Room 203 · second floor"). */
+export function floorInLine(fl: number): string {
+  if (fl === 1) return tr("first floor");
+  if (fl === 2) return tr("second floor");
+  if (fl === 3) return tr("third floor");
+  return tr("floor {n}", { n: fl });
+}
 export function floorName(fl: number): string {
   if (fl === 1) return tr("First floor");
   if (fl === 2) return tr("Second floor");
@@ -228,7 +238,7 @@ export function deskVals(app: HouseApp, w: WorldV): V {
   // ── Today
   v["kpis"] = [
     { id: "k1", label: tr("Occupancy tonight"), value: sellAll ? pct(soldN / sellAll) : iso("—"), sub: tr("of the {n} rooms we can sell", { n: sellAll }), fg: "var(--accent)" },
-    { id: "k2", label: tr("Rooms sold"), value: iso(tr("{sold} of {n}", { sold: soldN, n: sellAll })), sub: tr("{n} out of service", { n: oosN }), fg: "var(--fg)" },
+    { id: "k2", label: tr("Rooms sold"), value: fsi(tr("{sold} of {n}", { sold: soldN, n: sellAll })), sub: tr("{n} out of service", { n: oosN }), fg: "var(--fg)" },
     { id: "k3", label: tr("Arrivals"), value: iso(String(arrivalsAll.length)), sub: tr("{n} still to come", { n: arrivingNow.length }), fg: "var(--fg)" },
     {
       id: "k4",
@@ -239,7 +249,7 @@ export function deskVals(app: HouseApp, w: WorldV): V {
     },
     { id: "k5", label: tr("Average rate"), value: rn ? money(Math.round((rsum / rn) * 100) / 100) : iso("—"), sub: tr("a night, over tonight's stays"), fg: "var(--fg)" },
   ];
-  v["parkingTonight"] = iso(tr("{taken} of {spaces}", { taken: park.taken, spaces: park.spaces }));
+  v["parkingTonight"] = fsi(tr("{taken} of {spaces}", { taken: park.taken, spaces: park.spaces }));
   const cardOf = (st: StV, kind: "due" | "arriving" | "inhouse" | "leaving") => {
     const t = w.typeById[st.type]!;
     const n = nightsOf(st.arrive, st.depart);
@@ -289,12 +299,12 @@ export function deskVals(app: HouseApp, w: WorldV): V {
         sub: iso(`${st.ref} · ${strip(nights(n))}`),
         pill: expected
           ? tr("Expected {day}", { day: strip(fDW(st.expectBy!)) })
-          : st.arrivalTime === "22:30" ? tr("After 22:00") : st.arrivalTime === H.arriveFrom ? iso(tr("From {time}", { time: strip(fT(st.arrivalTime)) })) : iso(tr("Said {time}", { time: strip(fT(st.arrivalTime)) })),
+          : st.arrivalTime === "22:30" ? tr("After 22:00") : st.arrivalTime === H.arriveFrom ? fsi(tr("From {time}", { time: strip(fT(st.arrivalTime)) })) : fsi(tr("Said {time}", { time: strip(fT(st.arrivalTime)) })),
         pillBg: k[0],
         pillFg: k[1],
         meta:
           tr("{type} · {guests} · leaves {day}", { type: t.name, guests: strip(guestsW(st.guests)), day: strip(fD(st.depart)) }) +
-          (st.given && st.room !== null ? tr(" · room {room} given ahead", { room: st.room }) : ""),
+          (st.given && st.room !== null ? ` · ${tr("room {room} given ahead", { room: st.room })}` : ""),
         primaryLabel: tr("Check in"),
         primary: () => app.openCheckin(st.id),
       };
@@ -302,7 +312,7 @@ export function deskVals(app: HouseApp, w: WorldV): V {
     if (kind === "inhouse") {
       return {
         ...c,
-        sub: iso(tr("Room {room} · night {i} of {n}", { room: st.room ?? "—", i: Math.max(1, nightsOf(st.arrive, today) + 1), n })),
+        sub: fsi(tr("Room {room} · night {i} of {n}", { room: st.room ?? "—", i: Math.max(1, nightsOf(st.arrive, today) + 1), n })),
         pill: runMoney(bal),
         pillBg: "var(--surface-3)",
         pillFg: "var(--fg-muted)",
@@ -320,8 +330,8 @@ export function deskVals(app: HouseApp, w: WorldV): V {
     return {
       ...c,
       lateOn: false,
-      sub: iso(tr("Room {room} · {ref}", { room: st.room ?? "—", ref: st.ref })),
-      pill: gone ? iso(tr("Checked out at {time}", { time: strip(fT(st.checkedOut?.time ?? "")) })) : overdue ? tr("Due now") : iso(tr("By {time}", { time: strip(fT(by)) })),
+      sub: fsi(tr("Room {room} · {ref}", { room: st.room ?? "—", ref: st.ref })),
+      pill: gone ? fsi(tr("Checked out at {time}", { time: strip(fT(st.checkedOut?.time ?? "")) })) : overdue ? tr("Due now") : fsi(tr("By {time}", { time: strip(fT(by)) })),
       pillBg: k[0],
       pillFg: k[1],
       meta: `${t.name} · ${bal > 0.004 ? tr("{amount} to settle", { amount: strip(money(bal)) }) : tr("settled up")}`,
@@ -408,6 +418,7 @@ export function deskVals(app: HouseApp, w: WorldV): V {
   const match = (x: StV, needle: string) => x.name.toLowerCase().includes(needle) || x.ref.toLowerCase().includes(needle) || x.email.toLowerCase().includes(needle);
   const hitsAll = q.length < 2 ? [] : stays.filter((x) => match(x, q));
   v["deskQuery"] = s.deskQuery;
+  v["refExample"] = stays.slice().sort((p, q) => q.arrive.localeCompare(p.arrive))[0]?.ref ?? "";
   v["onDeskQuery"] = (e: { target: { value: string } }) => app.setState({ deskQuery: e.target.value });
   v["onDeskQueryKey"] = (e: { key: string }) => {
     if (e.key === "Escape") app.setState({ deskQuery: "" });
@@ -445,8 +456,8 @@ export function deskVals(app: HouseApp, w: WorldV): V {
   v["rackFiltered"] = s.rackFilter !== null;
   v["rackFilterNote"] =
     s.rackFilter !== null
-      ? iso(tr("{n} {status} of {all}", { n: rooms.filter((r) => statusOf(r) === s.rackFilter).length, status: statusWord(s.rackFilter as RoomState).toLowerCase(), all: rooms.length }))
-      : iso(tr("{n} rooms", { n: rooms.length }));
+      ? fsi(tr("{n} {status} of {all}", { n: rooms.filter((r) => statusOf(r) === s.rackFilter).length, status: statusInLine(s.rackFilter as RoomState), all: rooms.length }))
+      : fsi(tr("{n} rooms", { n: rooms.length }));
   v["clearRackFilter"] = () => app.setState({ rackFilter: null });
   const floors = [...new Set(rooms.map((r) => r.floor))].sort((a, b) => a - b);
   v["rackFloors"] = floors.map((fl) => {
@@ -455,7 +466,7 @@ export function deskVals(app: HouseApp, w: WorldV): V {
       id: `f${String(fl)}`,
       title: floorName(fl),
       display: rs.length === 0 ? "none" : "block",
-      sub: s.rackFilter !== null ? iso(tr("{n} of them here", { n: rs.length })) : iso(tr("{n} rooms · {ready} ready", { n: rs.length, ready: rs.filter((r) => statusOf(r) === "ready").length })),
+      sub: s.rackFilter !== null ? fsi(tr("{n} of them here", { n: rs.length })) : fsi(tr("{n} rooms · {ready} ready", { n: rs.length, ready: rs.filter((r) => statusOf(r) === "ready").length })),
       rooms: rs.map((r) => {
         const t = w.typeById[r.type]!;
         const k = statusOf(r);
@@ -474,10 +485,10 @@ export function deskVals(app: HouseApp, w: WorldV): V {
           hasWho: !hk && who !== null,
           who: who === null ? "" : tr("{name} · to {day}", { name: who.last || who.name, day: strip(fD(who.depart)) }),
           hasReason: cl !== undefined,
-          reason: cl === undefined ? "" : (cl.reason ?? tr("Out of service")) + (cl.to !== null ? tr(" · back {day}", { day: strip(fD(plus(cl.to, 1))) }) : ""),
+          reason: cl === undefined ? "" : (cl.reason ?? tr("Out of service")) + (cl.to !== null ? " · " + tr("back {day}", { day: strip(fD(plus(cl.to, 1))) }) : ""),
           hasNote: cl === undefined && r.note !== null && k === "ready" && !hk,
           note: r.note ?? "",
-          label: tr("Room {room}, {type}, {status}", { room: r.n, type: t.name, status: statusWord(k).toLowerCase() }),
+          label: tr("Room {room}, {type}, {status}", { room: r.n, type: t.name, status: statusInLine(k) }),
           canReady: k === "cleaning",
           canClean: hk && k === "ready",
           open: () => {
@@ -563,7 +574,7 @@ export function deskVals(app: HouseApp, w: WorldV): V {
       cols: narrow ? "1fr" : "1fr 1fr",
       arrCount: String(arr.length),
       depCount: String(dep.length),
-      parking: iso(tr("{taken} of {spaces}", { taken: p.taken, spaces: p.spaces })),
+      parking: fsi(tr("{taken} of {spaces}", { taken: p.taken, spaces: p.spaces })),
       arrivals: arr.map((x) => ({ id: x.ref, name: x.name, flat: w.typeById[x.type]!.flat, sub: iso(`${x.ref} · ${strip(nights(nightsOf(x.arrive, x.depart)))} · ${w.typeById[x.type]!.code}`), go: () => app.openFolio(x.id, "calendar") })),
       departures: dep.map((x) => ({
         id: x.ref,
@@ -639,7 +650,7 @@ export function deskVals(app: HouseApp, w: WorldV): V {
   v["resEmptyText"] = rq ? tr("Nobody matching “{q}” here.", { q: s.resQuery }) : af.empty;
   v["resMore"] = shown.length > s.resLimit;
   v["showMore"] = () => app.setState({ resLimit: app.state.resLimit + 50 });
-  v["resCount"] = iso(tr("{shown} of {n} shown · {all} on the books", { shown: Math.min(shown.length, s.resLimit), n: shown.length, all: stays.length }));
+  v["resCount"] = fsi(tr("{shown} of {n} shown · {all} on the books", { shown: Math.min(shown.length, s.resLimit), n: shown.length, all: stays.length }));
 
   // ── the folio
   const fst = app.stay(s.folioId);
@@ -739,7 +750,7 @@ function nbVals(app: HouseApp, w: WorldV): V {
         name: x.name,
         tintFlat: x.flat,
         icon: x.icon,
-        sleeps: sleepsLine(x.sleeps).toLowerCase(),
+        sleeps: tr("sleeps {n}", { n: x.sleeps }),
         pressed: on ? "true" : "false",
         left: tooSmall ? tr("too small for {n}", { n: nb.guests }) : left > 0 ? tr("{n} open", { n: left }) : tr("nothing open"),
         leftFg: left > 0 && !tooSmall ? "var(--pos)" : "var(--fg-subtle)",
@@ -777,7 +788,7 @@ function nbVals(app: HouseApp, w: WorldV): V {
     lastErr: nbLastErr,
     lastInv: nbLastErr ? "true" : "false",
     lastBorder: nbLastErr ? "var(--danger)" : "var(--border-strong)",
-    times: timeOptions(nb.arrivalTime),
+    times: timeOptions(nb.arrivalTime, w.H.lateArrival),
     arrivalTime: nb.arrivalTime,
     extras: w.extras.map((e) => {
       const on = !!nb.extras[e.id];
@@ -958,12 +969,12 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
       label: back ? tr("Given back · {how} · recorded by {name}", { how, name: p.by }) : tr("{how} · recorded by {name}", { how, name: p.by }),
       amount: back ? iso(`+ ${strip(money(p.amount))}`) : iso(`− ${strip(money(p.amount))}`),
       balance: runMoney(run),
-      detail: p.voided ? tr("Voided — {reason}", { reason: p.voidReason }) : strip(fDW(p.date)) + (p.refNo ? tr(" · ref {ref}", { ref: p.refNo }) : "") + (p.note ? ` · ${p.note}` : ""),
+      detail: p.voided ? tr("Voided — {reason}", { reason: p.voidReason }) : strip(fDW(p.date)) + (p.refNo ? ` · ${tr("ref {ref}", { ref: p.refNo })}` : "") + (p.note ? ` · ${p.note}` : ""),
       strike: p.voided ? "line-through" : "none",
       amountFg: p.voided ? "var(--fg-subtle)" : back ? "var(--warn)" : "var(--pos)",
       labelFg: p.voided ? "var(--fg-subtle)" : "var(--fg)",
       rowBg: "var(--surface-2)",
-      ...(p.voided ? {} : voidable(`pay:${String(p.id)}`, { table: "payments", id: p.id, amount: p.amount, what: how.toLowerCase(), isPay: true, stay: fst.id })),
+      ...(p.voided ? {} : voidable(`pay:${String(p.id)}`, { table: "payments", id: p.id, amount: p.amount, what: p.method === "cash" ? tr("cash") : p.method === "transfer" ? tr("transfer") : tr("card"), isPay: true, stay: fst.id })),
     });
   });
   const bal = fst.m.balance;
@@ -1009,7 +1020,7 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
     nightsLabel: nights(nightsOf(fst.arrive, fst.depart)),
     roomLine:
       fst.room !== null
-        ? tr("Room {room} · {floor}", { room: fst.room, floor: rm === null ? "" : floorName(rm.floor).toLowerCase() }) + (fst.given && fst.state === "booked" ? tr(" · given ahead") : "")
+        ? tr("Room {room} · {floor}", { room: fst.room, floor: rm === null ? "" : floorInLine(rm.floor) }) + (fst.given && fst.state === "booked" ? ` · ${tr("given ahead")}` : "")
         : fst.state === "booked"
           ? tr("No room given yet — the desk gives one when they arrive")
           : t.name,
@@ -1022,7 +1033,7 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
     ],
     onTheDay:
       fst.state === "cancelled"
-        ? tr("Cancelled on {day}", { day: strip(fDW(fst.cancelled?.date ?? today)) }) + (fst.late ? tr(" · late") : "")
+        ? tr("Cancelled on {day}", { day: strip(fDW(fst.cancelled?.date ?? today)) }) + (fst.late ? ` · ${tr("late")}` : "")
         : fst.state === "noshow"
           ? tr("Marked as a no-show on {day} {time}", { day: strip(fDW(fst.noShow?.date ?? today)), time: strip(fT(fst.noShow?.time ?? "")) })
           : fst.state === "out"
@@ -1035,7 +1046,7 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
                   ? tr("Expected {day} — the room is kept.", { day: strip(fDW(fst.expectBy)) })
                   : tr("Arrives {day}, from {time}.", { day: strip(fDW(fst.arrive)), time: strip(fT(w.H.arriveFrom)) }),
     dueLabel: dead ? (paid > 0.004 ? tr("To give back") : tr("Nothing owing")) : bal > 0.004 ? tr("Balance to settle") : bal < -0.004 ? tr("To give back") : tr("Nothing owing"),
-    balance: dead ? (paid > 0.004 ? iso(tr("{amount} to give back", { amount: strip(money(paid)) })) : money(0)) : bal < -0.004 ? iso(tr("{amount} to give back", { amount: strip(money(-bal)) })) : money(Math.max(0, bal)),
+    balance: dead ? (paid > 0.004 ? fsi(tr("{amount} to give back", { amount: strip(money(paid)) })) : money(0)) : bal < -0.004 ? fsi(tr("{amount} to give back", { amount: strip(money(-bal)) })) : money(Math.max(0, bal)),
     dueAmount: dead ? money(paid) : money(Math.abs(bal)),
     balFg: dead ? (paid > 0.004 ? "var(--warn)" : "var(--pos)") : bal > 0.004 ? (fst.depart === today ? "var(--danger)" : "var(--fg)") : bal < -0.004 ? "var(--warn)" : "var(--pos)",
     giveBackOn: giveBack > 0.004 && fst.state !== "in" && fst.state !== "booked",

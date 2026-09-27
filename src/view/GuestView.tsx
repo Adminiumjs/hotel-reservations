@@ -3,7 +3,7 @@
 import { Fragment } from "react";
 
 import { tr } from "../i18n/tr.ts";
-import { fx, Icon, st } from "./dom.tsx";
+import { fx, Icon, st, trx } from "./dom.tsx";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function GuestView({ v }: { v: any }) {
@@ -103,7 +103,7 @@ export function GuestView({ v }: { v: any }) {
                       </h2>
                       {" "}
                       <span style={st("font-size:12.5px;color:var(--fg-subtle)")}>
-                        {tr("Arrive from")}{" "}{v.arriveFrom}{" "}{tr("· leave by")}{" "}{v.leaveBy}
+                        {tr("Arrive from {from} · leave by {by}", { from: v.arriveFrom, by: v.leaveBy })}
                       </span>
                     </div>
                     {" "}
@@ -130,21 +130,11 @@ export function GuestView({ v }: { v: any }) {
                         </span>
                         {" "}
                         <select value={v.sGuests} onChange={v.onGuests} style={st("padding:10px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2);font-size:13.5px;cursor:pointer")}>
-                          <option value="1">
-                            {tr("1 guest")}
-                          </option>
-                          {" "}
-                          <option value="2">
-                            {tr("2 guests")}
-                          </option>
-                          {" "}
-                          <option value="3">
-                            {tr("3 guests")}
-                          </option>
-                          {" "}
-                          <option value="4">
-                            {tr("4 guests")}
-                          </option>
+                          {[1, 2, 3, 4].map((g) => (
+                            <option key={g} value={String(g)}>
+                              {tr("{n} guest|{n} guests", { n: g })}
+                            </option>
+                          ))}
                         </select>
                       </label>
                       {" "}
@@ -159,7 +149,7 @@ export function GuestView({ v }: { v: any }) {
                       </span>
                       {" "}
                       <span style={st("font-size:12.5px;color:var(--fg-muted)")}>
-                        {tr("A stay here runs from one night to")}{" "}{v.maxNights}{"."}
+                        {tr("A stay here runs from one night to {n}.", { n: v.maxNights })}
                       </span>
                     </div>
                     {" "}
@@ -231,11 +221,7 @@ export function GuestView({ v }: { v: any }) {
                       </p>
                       {" "}
                       <div style={st("font-size:13px;color:var(--fg-subtle);line-height:1.6")}>
-                        {tr("A proper breakfast in the dining room is")}{" "}
-                        <strong style={st("color:var(--fg-muted);font-weight:700")}>
-                          {v.breakfastHow}
-                        </strong>
-                        {" "}{tr("— add it when you reserve or later on.")}
+                        {trx("A proper breakfast in the dining room is {how} — add it when you reserve or later on.", { how: <strong style={st("color:var(--fg-muted);font-weight:700")}>{v.breakfastHow}</strong> })}
                       </div>
                     </div>
                     {" "}
@@ -326,11 +312,7 @@ export function GuestView({ v }: { v: any }) {
                               <div style={st("display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-block-start:18px;padding-block-start:15px;border-block-start:1px solid var(--border)")}>
                                 <div>
                                   <div style={st("font-size:12.5px;font-weight:600;color:var(--fg-subtle)")}>
-                                    {tr("from")}{" "}
-                                    <span style={st("font-family:var(--mono);font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--fg)")}>
-                                      {r.from}
-                                    </span>
-                                    {" "}{tr("a night")}
+                                    {trx("from {price} a night", { price: <span style={st("font-family:var(--mono);font-size:20px;font-weight:700;letter-spacing:-.02em;color:var(--fg)")}>{r.from}</span> })}
                                   </div>
                                   {" "}
                                   <div style={st("font-size:12px;color:var(--fg-subtle);margin-block-start:3px")}>
@@ -429,7 +411,7 @@ export function GuestView({ v }: { v: any }) {
                       </h3>
                       {" "}
                       <p style={st("margin:0;font-size:13.5px;line-height:1.6;color:var(--fg-muted);text-wrap:pretty")}>
-                        {tr("From the harbour wall, keep the water on your right until the steps. Blue door, brass bell, a wren on the fanlight.")}
+                        {v.footLine2}
                       </p>
                     </div>
                   </div>
@@ -448,11 +430,11 @@ export function GuestView({ v }: { v: any }) {
                         </div>
                         {" "}
                         <div style={st("font-family:var(--mono);font-size:17px;font-weight:700;margin-block-start:6px")}>
-                          {tr("from")}{" "}{v.arriveFrom}
+                          {tr("from {time}", { time: v.arriveFrom })}
                         </div>
                         {" "}
                         <div style={st("font-size:13px;color:var(--fg-muted);margin-block-start:4px")}>
-                          {tr("Earlier is usually fine — leave your bags with us and go and look at the water.")}
+                          {tr("Earlier is usually fine — leave your bags with us.")}
                         </div>
                       </div>
                       {" "}
@@ -462,7 +444,7 @@ export function GuestView({ v }: { v: any }) {
                         </div>
                         {" "}
                         <div style={st("font-family:var(--mono);font-size:17px;font-weight:700;margin-block-start:6px")}>
-                          {tr("by")}{" "}{v.leaveBy}
+                          {tr("by {time}", { time: v.leaveBy })}
                         </div>
                         {" "}
                         <div style={st("font-size:13px;color:var(--fg-muted);margin-block-start:4px")}>
@@ -480,27 +462,21 @@ export function GuestView({ v }: { v: any }) {
                         </div>
                         {" "}
                         <div style={st("font-size:13px;color:var(--fg-muted);margin-block-start:4px")}>
-                          {tr("Tea, coffee and the papers are out from seven. Breakfast in the dining room is added per person, per night.")}
+                          {v.morningLine}
                         </div>
                       </div>
                     </div>
                     {" "}
                     <div style={st("padding:16px 20px;border-block-start:1px solid var(--border);background:var(--surface-2);display:flex;flex-wrap:wrap;gap:10px")}>
-                      <span style={st("display:flex;align-items:center;gap:7px;padding:6px 12px;border:1px solid var(--border);border-radius:999px;background:var(--surface);font-size:12.5px;font-weight:600;color:var(--fg-muted)")}>
-                        <span data-icon="wifi" style={st("display:inline-flex;inline-size:14px;block-size:14px;color:var(--fg-subtle)")}><Icon name={"wifi"} /></span>
-                        {tr("WiFi throughout")}
-                      </span>
-                      {" "}
-                      <span style={st("display:flex;align-items:center;gap:7px;padding:6px 12px;border:1px solid var(--border);border-radius:999px;background:var(--surface);font-size:12.5px;font-weight:600;color:var(--fg-muted)")}>
-                        <span data-icon="dog" style={st("display:inline-flex;inline-size:14px;block-size:14px;color:var(--fg-subtle)")}><Icon name={"dog"} /></span>
-                        {tr("Dogs in the garden doubles and the loft suites")}
-                      </span>
-                      {" "}
-                      <span style={st("display:flex;align-items:center;gap:7px;padding:6px 12px;border:1px solid var(--border);border-radius:999px;background:var(--surface);font-size:12.5px;font-weight:600;color:var(--fg-muted)")}>
-                        <span data-icon="moon" style={st("display:inline-flex;inline-size:14px;block-size:14px;color:var(--fg-subtle)")}><Icon name={"moon"} /></span>
-                        {tr("Quiet in the house after 22:30")}
-                      </span>
-                      {" "}
+                      {(v.notes ?? []).map((n: any, i_n: number) => (
+                        <Fragment key={i_n}>
+                          <span style={st("display:flex;align-items:center;gap:7px;padding:6px 12px;border:1px solid var(--border);border-radius:999px;background:var(--surface);font-size:12.5px;font-weight:600;color:var(--fg-muted)")}>
+                            <span data-icon={n.icon} style={st("display:inline-flex;inline-size:14px;block-size:14px;color:var(--fg-subtle)")}><Icon name={n.icon} /></span>
+                            {n.text}
+                          </span>
+                          {" "}
+                        </Fragment>
+                      ))}
                       <span style={st("display:flex;align-items:center;gap:7px;padding:6px 12px;border:1px solid var(--border);border-radius:999px;background:var(--surface);font-size:12.5px;font-weight:600;color:var(--fg-muted)")}>
                         <span data-icon="phone" style={st("display:inline-flex;inline-size:14px;block-size:14px;color:var(--fg-subtle)")}><Icon name={"phone"} /></span>
                         <a href={v.telHref} style={st("font-family:var(--mono);color:var(--fg-muted)")}>
@@ -554,7 +530,7 @@ export function GuestView({ v }: { v: any }) {
                           {tr("A Saturday arrival needs at least two nights — we would rather you had the whole weekend.")}
                         </span>
                         <button onClick={v.satFixGo} style={st("flex:0 0 auto;padding:6px 11px;border:1px solid var(--warn);border-radius:9px;background:transparent;color:var(--warn);font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap")} className={fx("background:var(--surface)", null)}>
-                          {tr("Try leaving on")}{" "}{v.satFix}
+                          {tr("Try leaving on {day}", { day: v.satFix })}
                         </button>
                       </div>
                     </>
@@ -630,11 +606,7 @@ export function GuestView({ v }: { v: any }) {
                         {v.noneFits.hasEarliest ? (
                           <>
                             <p style={st("margin:9px 0 0;font-size:13.5px;line-height:1.6;color:var(--fg-muted)")}>
-                              {tr("The earliest we could take you for")}{" "}{v.noneFits.nights}{" "}{tr("is")}{" "}
-                              <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>
-                                {v.noneFits.earliest}
-                              </span>
-                              {"."}
+                              {trx("The earliest we could take you for {nights} is {day}.", { nights: v.noneFits.nights, day: <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>{v.noneFits.earliest}</span> })}
                             </p>
                           </>
                         ) : null}
@@ -642,11 +614,7 @@ export function GuestView({ v }: { v: any }) {
                         {v.noneFits.noEarliest ? (
                           <>
                             <p style={st("margin:9px 0 0;font-size:13.5px;line-height:1.6;color:var(--fg-muted)")}>
-                              {tr("Nothing in the next six weeks. Ring us on")}{" "}
-                              <a href={v.telHref} style={st("font-family:var(--mono)")}>
-                                {v.phone}
-                              </a>
-                              {" "}{tr("and we will see what we can do.")}
+                              {trx("Nothing in the next six weeks. Ring us on {phone} and we will see what we can do.", { phone: <a href={v.telHref} style={st("font-family:var(--mono)")}>{v.phone}</a> })}
                             </p>
                           </>
                         ) : null}
@@ -669,10 +637,7 @@ export function GuestView({ v }: { v: any }) {
                           {" "}
                           <a href={v.telHref} style={st("display:flex;align-items:center;gap:7px;padding:10px 16px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);color:var(--fg);font-size:13px;font-weight:700;text-decoration:none")} className={fx("background:var(--surface-2)", null)}>
                             <span data-icon="phone" style={st("display:inline-flex;inline-size:14px;block-size:14px")}><Icon name={"phone"} /></span>
-                            {tr("Ring us on")}{" "}
-                            <span style={st("font-family:var(--mono)")}>
-                              {v.phone}
-                            </span>
+                            <span>{trx("Ring us on {phone}", { phone: <span style={st("font-family:var(--mono)")}>{v.phone}</span> })}</span>
                           </a>
                         </div>
                       </div>
@@ -733,7 +698,7 @@ export function GuestView({ v }: { v: any }) {
                                         </div>
                                         {" "}
                                         <div style={st("font-size:11.5px;color:var(--fg-subtle);margin-block-start:1px")}>
-                                          {o.nightsLabel}{tr(", all in")}
+                                          {tr("{nights}, all in", { nights: o.nightsLabel })}
                                         </div>
                                       </div>
                                     </div>
@@ -831,16 +796,12 @@ export function GuestView({ v }: { v: any }) {
                                     {o.hasEarliest ? (
                                       <>
                                         <p style={st("margin:8px 0 12px;font-size:13px;line-height:1.6;color:var(--fg-subtle)")}>
-                                          {tr("The earliest we could take you for")}{" "}{o.nightsLabel}{" "}{tr("is")}{" "}
-                                          <span style={st("font-family:var(--mono);color:var(--fg-muted);font-weight:600")}>
-                                            {o.earliest}
-                                          </span>
-                                          {"."}
+                                          {trx("The earliest we could take you for {nights} is {day}.", { nights: o.nightsLabel, day: <span style={st("font-family:var(--mono);color:var(--fg-muted);font-weight:600")}>{o.earliest}</span> })}
                                         </p>
                                         {" "}
                                         <button onClick={o.goEarliest} style={st("display:flex;align-items:center;gap:7px;padding:9px 15px;border:1px solid var(--accent);border-radius:10px;background:transparent;color:var(--accent);font-size:13px;font-weight:700;cursor:pointer")} className={fx("background:var(--accent-soft)", null)}>
                                           <span data-icon="arrow-right" style={st("display:inline-flex;inline-size:14px;block-size:14px")}><Icon name={"arrow-right"} /></span>
-                                          {tr("Move the dates to")}{" "}{o.earliest}
+                                          {tr("Move the dates to {day}", { day: o.earliest })}
                                         </button>
                                       </>
                                     ) : null}
@@ -848,11 +809,7 @@ export function GuestView({ v }: { v: any }) {
                                     {o.noEarliest ? (
                                       <>
                                         <p style={st("margin:8px 0 0;font-size:13px;line-height:1.6;color:var(--fg-subtle)")}>
-                                          {tr("Nothing in the next six weeks. Ring us on")}{" "}
-                                          <a href={v.telHref} style={st("font-family:var(--mono)")}>
-                                            {v.phone}
-                                          </a>
-                                          {" "}{tr("and we will see what we can do.")}
+                                          {trx("Nothing in the next six weeks. Ring us on {phone} and we will see what we can do.", { phone: <a href={v.telHref} style={st("font-family:var(--mono)")}>{v.phone}</a> })}
                                         </p>
                                       </>
                                     ) : null}
@@ -900,11 +857,7 @@ export function GuestView({ v }: { v: any }) {
                       </h1>
                       {" "}
                       <div style={st("margin-block-start:6px;font-size:13px;color:var(--fg-subtle);font-weight:600")}>
-                        {v.rt.sleeps}{" "}{tr("· from")}{" "}
-                        <span style={st("font-family:var(--mono)")}>
-                          {v.rt.from}
-                        </span>
-                        {" "}{tr("a night")}
+                        {trx("{sleeps} · from {price} a night", { sleeps: v.rt.sleeps, price: <span style={st("font-family:var(--mono)")}>{v.rt.from}</span> })}
                       </div>
                       {" "}
                       <p style={st("margin:14px 0 0;font-size:15px;line-height:1.65;color:var(--fg-muted);max-inline-size:58ch;text-wrap:pretty")}>
@@ -936,7 +889,7 @@ export function GuestView({ v }: { v: any }) {
                         </div>
                         {" "}
                         <div style={st("font-size:12.5px;color:var(--fg-subtle);margin-block-start:7px")}>
-                          {v.rt.floors}{" · "}{v.rt.howMany}{tr(". We pick the one you get on the day you arrive.")}
+                          {tr("{floors} · {many}. We pick the one you get on the day you arrive.", { floors: v.rt.floors, many: v.rt.howMany })}
                         </div>
                       </div>
                     </div>
@@ -971,21 +924,11 @@ export function GuestView({ v }: { v: any }) {
                               </span>
                               {" "}
                               <select value={v.sGuests} onChange={v.onGuests} style={st("padding:10px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2);font-size:13.5px;cursor:pointer")}>
-                                <option value="1">
-                                  {tr("1 guest")}
-                                </option>
-                                {" "}
-                                <option value="2">
-                                  {tr("2 guests")}
-                                </option>
-                                {" "}
-                                <option value="3">
-                                  {tr("3 guests")}
-                                </option>
-                                {" "}
-                                <option value="4">
-                                  {tr("4 guests")}
-                                </option>
+                                {[1, 2, 3, 4].map((g) => (
+                                  <option key={g} value={String(g)}>
+                                    {tr("{n} guest|{n} guests", { n: g })}
+                                  </option>
+                                ))}
                               </select>
                             </label>
                           </div>
@@ -995,7 +938,7 @@ export function GuestView({ v }: { v: any }) {
                           </button>
                           {" "}
                           <p style={st("margin:11px 0 0;font-size:12.5px;line-height:1.55;color:var(--fg-subtle);text-wrap:pretty")}>
-                            {tr("Arrive from")}{" "}{v.arriveFrom}{" "}{tr("· leave by")}{" "}{v.leaveBy}{tr(". A stay here runs from one night to")}{" "}{v.maxNights}{"."}
+                            {tr("Arrive from {from} · leave by {by}. A stay here runs from one night to {n}.", { from: v.arriveFrom, by: v.leaveBy, n: v.maxNights })}
                           </p>
                         </>
                       ) : null}
@@ -1095,11 +1038,7 @@ export function GuestView({ v }: { v: any }) {
                             {v.rt.hasEarliest ? (
                               <>
                                 <p style={st("margin:8px 0 0;font-size:13px;line-height:1.6;color:var(--fg-subtle)")}>
-                                  {tr("The earliest we could take you is")}{" "}
-                                  <span style={st("font-family:var(--mono);color:var(--fg-muted);font-weight:700")}>
-                                    {v.rt.earliest}
-                                  </span>
-                                  {"."}
+                                  {trx("The earliest we could take you is {day}.", { day: <span style={st("font-family:var(--mono);color:var(--fg-muted);font-weight:700")}>{v.rt.earliest}</span> })}
                                 </p>
                               </>
                             ) : null}
@@ -1308,7 +1247,7 @@ export function GuestView({ v }: { v: any }) {
                       <div style={st("margin-block-start:15px;padding-block-start:14px;border-block-start:1px solid var(--border);display:flex;flex-direction:column;gap:7px")}>
                         <div style={st("display:flex;align-items:center;gap:8px")}>
                           <span style={st("font-size:12.5px;font-weight:700;color:var(--fg-muted)")}>
-                            {v.rv.nightsLabel}{" "}{tr("of room")}
+                            {tr("{nights} of room", { nights: v.rv.nightsLabel })}
                           </span>
                           {" "}
                           <span style={st("margin-inline-start:auto;font-family:var(--mono);font-size:13px;font-weight:600")}>
@@ -1485,7 +1424,7 @@ export function GuestView({ v }: { v: any }) {
                     </span>
                     {" "}
                     <h1 style={st(`margin:20px 0 0;font-size:${v.h1Size};font-weight:800;letter-spacing:-.02em`)}>
-                      {tr("You have a room,")}{" "}{v.cf.first}
+                      {tr("You have a room, {first}", { first: v.cf.first })}
                     </h1>
                     {" "}
                     <p style={st("margin:10px 0 0;font-size:15px;line-height:1.6;color:var(--fg-muted);max-inline-size:48ch;text-wrap:pretty")}>
@@ -1509,7 +1448,7 @@ export function GuestView({ v }: { v: any }) {
                         </div>
                         {" "}
                         <div style={st("font-size:13px;color:var(--fg-muted);margin-block-start:4px")}>
-                          {tr("Any time from")}{" "}{v.arriveFrom}
+                          {tr("Any time from {time}", { time: v.arriveFrom })}
                           {v.cf.saidOn ? (
                             <>
                               {"· "}{v.cf.arrivalSaid}
@@ -1528,7 +1467,7 @@ export function GuestView({ v }: { v: any }) {
                         </div>
                         {" "}
                         <div style={st("font-size:13px;color:var(--fg-muted);margin-block-start:4px")}>
-                          {tr("By")}{" "}{v.cf.leaveBy}{" · "}{v.cf.nightsLabel}
+                          {tr("By {time} · {nights}", { time: v.cf.leaveBy, nights: v.cf.nightsLabel })}
                         </div>
                       </div>
                     </div>
@@ -1627,11 +1566,7 @@ export function GuestView({ v }: { v: any }) {
                         {v.cf.outside ? (
                           <>
                             <span style={st("font-size:13.5px;line-height:1.55;color:var(--fg-muted)")}>
-                              {tr("Cancel at no charge until")}{" "}
-                              <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>
-                                {v.cf.moment}
-                              </span>
-                              {tr(". After that you can still cancel up to")}{" "}{v.arriveFrom}{" "}{tr("on the day you arrive; it is marked as a late cancellation, and nothing is charged.")}
+                              {trx("Cancel at no charge until {moment}. After that you can still cancel up to {time} on the day you arrive; it is marked as a late cancellation, and nothing is charged.", { moment: <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>{v.cf.moment}</span>, time: v.arriveFrom })}
                             </span>
                           </>
                         ) : null}
@@ -1647,11 +1582,7 @@ export function GuestView({ v }: { v: any }) {
                         {v.cf.deskOnly ? (
                           <>
                             <span style={st("font-size:13.5px;line-height:1.55;color:var(--fg-muted)")}>
-                              {tr("It is your arrival day. Anything to change, ring us on")}{" "}
-                              <a href={v.telHref} style={st("font-family:var(--mono)")}>
-                                {v.phone}
-                              </a>
-                              {"."}
+                              {trx("It is your arrival day. Anything to change, ring us on {phone}.", { phone: <a href={v.telHref} style={st("font-family:var(--mono)")}>{v.phone}</a> })}
                             </span>
                           </>
                         ) : null}
@@ -2123,11 +2054,7 @@ export function GuestView({ v }: { v: any }) {
                           {v.on.ringChange ? (
                             <>
                               <p style={st("margin:12px 0 0;font-size:13px;line-height:1.55;color:var(--fg-muted)")}>
-                                {tr("To change the dates now, ring us on")}{" "}
-                                <a href={v.telHref} style={st("font-family:var(--mono)")}>
-                                  {v.phone}
-                                </a>
-                                {"."}
+                                {trx("To change the dates now, ring us on {phone}.", { phone: <a href={v.telHref} style={st("font-family:var(--mono)")}>{v.phone}</a> })}
                               </p>
                             </>
                           ) : null}
@@ -2138,15 +2065,7 @@ export function GuestView({ v }: { v: any }) {
                     {v.on.dead ? (
                       <>
                         <div style={st("padding:18px 20px;border-block-start:1px solid var(--border);background:var(--surface-2);font-size:13.5px;color:var(--fg-muted);line-height:1.6")}>
-                          {v.on.deadNote}
-                          {v.on.deadPhone ? (
-                            <>
-                              <a href={v.telHref} style={st("font-family:var(--mono)")}>
-                                {v.phone}
-                              </a>
-                              {v.on.deadAfter}
-                            </>
-                          ) : null}
+                          {v.on.deadPhone ? trx(v.on.deadNote, { phone: <a href={v.telHref} style={st("font-family:var(--mono)")}>{v.phone}</a> }) : v.on.deadNote}
                         </div>
                       </>
                     ) : null}

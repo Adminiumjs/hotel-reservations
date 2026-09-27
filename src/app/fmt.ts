@@ -37,9 +37,11 @@ function df(key: string, opts: Intl.DateTimeFormatOptions): Intl.DateTimeFormat 
   return f;
 }
 
-/** One left-to-right run. */
-export const iso = (s: string): string => `⁦${s}⁩`;
-export const strip = (s: unknown): string => String(s).replace(/[⁦⁩]/g, "");
+/** One left-to-right run: a figure, a date, a reference. */
+export const iso = (s: string): string => `\u2066${s}\u2069`;
+/** One run in the direction of its own words: a counted phrase in the reader's language ("2 nights"). */
+export const fsi = (s: string): string => `\u2068${s}\u2069`;
+export const strip = (s: unknown): string => String(s).replace(/[\u2066\u2068\u2069]/g, "");
 
 export function money(v: unknown): string {
   const n = Number(v ?? 0);
@@ -92,7 +94,7 @@ export const r2 = (v: number): number => Math.round(v * 100) / 100;
 
 // ── counted words ─────────────────────────────────────────────────────────
 
-export const nights = (n: number): string => iso(tr("{n} night|{n} nights", { n }));
-export const guestsW = (n: number): string => iso(tr("{n} guest|{n} guests", { n }));
-export const people = (n: number): string => iso(tr("{n} person|{n} people", { n }));
-export const days = (n: number): string => iso(tr("{n} day|{n} days", { n }));
+export const nights = (n: number): string => fsi(tr("{n} night|{n} nights", { n }));
+export const guestsW = (n: number): string => fsi(tr("{n} guest|{n} guests", { n }));
+export const people = (n: number): string => fsi(tr("{n} person|{n} people", { n }));
+export const days = (n: number): string => fsi(tr("{n} day|{n} days", { n }));

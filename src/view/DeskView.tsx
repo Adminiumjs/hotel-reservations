@@ -3,7 +3,7 @@
 import { Fragment } from "react";
 
 import { tr } from "../i18n/tr.ts";
-import { fx, Icon, st } from "./dom.tsx";
+import { fx, Icon, st, trx } from "./dom.tsx";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function DeskView({ v }: { v: any }) {
@@ -53,7 +53,7 @@ export function DeskView({ v }: { v: any }) {
                   <div style={st("font-family:var(--mono);font-size:11px;color:var(--fg-subtle);line-height:1.6")}>
                     {v.clockShort}
                     <br />
-                    {tr("Arrivals from")}{" "}{v.arriveFrom}{" "}{tr("· out by")}{" "}{v.leaveBy}
+                    {tr("Arrivals from {from} · out by {by}", { from: v.arriveFrom, by: v.leaveBy })}
                   </div>
                 </div>
               </aside>
@@ -110,11 +110,7 @@ export function DeskView({ v }: { v: any }) {
                 {v.noResults ? (
                   <>
                     <div role="status" style={st("position:absolute;inset-block-start:calc(100% + 6px);inset-inline:0;background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;box-shadow:var(--shadow-lift);padding:14px;z-index:40;font-size:13px;color:var(--fg-muted);animation:wh-pop .14s ease-out")}>
-                      {tr("Nobody by that name, reference or email. Try a surname, or")}{" "}
-                      <span style={st("font-family:var(--mono)")}>
-                        {tr("WH-S3283")}
-                      </span>
-                      {"."}
+                      {trx("Nobody by that name, reference or email. Try a surname, or {ref}.", { ref: <span style={st("font-family:var(--mono)")}>{v.refExample}</span> })}
                     </div>
                   </>
                 ) : null}
@@ -254,32 +250,19 @@ export function DeskView({ v }: { v: any }) {
                         </span>
                         {" "}
                         <span style={st("font-size:12.5px;color:var(--fg-subtle)")}>
-                          {tr("in")}{" "}
-                          <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>
-                            {v.tomorrow.arrivals}
-                          </span>
+                          {trx("in {n}", { n: <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>{v.tomorrow.arrivals}</span> })}
                         </span>
                         {" "}
                         <span style={st("font-size:12.5px;color:var(--fg-subtle)")}>
-                          {tr("out")}{" "}
-                          <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>
-                            {v.tomorrow.departures}
-                          </span>
+                          {trx("out {n}", { n: <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>{v.tomorrow.departures}</span> })}
                         </span>
                         {" "}
                         <span style={st("font-size:12.5px;color:var(--fg-subtle)")}>
-                          {tr("still open")}{" "}
-                          <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>
-                            {v.tomorrow.open}
-                          </span>
+                          {trx("still open {n}", { n: <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>{v.tomorrow.open}</span> })}
                         </span>
                         {" "}
                         <span style={st("font-size:12.5px;color:var(--fg-subtle)")}>
-                          {tr("that is")}{" "}
-                          <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>
-                            {v.tomorrow.pct}
-                          </span>
-                          {" "}{tr("full")}
+                          {trx("that is {pct} full", { pct: <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>{v.tomorrow.pct}</span> })}
                         </span>
                         {" "}
                         <button onClick={v.tomorrow.goCal} style={st("margin-inline-start:auto;display:flex;align-items:center;gap:6px;padding:6px 12px;border:1px solid var(--border-strong);border-radius:9px;background:var(--surface);font-size:12px;font-weight:700;color:var(--fg-muted);cursor:pointer;white-space:nowrap")} className={fx("filter:brightness(.97)", null)}>
@@ -441,21 +424,11 @@ export function DeskView({ v }: { v: any }) {
                               </span>
                               {" "}
                               <select value={v.nb.guests} onChange={v.nb.onGuests} style={st("padding:10px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2);font-family:var(--mono);font-size:13.5px;font-weight:600")}>
-                                <option value="1">
-                                  {tr("1 guest")}
-                                </option>
-                                {" "}
-                                <option value="2">
-                                  {tr("2 guests")}
-                                </option>
-                                {" "}
-                                <option value="3">
-                                  {tr("3 guests")}
-                                </option>
-                                {" "}
-                                <option value="4">
-                                  {tr("4 guests")}
-                                </option>
+                                {[1, 2, 3, 4].map((g) => (
+                                  <option key={g} value={String(g)}>
+                                    {tr("{n} guest|{n} guests", { n: g })}
+                                  </option>
+                                ))}
                               </select>
                             </label>
                             {" "}
@@ -1111,11 +1084,11 @@ export function DeskView({ v }: { v: any }) {
                           <div style={st("display:flex;align-items:flex-start;justify-content:space-between;gap:14px;flex-wrap:wrap")}>
                             <div>
                               <h2 style={st("margin:0;font-size:16px;font-weight:800")}>
-                                {tr("The night of")}{" "}{v.day.label}
+                                {tr("The night of {day}", { day: v.day.label })}
                               </h2>
                               {" "}
                               <div style={st("font-family:var(--mono);font-size:12.5px;color:var(--fg-muted);margin-block-start:4px")}>
-                                {v.day.sold}{" "}{tr("of")}{" "}{v.day.sellable}{" "}{tr("rooms sold ·")}{" "}{v.day.pct}{" "}{tr("full")}
+                                {tr("{sold} of {n} rooms sold · {pct} full", { sold: v.day.sold, n: v.day.sellable, pct: v.day.pct })}
                               </div>
                             </div>
                             {" "}
@@ -1127,7 +1100,7 @@ export function DeskView({ v }: { v: any }) {
                           <div style={st(`display:grid;grid-template-columns:${v.day.cols};gap:16px;margin-block-start:16px`)}>
                             <div>
                               <div style={st("font-size:11.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-subtle);margin-block-end:9px")}>
-                                {tr("Arriving that day —")}{" "}{v.day.arrCount}
+                                {tr("Arriving that day — {n}", { n: v.day.arrCount })}
                               </div>
                               {" "}
                               <div style={st("display:flex;flex-direction:column;gap:7px;max-block-size:320px;overflow:auto;padding-inline-end:2px")}>
@@ -1161,7 +1134,7 @@ export function DeskView({ v }: { v: any }) {
                             {" "}
                             <div>
                               <div style={st("font-size:11.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:var(--fg-subtle);margin-block-end:9px")}>
-                                {tr("Leaving that day —")}{" "}{v.day.depCount}
+                                {tr("Leaving that day — {n}", { n: v.day.depCount })}
                               </div>
                               {" "}
                               <div style={st("display:flex;flex-direction:column;gap:7px;max-block-size:320px;overflow:auto;padding-inline-end:2px")}>
@@ -1222,10 +1195,7 @@ export function DeskView({ v }: { v: any }) {
                     {v.resQueryOn ? (
                       <>
                         <div style={st("display:flex;align-items:center;gap:8px;margin-block-start:10px;font-size:12.5px;color:var(--fg-muted)")}>
-                          {tr("Matching")}{" "}
-                          <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>
-                            {v.resQuery}
-                          </span>
+                          <span>{trx("Matching {q}", { q: <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>{v.resQuery}</span> })}</span>
                           {" "}
                           <button onClick={v.clearResQuery} style={st("display:flex;align-items:center;gap:5px;padding:4px 9px;border:1px solid var(--border-strong);border-radius:999px;background:var(--surface-2);font-size:11.5px;font-weight:700;color:var(--fg-muted);cursor:pointer")}>
                             <span data-icon="x" style={st("display:inline-flex;inline-size:11px;block-size:11px")}><Icon name={"x"} /></span>
@@ -1583,7 +1553,7 @@ export function DeskView({ v }: { v: any }) {
                     </h1>
                     {" "}
                     <p style={st("margin:11px 0 0;font-size:14px;line-height:1.6;color:var(--fg-muted)")}>
-                      {tr("The brochure page went years ago. The board has everything you need for the day.")}
+                      {tr("The board has everything you need for the day.")}
                     </p>
                     {" "}
                     <button onClick={v.goToday} style={st("margin-block-start:20px;padding:11px 18px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-fg);font-size:13.5px;font-weight:700;cursor:pointer")} className={fx("filter:brightness(1.08)", null)}>

@@ -3,7 +3,7 @@
 import { Fragment } from "react";
 
 import { tr } from "../i18n/tr.ts";
-import { fx, Icon, st } from "./dom.tsx";
+import { fx, Icon, st, trx } from "./dom.tsx";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function OverlaysView({ v }: { v: any }) {
@@ -48,7 +48,7 @@ export function OverlaysView({ v }: { v: any }) {
             <div style={st("margin-block-start:auto;font-family:var(--mono);font-size:11px;color:var(--fg-subtle);line-height:1.6")}>
               {v.clockShort}
               <br />
-              {tr("Arrivals from")}{" "}{v.arriveFrom}{" "}{tr("· out by")}{" "}{v.leaveBy}
+              {tr("Arrivals from {from} · out by {by}", { from: v.arriveFrom, by: v.leaveBy })}
             </div>
           </aside>
         </div>
@@ -1137,7 +1137,7 @@ export function OverlaysView({ v }: { v: any }) {
                 {tr("Void it")}
               </button>
               {" "}
-              <button onClick={v.vd.close} style={st("flex:1;min-inline-size:130px;padding:12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2);font-size:13.5px;font-weight:700;cursor:pointer")} className={fx("background:var(--surface-3)", null)}>
+              <button data-autofocus="true" onClick={v.vd.close} style={st("flex:1;min-inline-size:130px;padding:12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2);font-size:13.5px;font-weight:700;cursor:pointer")} className={fx("background:var(--surface-3)", null)}>
                 {tr("Keep it")}
               </button>
             </div>
@@ -1383,11 +1383,7 @@ export function OverlaysView({ v }: { v: any }) {
                     {v.cd.hasEarliest ? (
                       <>
                         <p style={st("margin:8px 0 12px;font-size:13px;color:var(--fg-muted)")}>
-                          {tr("The earliest the same room type is open is")}{" "}
-                          <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>
-                            {v.cd.earliest}
-                          </span>
-                          {"."}
+                          {trx("The earliest the same room type is open is {day}.", { day: <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>{v.cd.earliest}</span> })}
                         </p>
                         {" "}
                         <button onClick={v.cd.goEarliest} style={st("padding:9px 14px;border:1px solid var(--accent);border-radius:10px;background:transparent;color:var(--accent);font-size:12.5px;font-weight:700;cursor:pointer")} className={fx("background:var(--accent-soft)", null)}>
@@ -1481,11 +1477,7 @@ export function OverlaysView({ v }: { v: any }) {
                   <div role="status" style={st("display:flex;align-items:flex-start;gap:9px;padding:12px 13px;border-radius:11px;background:var(--warn-soft);color:var(--warn);font-size:13px;font-weight:700;line-height:1.5")}>
                     <span data-icon="door-closed" style={st("display:inline-flex;inline-size:15px;block-size:15px;flex:0 0 auto;margin-block-start:2px")}><Icon name={"door-closed"} /></span>
                     <span>
-                      {v.cd.roomKept}
-                      <a href={v.telHref} style={st("font-family:var(--mono)")}>
-                        {v.phone}
-                      </a>
-                      {"."}
+                      {trx("Your room is kept for your current dates. To move them, ring us on {phone}.", { phone: <a href={v.telHref} style={st("font-family:var(--mono)")}>{v.phone}</a> })}
                     </span>
                   </div>
                 </>

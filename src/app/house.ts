@@ -379,6 +379,9 @@ export class HouseApp {
         h.focus({ preventScroll: true });
         const house = this.world()?.H.name ?? "";
         document.title = house === "" ? h.textContent ?? "" : `${h.textContent ?? ""} — ${house}`;
+        // Said once, politely, for a screen reader that did not follow the focus.
+        const said = document.getElementById("wh-said");
+        if (said !== null) said.textContent = document.title;
       }
     }, 60);
   }

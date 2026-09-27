@@ -7,11 +7,11 @@
  */
 import { isApiError, type Id } from "../../data/wire.ts";
 import { tr } from "../../i18n/tr.ts";
-import { fD, fDW, fT, guestsW, iso, money, nights, nightsOf, plus, strip, taxWords } from "../fmt.ts";
+import { fD, fDW, fT, guestsW, fsi, iso, money, nights, nightsOf, plus, strip, taxWords } from "../fmt.ts";
 import type { HouseApp } from "../house.ts";
 import type { RoomV, StV, WorldV } from "../world.ts";
 import { cancelStage, chgVals } from "./guest.ts";
-import { closedOn, firstClosed, floorName, freeAcross, hasExtra, heldForOther, holds, inRoom, nightFig, parseMoney, roomStatus, statusWord } from "./desk.ts";
+import { closedOn, firstClosed, floorInLine, floorName, freeAcross, hasExtra, heldForOther, holds, inRoom, nightFig, parseMoney, roomStatus, statusWord } from "./desk.ts";
 
 type V = Record<string, unknown>;
 
@@ -28,7 +28,6 @@ const CLOSED = {
   ex: { open: false, days: [] },
 };
 
-const numWords = (n: number) => (n === 1 ? tr("One") : n === 2 ? tr("Two") : n === 3 ? tr("Three") : String(n));
 
 export function overlayVals(app: HouseApp, w: WorldV): V {
   const s = app.state;
@@ -340,7 +339,7 @@ export function overlayVals(app: HouseApp, w: WorldV): V {
         open: true,
         title: vt.isPay
           ? tr("Void the {amount} {how} payment?", { amount: strip(money(vt.amount)), how: vt.what })
-          : tr("Void the {amount} {what}?", { amount: strip(money(vt.amount)), what: vt.what.replace(/^(A|An|The) /, "").replace(/^./, (c) => c.toLowerCase()) }),
+          : tr("Void “{what}” — {amount}?", { amount: strip(money(vt.amount)), what: vt.what }),
         body: vt.isPay
           ? tr("The payment stays on the folio, struck through, and the balance goes back up by {amount}.", { amount: strip(money(vt.amount)) })
           : vt.table === "stay_credits"
@@ -606,7 +605,7 @@ function roomVals(app: HouseApp, w: WorldV, rr: RoomV): V {
     }),
     closures: current.map((c) => ({
       id: `cl${String(c.id)}`,
-      line: iso(strip(fDW(c.from)) + (c.to !== null ? (c.to === c.from ? "" : ` – ${strip(fDW(c.to))}`) + tr(" · back {day}", { day: strip(fDW(plus(c.to, 1))) }) : tr(" → until further notice"))),
+      line: iso(strip(fDW(c.from)) + (c.to !== null ? (c.to === c.from ? "" : ` – ${strip(fDW(c.to))}`) + " · " + tr("back {day}", { day: strip(fDW(plus(c.to, 1))) }) : ` → ${tr("until further notice")}`)),
       reason: c.reason ?? tr("No reason written down"),
       now: c.from <= today,
       when: c.from <= today ? tr("Now") : tr("Next"),
@@ -653,14 +652,14 @@ function roomVals(app: HouseApp, w: WorldV, rr: RoomV): V {
     changeDates: () => app.focusSoon("#oos-from"),
     hasWho: who !== null,
     whoName: who?.name ?? "",
-    whoLine: who === null ? "" : iso(tr("{ref} · in until {day}", { ref: who.ref, day: strip(fDW(who.depart)) })),
+    whoLine: who === null ? "" : fsi(tr("{ref} · in until {day}", { ref: who.ref, day: strip(fDW(who.depart)) })),
     openFolio: () => {
       app.setState({ roomN: null });
       if (who !== null) app.openFolio(who.id, "rack");
     },
     hasNext: next !== null,
     nextName: next?.name ?? "",
-    nextLine: next === null ? "" : iso(`${next.ref} · ${strip(fDW(next.arrive))} → ${strip(fDW(next.depart))}${next.given ? tr(" · given ahead") : ""}`),
+    nextLine: next === null ? "" : iso(`${next.ref} · ${strip(fDW(next.arrive))} → ${strip(fDW(next.depart))}${next.given ? ` · ${tr("given ahead")}` : ""}`),
     emptyNext: next === null && who === null,
     emptyNote: tr("Nobody is given this room ahead — it is open on the calendar."),
     footNote: tr("Housekeeping marks a room ready or being cleaned. Out of service takes it off sale for the dates you set."),
@@ -711,8 +710,8 @@ function checkinVals(app: HouseApp, w: WorldV, cs: StV): V {
   const cleaning = w.rooms.filter((r) => r.type === typeId && roomStatus(r, today) === "cleaning").length;
   const oos = w.rooms.filter((r) => r.type === typeId && roomStatus(r, today) === "oos").length;
   const bodyBits: string[] = [];
-  if (cleaning) bodyBits.push(tr("{n} is being cleaned.|{n} are being cleaned.", { n: cleaning }).replace(String(cleaning), numWords(cleaning)));
-  if (oos) bodyBits.push(tr("{n} is out of service.|{n} are out of service.", { n: oos }).replace(String(oos), numWords(oos)));
+  if (cleaning) bodyBits.push(tr("{n} room of this type is being cleaned.|{n} rooms of this type are being cleaned.", { n: cleaning }));
+  if (oos) bodyBits.push(tr("{n} room of this type is out of service.|{n} rooms of this type are out of service.", { n: oos }));
   // Another type at its own price: Adminium prices the change.
   const alts = w.types
     .filter((x) => x.id !== cs.type && x.sleeps >= cs.guests && freeAcross(app, w, x.id, span.arrive, cs.depart, cs.id) > 0)
@@ -853,7 +852,7 @@ function moveVals(app: HouseApp, w: WorldV, ms: StV): V {
             {
               id: `u${x.id}`,
               label: tr("Give them a {type} room at the booked price", { type: x.name }),
-              sub: iso(tr("Room {room} · {floor}", { room: room.n, floor: floorName(room.floor).toLowerCase() })),
+              sub: fsi(tr("Room {room} · {floor}", { room: room.n, floor: floorInLine(room.floor) })),
               checked: on ? "true" : "false",
               pick: () => app.setState({ movePick: room.n, moveUp: x.id }),
               border: on ? "var(--accent)" : "var(--border-strong)",
@@ -868,8 +867,8 @@ function moveVals(app: HouseApp, w: WorldV, ms: StV): V {
     open: true,
     title: ahead ? tr("Give {first} a room ahead", { first: who }) : tr("Move {first} to another room", { first: who }),
     sub: ahead
-      ? iso(tr("{ref} · {from} → {to}", { ref: ms.ref, from: strip(fDW(ms.arrive)), to: strip(fDW(ms.depart)) }))
-      : iso(tr("{ref} · room {room} · until {day}", { ref: ms.ref, room: ms.room ?? "—", day: strip(fDW(ms.depart)) })),
+      ? fsi(tr("{ref} · {from} → {to}", { ref: ms.ref, from: strip(fDW(ms.arrive)), to: strip(fDW(ms.depart)) }))
+      : fsi(tr("{ref} · room {room} · until {day}", { ref: ms.ref, room: ms.room ?? "—", day: strip(fDW(ms.depart)) })),
     rooms: list.map((r) => ({
       id: `m${r.n}`,
       n: r.n,
