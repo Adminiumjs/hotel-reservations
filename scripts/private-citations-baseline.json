@@ -1,1 +1,23 @@
-{"files":{}}
+{
+  "files": {
+    "src/app/App.tsx": 1,
+    "src/components/Shell.tsx": 1,
+    "src/data/adminiumSource.test.ts": 4,
+    "src/data/adminiumSource.ts": 7,
+    "src/data/demo.ts": 2,
+    "src/data/types.ts": 2,
+    "src/i18n/ambient.ts": 1,
+    "src/i18n/index.tsx": 1,
+    "src/i18n/strings/chrome.ts": 1,
+    "src/lib/stay.test.ts": 2,
+    "src/lib/stay.ts": 2,
+    "src/main.tsx": 3,
+    "src/screens/Desk.tsx": 1,
+    "src/screens/Guest.tsx": 1,
+    "src/state/store.ts": 1,
+    "src/styles/components.css": 2,
+    "src/styles/tokens.css": 5,
+    "src/surface-nav.ts": 1,
+    "vite.config.ts": 1
+  }
+}
