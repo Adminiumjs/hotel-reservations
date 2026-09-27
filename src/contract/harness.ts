@@ -29,8 +29,14 @@ export const ADD_ONS_REPO = process.env["ADD_ONS_REPO"] ?? join(REPO, "..", "add
 const E2E_SERVER = join(ADMINIUM_REPO, "apps", "e2e", "scripts", "e2e-server.mjs");
 const INVOICES = join(ADD_ONS_REPO, "packages", "invoices");
 
-/** Why the contract cannot run here, or null when it can. */
+/**
+ * Why the contract cannot run here, or null when it can. It boots a server on
+ * every engine, so it runs only when asked: `ADMINIUM_CONTRACT=1`, or the
+ * contract workflow's `ADMINIUM_REQUIRE_CONTRACT=1` — never by a plain
+ * `npm test` on a machine that happens to have a built Adminium beside it.
+ */
 export function missing(): string | null {
+  if (process.env["ADMINIUM_CONTRACT"] !== "1" && process.env["ADMINIUM_REQUIRE_CONTRACT"] !== "1") return "set ADMINIUM_CONTRACT=1 to run it (it boots a server on each engine)";
   if (ADMINIUM_REPO === "") return "ADMINIUM_REPO is not set";
   if (!existsSync(join(ADMINIUM_REPO, "apps", "server", "dist", "app.js"))) return `no built server in ${ADMINIUM_REPO} (pnpm turbo run build --filter=@adminium/e2e...)`;
   if (!existsSync(join(ADMINIUM_REPO, "apps", "dashboard", "dist", "index.html"))) return `no built dashboard in ${ADMINIUM_REPO}`;
