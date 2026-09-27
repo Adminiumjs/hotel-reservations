@@ -59,6 +59,9 @@ export const STAY_SELECT = [
   "no_show_marked_at",
 ];
 
+/** The columns Adminium takes for personal data: a guest's name, email and mobile. */
+export const PERSONAL = ["first_name", "last_name", "email", "mobile", "note"];
+
 export const EXTRA_LINE_SELECT = ["id", "stay_id", "extra_id", "state", "label", "each", "per", "nights", "guests", "amount"];
 export const CHARGE_SELECT = ["id", "stay_id", "label", "amount", "note", "charged_on", "voided"];
 export const CREDIT_SELECT = ["id", "stay_id", "reason", "from_date", "to_date", "nights", "amount", "voided"];
@@ -187,7 +190,8 @@ export const PUBLIC_ACCESS = [
     methods: ["POST"],
     humanCheck: true,
     level: "verified",
-    select: STAY_SELECT,
+    // What the confirmation shows: never the guest's own details back — an endpoint anyone can call selects nothing personal.
+    select: STAY_SELECT.filter((c) => !PERSONAL.includes(c)),
     writable: [
       "room_type_id",
       "arrive",
