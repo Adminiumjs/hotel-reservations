@@ -39,6 +39,8 @@ export interface Nb extends Form {
 export interface Auth {
   stage: "form" | "sent" | "link" | "expired";
   email: string;
+  /** The sign-in link's own code, while its page waits for Continue. */
+  token: string | null;
   busy: boolean;
   sentAt: number;
   code: string[];
@@ -54,7 +56,7 @@ export interface Toast {
 
 const CODE0 = ["", "", "", "", "", ""];
 export const blankForm = (): Form => ({ first: "", last: "", email: "", mobile: "", arrivalTime: "15:00", note: "", extras: {} });
-export const blankAuth = (): Auth => ({ stage: "form", email: "", busy: false, sentAt: 0, code: CODE0.slice(), tries: 5, err: "", emailErr: "" });
+export const blankAuth = (): Auth => ({ stage: "form", email: "", token: null, busy: false, sentAt: 0, code: CODE0.slice(), tries: 5, err: "", emailErr: "" });
 
 export function fresh(day: string) {
   return {
@@ -636,6 +638,52 @@ export class HouseApp {
               : tr("Too many tries. You can ask for a new link tomorrow — or ring us on {phone}.", { phone: this.world()?.H.phone ?? "" }),
       });
       if (tries > 0) this.focusSoon('[data-code="0"]');
+    }
+  }
+  /**
+   * Where a guest's page was opened from: a sign-in link (`c#<code>`) waits for Continue; a stay's own link
+   * (`r#<code>`) opens that stay; otherwise a session this tab kept brings the guest back as they were.
+   */
+  async arrive(place: "c" | "r" | null, token: string | null): Promise<void> {
+    const guest = this.ports.guest;
+    if (guest === undefined) return;
+    if (place === "c" && token !== null) {
+      this.setState({ auth: { ...blankAuth(), stage: "link", token } });
+      this.go("signin");
+      return;
+    }
+    if (place === "r" && token !== null) {
+      try {
+        await guest.openLink(token);
+        const opened = await guest.linkedStay();
+        this.setState({ linkStay: opened.stay.id });
+        this.openOne(opened.stay.id);
+      } catch {
+        this.setState({ auth: { ...blankAuth(), stage: "expired" } });
+        this.go("signin");
+      }
+      return;
+    }
+    const [who, linked] = await Promise.all([guest.signedIn().catch(() => null), guest.linkedStay().catch(() => null)]);
+    if (who !== null) this.setState({ signedIn: who.email.toLowerCase(), signedAt: Date.parse(who.at) });
+    if (linked !== null) this.setState({ linkStay: linked.stay.id });
+  }
+  /** Continue, on a sign-in link's page: the link is used, once, and the guest is in. */
+  async continueLink(): Promise<void> {
+    const a = this.state.auth;
+    const guest = this.ports.guest!;
+    if (a.token === null) {
+      this.signedIn(a.email.trim().toLowerCase());
+      return;
+    }
+    this.setAuth({ busy: true });
+    try {
+      await guest.verifyLink(a.token);
+      const who = await guest.signedIn();
+      if (who === null) throw new Error("no session");
+      this.signedIn(who.email.toLowerCase());
+    } catch {
+      this.setAuth({ ...blankAuth(), stage: "expired" });
     }
   }
   signedIn(em: string): void {

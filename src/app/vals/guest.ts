@@ -489,7 +489,9 @@ export function guestVals(app: HouseApp, w: WorldV): V {
       app.setAuth({ stage: "form", code: ["", "", "", "", "", ""], err: "", tries: 5 });
       app.focusSoon("#au-email");
     },
-    cont: () => app.signedIn(app.state.auth.email.trim().toLowerCase()),
+    cont: () => {
+      if (!app.state.auth.busy) void app.continueLink();
+    },
     again: () => {
       if (okEmail(app.state.auth.email)) void app.sendLink(true);
       else app.setAuth({ stage: "form" });
@@ -531,6 +533,7 @@ export function guestVals(app: HouseApp, w: WorldV): V {
     { id: "g2", title: tr("With us now"), rows: mine.filter((x) => x.state === "in").map(rowOf) },
     { id: "g3", title: tr("Before"), rows: mine.filter((x) => !(x.state === "in" || x.state === "booked")).map(rowOf) },
   ].filter((g) => g.rows.length);
+  const offers = app.ports.guest?.offers ?? { newLink: true, signOutEverywhere: true, forget: true };
   v["ls"] = {
     email: s.signedIn ?? "",
     groups,
@@ -539,6 +542,10 @@ export function guestVals(app: HouseApp, w: WorldV): V {
     menuExpanded: s.listMenu ? "true" : "false",
     toggleMenu: () => app.setState({ listMenu: !app.state.listMenu }),
     signOut: () => void app.signOut(false),
+    // An action this Adminium does not serve is left out, not offered and refused.
+    allOn: offers.signOutEverywhere,
+    deleteOn: offers.forget,
+    moreOn: offers.signOutEverywhere || offers.forget,
     signOutAll: () => void app.signOut(true),
     askDelete: () => app.setState({ listMenu: false, ddOpen: true }),
   };
@@ -827,7 +834,7 @@ function oneVals(app: HouseApp, w: WorldV, st: StV, gp: (x: StV) => [string, str
     openChg: () => app.openChg(st),
     leave: () => (s.signedIn !== null ? app.go("list") : app.go("home")),
     leaveLabel: s.signedIn !== null ? tr("Back to your reservations") : tr("Back to the front page"),
-    canRelink: signed && st.email !== "",
+    canRelink: signed && st.email !== "" && (app.ports.guest?.offers?.newLink ?? true),
     relink: () => void app.relink(st),
   };
 }

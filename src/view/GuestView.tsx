@@ -1768,6 +1768,8 @@ export function GuestView({ v }: { v: any }) {
                         {tr("Sign out")}
                       </button>
                       {" "}
+                      {v.ls.moreOn ? (
+                        <>
                       <button onClick={v.ls.toggleMenu} aria-haspopup="menu" aria-expanded={v.ls.menuExpanded} aria-label={tr("More")} title={tr("More")} style={st("inline-size:37px;block-size:37px;display:grid;place-items:center;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);cursor:pointer;color:var(--fg-muted)")} className={fx("background:var(--surface-2)", null)}>
                         <span data-icon="ellipsis" style={st("display:inline-flex;inline-size:16px;block-size:16px")}><Icon name={"ellipsis"} /></span>
                       </button>
@@ -1775,16 +1777,22 @@ export function GuestView({ v }: { v: any }) {
                       {v.ls.menuOpen ? (
                         <>
                           <div role="menu" style={st("position:absolute;inset-block-start:calc(100% + 6px);inset-inline-end:0;inline-size:230px;padding:5px;border-radius:12px;background:var(--surface);border:1px solid var(--border-strong);box-shadow:var(--shadow-lift);z-index:20;display:flex;flex-direction:column;gap:2px;animation:wh-pop .14s ease-out")}>
+                            {v.ls.allOn ? (
                             <button role="menuitem" onClick={v.ls.signOutAll} style={st("display:flex;align-items:center;gap:8px;padding:9px 10px;border:0;border-radius:8px;background:transparent;font-size:13px;font-weight:600;cursor:pointer;text-align:start")} className={fx("background:var(--surface-3)", null)}>
                               <span data-icon="monitor-smartphone" style={st("display:inline-flex;inline-size:14px;block-size:14px;color:var(--fg-subtle)")}><Icon name={"monitor-smartphone"} /></span>
                               {tr("Sign out on every device")}
                             </button>
+                            ) : null}
                             {" "}
+                            {v.ls.deleteOn ? (
                             <button role="menuitem" onClick={v.ls.askDelete} style={st("display:flex;align-items:center;gap:8px;padding:9px 10px;border:0;border-radius:8px;background:transparent;color:var(--danger);font-size:13px;font-weight:600;cursor:pointer;text-align:start")} className={fx("background:var(--danger-soft)", null)}>
                               <span data-icon="trash-2" style={st("display:inline-flex;inline-size:14px;block-size:14px")}><Icon name={"trash-2"} /></span>
                               {tr("Delete my details")}
                             </button>
+                            ) : null}
                           </div>
+                        </>
+                      ) : null}
                         </>
                       ) : null}
                     </div>

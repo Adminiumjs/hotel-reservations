@@ -134,7 +134,7 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
 
       it("counts the calendar's fourteen nights for the desk", async (ctx) => {
         needsWrites(() => ctx.skip());
-        const answer = ok(await staff.get<{ data: { pool: string; date: string; size: number; taken: number }[] }>(`${data("stays")}/capacity-counts?rule=0&from=2026-07-28&days=14`)).data;
+        const answer = ok(await staff.get<{ data: { kind: string; rows: { pool: string; date: string; size: number; taken: number }[] } }>(`${data("stays")}/capacity-counts?rule=0&from=2026-07-28&days=14`)).data.rows;
         const types = await rows("room_types");
         const garden = String(types.find((t) => t["name"] === "Garden double")!.id);
         const g = answer.filter((c) => c.pool === garden).map((c) => `${String(c.taken)}/${String(c.size)}`);

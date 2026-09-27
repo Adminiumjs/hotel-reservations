@@ -45,7 +45,16 @@ export interface NightQuestion {
   exclude?: Id;
 }
 
+/** The guest's account actions this Adminium serves; an action it does not is left off the screens. */
+export interface GuestOffers {
+  newLink: boolean;
+  signOutEverywhere: boolean;
+  forget: boolean;
+}
+
 export interface GuestPort {
+  /** Absent: every action is offered (the demo's Adminium serves them all). */
+  readonly offers?: GuestOffers;
   config(): Promise<PublicConfig>;
   house(): Promise<House>;
 
@@ -66,6 +75,8 @@ export interface GuestPort {
 
   /** Emails a sign-in link (and a code) to an address; the same answer whoever it is. */
   requestSignIn(email: string, lang?: string): Promise<{ sentTo: string }>;
+  /** The first name a sign-in link's page greets its guest by, spending nothing; null for a link used or run out. */
+  peekLink?(token: string): Promise<string | null>;
   verifyLink(token: string): Promise<ClaimReply>;
   verifyCode(email: string, code: string): Promise<ClaimReply>;
   /** Whether this browser holds a sign-in session, and whose. */
