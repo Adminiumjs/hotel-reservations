@@ -87,6 +87,7 @@ export function buildManifest(): Record<string, unknown> {
     publicAccess: PUBLIC_ACCESS,
     outbox: OUTBOX,
     emailTemplates: emailTemplates(KINDS),
+    sampleData: { file: "seeds/hotel.sample.json" },
   };
 }
 
