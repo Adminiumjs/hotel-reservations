@@ -1,8 +1,9 @@
 {
+  "kind": "app",
   "manifestVersion": 1,
   "key": "hotel",
   "name": "Hotel Reservations",
-  "version": "0.1.3",
+  "version": "0.2.0",
   "publisher": {
     "id": "adminium",
     "name": "Adminium",
@@ -11,369 +12,27 @@
   "license": "AGPL-3.0-only",
   "description": {
     "key": "mft.hotel.desc",
-    "fallback": "Rooms, rates and the front desk for one independent hotel — from the guest's search to the folio — backed by your own database."
+    "fallback": "A small hotel's guest site and front desk: guests search, reserve and manage their stays, the desk checks them in and out and keeps the folio — every price, room, reference and status decided by your own database."
   },
   "categories": [
     "hospitality"
   ],
   "compatibility": {
-    "minAdminiumVersion": "0.2.8",
+    "minAdminiumVersion": "0.3.4",
     "engines": [
+      "sqlite",
       "postgres",
-      "mysql",
-      "sqlite"
+      "mysql"
     ],
     "requires": [
       "realtime"
-    ]
+    ],
+    "updatesFrom": ">=0.2.0"
   },
-  "requiredSchema": {
-    "tables": [
-      {
-        "ref": "room_types",
-        "columns": [
-          {
-            "type": "text",
-            "role": "pk",
-            "ref": "id"
-          },
-          {
-            "type": "text",
-            "ref": "name",
-            "nullable": false,
-            "semantic": "name"
-          },
-          {
-            "type": "text",
-            "ref": "blurb",
-            "nullable": false
-          },
-          {
-            "type": "text",
-            "ref": "description",
-            "nullable": false
-          },
-          {
-            "type": "int",
-            "ref": "sleeps",
-            "nullable": false
-          },
-          {
-            "type": "text",
-            "ref": "tint_from",
-            "nullable": false
-          },
-          {
-            "type": "text",
-            "ref": "tint_to",
-            "nullable": false
-          },
-          {
-            "type": "text",
-            "ref": "icon",
-            "nullable": false
-          },
-          {
-            "type": "text",
-            "ref": "code",
-            "nullable": false
-          },
-          {
-            "type": "money",
-            "ref": "base_rate",
-            "nullable": false
-          }
-        ]
-      },
-      {
-        "ref": "room_type_features",
-        "columns": [
-          {
-            "type": "int",
-            "role": "pk",
-            "ref": "id"
-          },
-          {
-            "type": "fk",
-            "references": "room_types",
-            "ref": "type_id",
-            "nullable": false
-          },
-          {
-            "type": "text",
-            "ref": "feature",
-            "nullable": false
-          }
-        ]
-      },
-      {
-        "ref": "rooms",
-        "columns": [
-          {
-            "type": "int",
-            "role": "pk",
-            "ref": "number",
-            "semantic": "name"
-          },
-          {
-            "type": "int",
-            "ref": "floor",
-            "nullable": false
-          },
-          {
-            "type": "fk",
-            "references": "room_types",
-            "ref": "type_id",
-            "nullable": false
-          },
-          {
-            "type": "enum",
-            "ref": "status",
-            "nullable": false,
-            "enum": [
-              "ready",
-              "occupied",
-              "cleaning",
-              "oos"
-            ]
-          },
-          {
-            "type": "text",
-            "ref": "note"
-          }
-        ]
-      },
-      {
-        "ref": "extras",
-        "columns": [
-          {
-            "type": "text",
-            "role": "pk",
-            "ref": "id"
-          },
-          {
-            "type": "text",
-            "ref": "label",
-            "nullable": false,
-            "semantic": "name"
-          },
-          {
-            "type": "money",
-            "ref": "amount",
-            "nullable": false
-          },
-          {
-            "type": "enum",
-            "ref": "charged",
-            "nullable": false,
-            "enum": [
-              "person-night",
-              "night",
-              "stay"
-            ]
-          },
-          {
-            "type": "text",
-            "ref": "icon",
-            "nullable": false
-          }
-        ]
-      },
-      {
-        "ref": "stays",
-        "columns": [
-          {
-            "type": "text",
-            "role": "pk",
-            "ref": "ref",
-            "semantic": "name"
-          },
-          {
-            "type": "text",
-            "ref": "first_name",
-            "nullable": false
-          },
-          {
-            "type": "text",
-            "ref": "last_name",
-            "nullable": false
-          },
-          {
-            "type": "text",
-            "ref": "email"
-          },
-          {
-            "type": "text",
-            "ref": "mobile"
-          },
-          {
-            "type": "fk",
-            "references": "room_types",
-            "ref": "type_id",
-            "nullable": false
-          },
-          {
-            "type": "fk",
-            "references": "rooms",
-            "ref": "room_number"
-          },
-          {
-            "type": "date",
-            "ref": "arrive",
-            "nullable": false
-          },
-          {
-            "type": "date",
-            "ref": "depart",
-            "nullable": false
-          },
-          {
-            "type": "int",
-            "ref": "guests",
-            "nullable": false
-          },
-          {
-            "type": "text",
-            "ref": "arrival_time",
-            "nullable": false
-          },
-          {
-            "type": "text",
-            "ref": "note"
-          },
-          {
-            "type": "enum",
-            "ref": "status",
-            "nullable": false,
-            "enum": [
-              "held",
-              "confirmed",
-              "in_house",
-              "departed",
-              "cancelled"
-            ]
-          },
-          {
-            "type": "text",
-            "ref": "checked_in_at"
-          },
-          {
-            "type": "bool",
-            "ref": "no_deposit"
-          }
-        ]
-      },
-      {
-        "ref": "stay_extras",
-        "columns": [
-          {
-            "type": "int",
-            "role": "pk",
-            "ref": "id"
-          },
-          {
-            "type": "fk",
-            "references": "stays",
-            "ref": "stay_ref",
-            "nullable": false
-          },
-          {
-            "type": "fk",
-            "references": "extras",
-            "ref": "extra_id",
-            "nullable": false
-          },
-          {
-            "ref": "note",
-            "type": "text"
-          },
-          {
-            "ref": "added_at",
-            "type": "timestamptz",
-            "role": "created_at"
-          }
-        ]
-      },
-      {
-        "ref": "charges",
-        "columns": [
-          {
-            "type": "int",
-            "role": "pk",
-            "ref": "id"
-          },
-          {
-            "type": "fk",
-            "references": "stays",
-            "ref": "stay_ref",
-            "nullable": false
-          },
-          {
-            "type": "date",
-            "ref": "charged_on",
-            "nullable": false
-          },
-          {
-            "type": "text",
-            "ref": "kind",
-            "nullable": false
-          },
-          {
-            "type": "text",
-            "ref": "label",
-            "nullable": false
-          },
-          {
-            "type": "money",
-            "ref": "amount",
-            "nullable": false
-          }
-        ]
-      },
-      {
-        "ref": "payments",
-        "columns": [
-          {
-            "type": "int",
-            "role": "pk",
-            "ref": "id"
-          },
-          {
-            "type": "fk",
-            "references": "stays",
-            "ref": "stay_ref",
-            "nullable": false
-          },
-          {
-            "type": "date",
-            "ref": "paid_on",
-            "nullable": false
-          },
-          {
-            "type": "enum",
-            "ref": "method",
-            "nullable": false,
-            "enum": [
-              "card",
-              "cash",
-              "transfer"
-            ]
-          },
-          {
-            "type": "text",
-            "ref": "label",
-            "nullable": false
-          },
-          {
-            "type": "money",
-            "ref": "amount",
-            "nullable": false
-          }
-        ]
-      }
-    ]
-  },
-  "kind": "app",
+  "capabilities": [
+    "realtime",
+    "email-delivery"
+  ],
   "frontends": [
     {
       "side": "staff",
@@ -389,6 +48,7 @@
           "example": "adm_pub_..."
         }
       },
+      "placement": "external",
       "routes": {
         "desk": "/"
       }
@@ -408,150 +68,7031 @@
         }
       },
       "routes": {
-        "guest": "/"
+        "home": "/",
+        "rooms": "/rooms",
+        "find": "/find-us",
+        "results": "/results",
+        "reserve": "/reserve",
+        "reservation": "/r",
+        "signIn": "/sign-in",
+        "reservations": "/reservations"
       }
     }
   ],
+  "addOns": {
+    "suggests": [
+      {
+        "key": "invoices",
+        "range": ">=1.0.6",
+        "checked": true,
+        "reason": {
+          "en-US": "Print a guest's folio at the desk and email it at check-out, with a receipt for each payment."
+        }
+      }
+    ],
+    "features": [
+      {
+        "id": "folio",
+        "label": {
+          "en-US": "Folio and receipts"
+        },
+        "requires": [
+          "invoices"
+        ]
+      }
+    ]
+  },
+  "documents": [
+    {
+      "kind": "invoice",
+      "addOn": "invoices",
+      "table": "stays",
+      "feature": "folio",
+      "name": {
+        "en-US": "Folio"
+      },
+      "mapping": {
+        "number": {
+          "column": "ref"
+        },
+        "customerName": {
+          "column": "guest_name"
+        },
+        "customerEmail": {
+          "column": "email"
+        },
+        "serviceFrom": {
+          "column": "arrive"
+        },
+        "serviceTo": {
+          "column": "depart"
+        },
+        "reference": {
+          "via": "room_id",
+          "column": "number"
+        },
+        "items": {
+          "collections": [
+            {
+              "nightly": "room_total",
+              "columns": {
+                "desc": "room_type_id.name",
+                "date": "date",
+                "rate": "rate",
+                "qty": "qty",
+                "tags": "tags"
+              }
+            },
+            {
+              "table": "stay_extras",
+              "via": "stay_id",
+              "orderBy": "id",
+              "where": {
+                "column": "state",
+                "in": [
+                  "on"
+                ]
+              },
+              "columns": {
+                "desc": "label",
+                "amount": "amount"
+              }
+            },
+            {
+              "table": "charges",
+              "via": "stay_id",
+              "orderBy": "id",
+              "unless": "voided",
+              "columns": {
+                "desc": "label",
+                "date": "charged_on",
+                "amount": "amount"
+              }
+            },
+            {
+              "table": "stay_credits",
+              "via": "stay_id",
+              "orderBy": "id",
+              "unless": "voided",
+              "columns": {
+                "date": "from_date",
+                "qty": "nights",
+                "amount": "line_amount"
+              }
+            }
+          ]
+        },
+        "subtotal": {
+          "column": "subtotal"
+        },
+        "taxName": {
+          "column": "tax_label"
+        },
+        "taxRate": {
+          "column": "tax_rate"
+        },
+        "tax": {
+          "column": "tax"
+        },
+        "total": {
+          "column": "total"
+        },
+        "paid": {
+          "column": "paid"
+        },
+        "amountDue": {
+          "column": "balance"
+        }
+      }
+    },
+    {
+      "kind": "receipt",
+      "addOn": "invoices",
+      "table": "payments",
+      "feature": "folio",
+      "name": {
+        "en-US": "Receipt"
+      },
+      "mapping": {
+        "issuedAt": {
+          "column": "recorded_at"
+        },
+        "amount": {
+          "column": "amount"
+        },
+        "paidWith": {
+          "column": "method"
+        },
+        "voided": {
+          "column": "voided"
+        },
+        "reference": {
+          "via": "stay_id",
+          "column": "ref"
+        },
+        "customerName": {
+          "via": "stay_id",
+          "column": "guest_name"
+        },
+        "attendedBy": {
+          "column": "recorded_by"
+        },
+        "balanceAfter": {
+          "via": "stay_id",
+          "column": "balance"
+        }
+      }
+    }
+  ],
+  "navGroups": [
+    {
+      "key": "records",
+      "label": {
+        "en-US": "Records"
+      },
+      "order": 1
+    },
+    {
+      "key": "manage",
+      "label": {
+        "en-US": "Manage"
+      },
+      "order": 2
+    }
+  ],
+  "requiredSchema": {
+    "prefixed": true,
+    "tables": [
+      {
+        "ref": "settings",
+        "label": {
+          "en-US": "House settings"
+        },
+        "labelPlural": {
+          "en-US": "House settings"
+        },
+        "keyField": "name",
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "name",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Name"
+            }
+          },
+          {
+            "ref": "address",
+            "type": "text",
+            "maxLength": 160,
+            "label": {
+              "en-US": "Address"
+            },
+            "rules": {
+              "personal": false
+            }
+          },
+          {
+            "ref": "town",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Town"
+            },
+            "nullable": true,
+            "rules": {
+              "personal": false
+            }
+          },
+          {
+            "ref": "phone",
+            "type": "text",
+            "maxLength": 32,
+            "label": {
+              "en-US": "Phone"
+            },
+            "rules": {
+              "personal": false,
+              "validation": {
+                "format": "phone"
+              }
+            }
+          },
+          {
+            "ref": "email",
+            "type": "text",
+            "maxLength": 254,
+            "label": {
+              "en-US": "Email"
+            },
+            "nullable": true,
+            "semantic": "email",
+            "rules": {
+              "personal": false,
+              "validation": {
+                "format": "email"
+              }
+            }
+          },
+          {
+            "ref": "since",
+            "type": "int",
+            "label": {
+              "en-US": "Since"
+            },
+            "nullable": true,
+            "rules": {
+              "validation": {
+                "min": 1000,
+                "max": 3000
+              }
+            }
+          },
+          {
+            "ref": "about",
+            "type": "text",
+            "maxLength": 200,
+            "label": {
+              "en-US": "About line"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "finding",
+            "type": "text",
+            "maxLength": 280,
+            "label": {
+              "en-US": "Finding us"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "morning",
+            "type": "text",
+            "maxLength": 280,
+            "label": {
+              "en-US": "The morning"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "directions_train",
+            "type": "text",
+            "maxLength": 280,
+            "label": {
+              "en-US": "By train"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "directions_car",
+            "type": "text",
+            "maxLength": 280,
+            "label": {
+              "en-US": "By car"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "directions_foot",
+            "type": "text",
+            "maxLength": 280,
+            "label": {
+              "en-US": "On foot"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "breakfast_hours",
+            "type": "text",
+            "maxLength": 40,
+            "label": {
+              "en-US": "Breakfast hours"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "late_arrival_note",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Late arrival words"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "tax_rate",
+            "type": "decimal",
+            "scale": 3,
+            "default": 0,
+            "label": {
+              "en-US": "Tax rate (%)"
+            },
+            "rules": {
+              "validation": {
+                "min": 0,
+                "max": 100
+              }
+            }
+          },
+          {
+            "ref": "tax_label",
+            "type": "text",
+            "maxLength": 60,
+            "label": {
+              "en-US": "Tax name"
+            },
+            "default": "Tax"
+          },
+          {
+            "ref": "arrive_from",
+            "type": "text",
+            "maxLength": 5,
+            "default": "15:00",
+            "label": {
+              "en-US": "Arrive from"
+            }
+          },
+          {
+            "ref": "leave_by",
+            "type": "text",
+            "maxLength": 5,
+            "default": "11:00",
+            "label": {
+              "en-US": "Leave by"
+            }
+          },
+          {
+            "ref": "late_until",
+            "type": "text",
+            "maxLength": 5,
+            "default": "14:00",
+            "label": {
+              "en-US": "Late leaving until"
+            }
+          },
+          {
+            "ref": "no_show_at",
+            "type": "text",
+            "maxLength": 5,
+            "default": "11:00",
+            "label": {
+              "en-US": "No-show time"
+            }
+          },
+          {
+            "ref": "cancel_days",
+            "type": "int",
+            "label": {
+              "en-US": "Days' notice to cancel"
+            },
+            "default": 2,
+            "rules": {
+              "validation": {
+                "min": 0,
+                "max": 30
+              }
+            }
+          },
+          {
+            "ref": "max_nights",
+            "type": "int",
+            "label": {
+              "en-US": "Longest stay (nights)"
+            },
+            "default": 14,
+            "rules": {
+              "validation": {
+                "min": 1,
+                "max": 60
+              }
+            }
+          },
+          {
+            "ref": "ahead_days",
+            "type": "int",
+            "label": {
+              "en-US": "Days ahead a guest may reserve"
+            },
+            "default": 365,
+            "rules": {
+              "validation": {
+                "min": 1,
+                "max": 730
+              }
+            }
+          },
+          {
+            "ref": "ref_start",
+            "type": "int",
+            "label": {
+              "en-US": "First reference number"
+            },
+            "default": 1001,
+            "rules": {
+              "validation": {
+                "min": 1
+              }
+            }
+          },
+          {
+            "ref": "ref_prefix",
+            "type": "text",
+            "maxLength": 12,
+            "label": {
+              "en-US": "Reference prefix"
+            },
+            "default": "R-"
+          },
+          {
+            "ref": "guest_emails_on",
+            "type": "bool",
+            "default": true,
+            "label": {
+              "en-US": "Email guests"
+            }
+          }
+        ]
+      },
+      {
+        "ref": "house_notes",
+        "label": {
+          "en-US": "House note"
+        },
+        "labelPlural": {
+          "en-US": "House notes"
+        },
+        "keyField": "text",
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "icon",
+            "type": "text",
+            "maxLength": 40,
+            "label": {
+              "en-US": "Icon"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "text",
+            "type": "text",
+            "maxLength": 160,
+            "label": {
+              "en-US": "Note"
+            }
+          },
+          {
+            "ref": "position",
+            "type": "int",
+            "label": {
+              "en-US": "Position"
+            },
+            "default": 0
+          }
+        ]
+      },
+      {
+        "ref": "room_types",
+        "label": {
+          "en-US": "Room type"
+        },
+        "labelPlural": {
+          "en-US": "Room types"
+        },
+        "keyField": "name",
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "code",
+            "type": "text",
+            "maxLength": 8,
+            "label": {
+              "en-US": "Code"
+            },
+            "unique": true
+          },
+          {
+            "ref": "name",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Name"
+            }
+          },
+          {
+            "ref": "blurb",
+            "type": "text",
+            "maxLength": 200,
+            "label": {
+              "en-US": "Short line"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "description",
+            "type": "text",
+            "maxLength": 600,
+            "label": {
+              "en-US": "Description"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "sleeps",
+            "type": "int",
+            "label": {
+              "en-US": "Sleeps"
+            },
+            "default": 2,
+            "rules": {
+              "validation": {
+                "min": 1,
+                "max": 8
+              }
+            }
+          },
+          {
+            "ref": "base_rate",
+            "type": "decimal",
+            "scale": "currency",
+            "label": {
+              "en-US": "Rate a night"
+            },
+            "rules": {
+              "validation": {
+                "min": 0
+              }
+            }
+          },
+          {
+            "ref": "color",
+            "type": "text",
+            "maxLength": 16,
+            "label": {
+              "en-US": "Colour"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "icon",
+            "type": "text",
+            "maxLength": 40,
+            "label": {
+              "en-US": "Icon"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "position",
+            "type": "int",
+            "label": {
+              "en-US": "Position"
+            },
+            "default": 0
+          },
+          {
+            "ref": "active",
+            "type": "bool",
+            "default": true,
+            "label": {
+              "en-US": "Offered"
+            }
+          }
+        ]
+      },
+      {
+        "ref": "room_type_features",
+        "label": {
+          "en-US": "Feature"
+        },
+        "labelPlural": {
+          "en-US": "Features"
+        },
+        "keyField": "feature",
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "room_type_id",
+            "type": "fk",
+            "references": "room_types",
+            "label": {
+              "en-US": "Room type"
+            }
+          },
+          {
+            "ref": "feature",
+            "type": "text",
+            "maxLength": 120,
+            "label": {
+              "en-US": "Feature"
+            }
+          },
+          {
+            "ref": "icon",
+            "type": "text",
+            "maxLength": 40,
+            "label": {
+              "en-US": "Icon"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "position",
+            "type": "int",
+            "label": {
+              "en-US": "Position"
+            },
+            "default": 0
+          }
+        ]
+      },
+      {
+        "ref": "rooms",
+        "label": {
+          "en-US": "Room"
+        },
+        "labelPlural": {
+          "en-US": "Rooms"
+        },
+        "keyField": "number",
+        "states": {
+          "column": "status",
+          "initial": "ready",
+          "moves": {
+            "ready": [
+              "cleaning",
+              {
+                "to": "occupied",
+                "roles": [
+                  "manager",
+                  "front-desk"
+                ]
+              }
+            ],
+            "cleaning": [
+              "ready"
+            ],
+            "occupied": [
+              {
+                "to": "cleaning",
+                "roles": [
+                  "manager",
+                  "front-desk"
+                ]
+              }
+            ]
+          }
+        },
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "number",
+            "type": "text",
+            "maxLength": 8,
+            "label": {
+              "en-US": "Number"
+            },
+            "unique": true
+          },
+          {
+            "ref": "floor",
+            "type": "int",
+            "label": {
+              "en-US": "Floor"
+            },
+            "default": 1
+          },
+          {
+            "ref": "room_type_id",
+            "type": "fk",
+            "references": "room_types",
+            "label": {
+              "en-US": "Room type"
+            }
+          },
+          {
+            "ref": "sleeps",
+            "type": "int",
+            "label": {
+              "en-US": "Sleeps"
+            },
+            "nullable": true,
+            "rules": {
+              "copy": {
+                "via": "room_type_id",
+                "from": "sleeps",
+                "mode": "always",
+                "follow": true
+              }
+            }
+          },
+          {
+            "ref": "status",
+            "type": "enum",
+            "enum": [
+              "ready",
+              "occupied",
+              "cleaning"
+            ],
+            "label": {
+              "en-US": "Status"
+            },
+            "default": "ready",
+            "rules": {
+              "enumLabels": {
+                "labels": {
+                  "ready": {
+                    "en-US": "Ready"
+                  },
+                  "occupied": {
+                    "en-US": "Occupied"
+                  },
+                  "cleaning": {
+                    "en-US": "Being cleaned"
+                  }
+                },
+                "tones": {
+                  "ready": "pos",
+                  "occupied": "info",
+                  "cleaning": "warn"
+                }
+              }
+            }
+          },
+          {
+            "ref": "note",
+            "type": "text",
+            "maxLength": 160,
+            "label": {
+              "en-US": "Note"
+            },
+            "nullable": true
+          }
+        ]
+      },
+      {
+        "ref": "room_closures",
+        "label": {
+          "en-US": "Out of service"
+        },
+        "labelPlural": {
+          "en-US": "Out of service"
+        },
+        "keyField": "reason",
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "room_id",
+            "type": "fk",
+            "references": "rooms",
+            "label": {
+              "en-US": "Room"
+            }
+          },
+          {
+            "ref": "from_date",
+            "type": "date",
+            "label": {
+              "en-US": "From"
+            }
+          },
+          {
+            "ref": "to_date",
+            "type": "date",
+            "label": {
+              "en-US": "Last night out"
+            },
+            "nullable": true,
+            "rules": {
+              "notBefore": {
+                "column": "from_date"
+              }
+            }
+          },
+          {
+            "ref": "reason",
+            "type": "text",
+            "maxLength": 160,
+            "label": {
+              "en-US": "Reason"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "active",
+            "type": "bool",
+            "default": true,
+            "label": {
+              "en-US": "On"
+            }
+          },
+          {
+            "ref": "set_by",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Set by"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "user-name",
+                "on": "create"
+              }
+            }
+          },
+          {
+            "ref": "created_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Set on"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "now",
+                "on": "create"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": "rate_rules",
+        "label": {
+          "en-US": "Rate rule"
+        },
+        "labelPlural": {
+          "en-US": "Rate rules"
+        },
+        "keyField": "name",
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "room_type_id",
+            "type": "fk",
+            "references": "room_types",
+            "label": {
+              "en-US": "Room type"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "name",
+            "type": "text",
+            "maxLength": 60,
+            "label": {
+              "en-US": "Name"
+            }
+          },
+          {
+            "ref": "weekdays",
+            "type": "text",
+            "maxLength": 27,
+            "label": {
+              "en-US": "Nights of the week"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "from_date",
+            "type": "date",
+            "label": {
+              "en-US": "First night"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "to_date",
+            "type": "date",
+            "label": {
+              "en-US": "Last night"
+            },
+            "nullable": true,
+            "rules": {
+              "notBefore": {
+                "column": "from_date"
+              }
+            }
+          },
+          {
+            "ref": "amount",
+            "type": "decimal",
+            "scale": "currency",
+            "label": {
+              "en-US": "Added a night"
+            }
+          },
+          {
+            "ref": "active",
+            "type": "bool",
+            "default": true,
+            "label": {
+              "en-US": "On"
+            }
+          }
+        ]
+      },
+      {
+        "ref": "extras",
+        "label": {
+          "en-US": "Extra"
+        },
+        "labelPlural": {
+          "en-US": "Extras"
+        },
+        "keyField": "label",
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "code",
+            "type": "text",
+            "maxLength": 16,
+            "label": {
+              "en-US": "Code"
+            },
+            "nullable": true,
+            "unique": true
+          },
+          {
+            "ref": "label",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Name"
+            }
+          },
+          {
+            "ref": "short",
+            "type": "text",
+            "maxLength": 40,
+            "label": {
+              "en-US": "Short name"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "how",
+            "type": "text",
+            "maxLength": 120,
+            "label": {
+              "en-US": "How it is charged"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "icon",
+            "type": "text",
+            "maxLength": 40,
+            "label": {
+              "en-US": "Icon"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "amount",
+            "type": "decimal",
+            "scale": "currency",
+            "label": {
+              "en-US": "Price"
+            },
+            "rules": {
+              "validation": {
+                "min": 0
+              }
+            }
+          },
+          {
+            "ref": "per",
+            "type": "enum",
+            "enum": [
+              "person_night",
+              "night",
+              "stay"
+            ],
+            "label": {
+              "en-US": "Charged"
+            },
+            "default": "night",
+            "rules": {
+              "enumLabels": {
+                "labels": {
+                  "person_night": {
+                    "en-US": "Per person, per night"
+                  },
+                  "night": {
+                    "en-US": "Per night"
+                  },
+                  "stay": {
+                    "en-US": "Once a stay"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "ref": "spaces",
+            "type": "int",
+            "label": {
+              "en-US": "Spaces a night"
+            },
+            "nullable": true,
+            "rules": {
+              "validation": {
+                "min": 0
+              }
+            }
+          },
+          {
+            "ref": "active",
+            "type": "bool",
+            "default": true,
+            "label": {
+              "en-US": "Offered"
+            }
+          },
+          {
+            "ref": "position",
+            "type": "int",
+            "label": {
+              "en-US": "Position"
+            },
+            "default": 0
+          }
+        ]
+      },
+      {
+        "ref": "charge_items",
+        "label": {
+          "en-US": "Charge item"
+        },
+        "labelPlural": {
+          "en-US": "Charge items"
+        },
+        "keyField": "label",
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "label",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Name"
+            }
+          },
+          {
+            "ref": "detail",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Detail"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "amount",
+            "type": "decimal",
+            "scale": "currency",
+            "label": {
+              "en-US": "Price"
+            },
+            "rules": {
+              "validation": {
+                "min": 0
+              }
+            }
+          },
+          {
+            "ref": "icon",
+            "type": "text",
+            "maxLength": 40,
+            "label": {
+              "en-US": "Icon"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "extra_id",
+            "type": "fk",
+            "references": "extras",
+            "label": {
+              "en-US": "Same as the extra"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "active",
+            "type": "bool",
+            "default": true,
+            "label": {
+              "en-US": "Offered"
+            }
+          },
+          {
+            "ref": "position",
+            "type": "int",
+            "label": {
+              "en-US": "Position"
+            },
+            "default": 0
+          }
+        ]
+      },
+      {
+        "ref": "customers",
+        "label": {
+          "en-US": "Guest"
+        },
+        "labelPlural": {
+          "en-US": "Guests"
+        },
+        "keyField": "email",
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "email",
+            "type": "text",
+            "maxLength": 254,
+            "label": {
+              "en-US": "Email"
+            },
+            "nullable": true,
+            "unique": true,
+            "semantic": "email",
+            "rules": {
+              "normalize": "email",
+              "validation": {
+                "format": "email"
+              }
+            }
+          },
+          {
+            "ref": "first_name",
+            "type": "text",
+            "maxLength": 60,
+            "label": {
+              "en-US": "First name"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "last_name",
+            "type": "text",
+            "maxLength": 60,
+            "label": {
+              "en-US": "Surname"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "forgotten_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Details deleted"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "created_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "First stay"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "now",
+                "on": "create"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": "stays",
+        "label": {
+          "en-US": "Reservation"
+        },
+        "labelPlural": {
+          "en-US": "Reservations"
+        },
+        "keyField": "ref",
+        "capacity": [
+          {
+            "kind": "night",
+            "from": "arrive",
+            "to": "depart",
+            "countWhere": {
+              "column": "status",
+              "values": [
+                "booked",
+                "in_house"
+              ]
+            },
+            "pool": {
+              "via": "room_type_id",
+              "count": {
+                "table": "rooms",
+                "column": "room_type_id",
+                "outOfService": {
+                  "table": "room_closures",
+                  "room": "room_id",
+                  "from": "from_date",
+                  "to": "to_date",
+                  "active": "active"
+                }
+              },
+              "fits": {
+                "column": "sleeps"
+              },
+              "given": {
+                "via": "room_id",
+                "column": "room_type_id"
+              }
+            },
+            "nights": {
+              "min": 1,
+              "max": {
+                "table": "settings",
+                "column": "max_nights"
+              },
+              "minByArrival": {
+                "sat": 2
+              },
+              "aheadDays": {
+                "table": "settings",
+                "column": "ahead_days"
+              }
+            }
+          },
+          {
+            "kind": "night",
+            "from": "arrive",
+            "to": "depart",
+            "countWhere": {
+              "column": "status",
+              "values": [
+                "booked",
+                "in_house"
+              ]
+            },
+            "pool": {
+              "via": "room_id",
+              "size": 1,
+              "outOfService": {
+                "table": "room_closures",
+                "room": "room_id",
+                "from": "from_date",
+                "to": "to_date",
+                "active": "active"
+              }
+            }
+          }
+        ],
+        "states": {
+          "column": "status",
+          "initial": "booked",
+          "strict": true,
+          "moves": {
+            "booked": [
+              {
+                "to": "in_house",
+                "requires": {
+                  "where": [
+                    {
+                      "column": "room_id",
+                      "isNull": false
+                    }
+                  ],
+                  "linked": [
+                    {
+                      "via": "room_id",
+                      "where": [
+                        {
+                          "column": "status",
+                          "eq": "ready"
+                        }
+                      ]
+                    }
+                  ],
+                  "time": {
+                    "after": {
+                      "column": "arrive",
+                      "time": "00:00"
+                    }
+                  }
+                }
+              },
+              {
+                "to": "cancelled",
+                "requires": {
+                  "where": [
+                    {
+                      "column": "cancel_code",
+                      "isNull": false
+                    }
+                  ]
+                }
+              },
+              {
+                "to": "no_show",
+                "requires": {
+                  "time": {
+                    "after": {
+                      "column": "arrive",
+                      "time": {
+                        "table": "settings",
+                        "column": "arrive_from"
+                      }
+                    }
+                  }
+                }
+              }
+            ],
+            "in_house": [
+              {
+                "to": "departed",
+                "requires": {
+                  "where": [
+                    {
+                      "column": "balance",
+                      "lte": 0
+                    }
+                  ]
+                }
+              },
+              {
+                "to": "booked",
+                "roles": [
+                  "manager"
+                ]
+              }
+            ],
+            "no_show": [
+              {
+                "to": "booked",
+                "requires": {
+                  "time": {
+                    "before": {
+                      "column": "depart",
+                      "time": {
+                        "table": "settings",
+                        "column": "leave_by"
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "to": "in_house",
+                "requires": {
+                  "where": [
+                    {
+                      "column": "room_id",
+                      "isNull": false
+                    }
+                  ],
+                  "linked": [
+                    {
+                      "via": "room_id",
+                      "where": [
+                        {
+                          "column": "status",
+                          "eq": "ready"
+                        }
+                      ]
+                    }
+                  ],
+                  "time": {
+                    "before": {
+                      "column": "depart",
+                      "time": {
+                        "table": "settings",
+                        "column": "leave_by"
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "lock": {
+            "when": [
+              "departed",
+              "cancelled"
+            ],
+            "except": [
+              "link_stopped",
+              "language"
+            ]
+          },
+          "children": {
+            "stay_extras": {
+              "via": "stay_id",
+              "parentIn": [
+                "booked",
+                "in_house"
+              ]
+            },
+            "charges": {
+              "via": "stay_id",
+              "parentIn": [
+                "booked",
+                "in_house",
+                "cancelled",
+                "no_show"
+              ]
+            },
+            "stay_credits": {
+              "via": "stay_id",
+              "parentIn": [
+                "booked",
+                "in_house",
+                "no_show"
+              ]
+            }
+          },
+          "late": [
+            {
+              "to": "cancelled",
+              "from": [
+                "booked"
+              ],
+              "moment": {
+                "column": "cancel_by"
+              },
+              "within": {
+                "minutes": 0
+              },
+              "mode": "flag",
+              "flag": "late_cancel"
+            }
+          ],
+          "timed": [
+            {
+              "from": "booked",
+              "to": "no_show",
+              "at": {
+                "column": "expect_by",
+                "time": {
+                  "table": "settings",
+                  "column": "no_show_at"
+                },
+                "plus": {
+                  "days": 1
+                },
+                "or": [
+                  {
+                    "column": "arrive",
+                    "time": {
+                      "table": "settings",
+                      "column": "no_show_at"
+                    },
+                    "plus": {
+                      "days": 1
+                    }
+                  }
+                ]
+              }
+            }
+          ],
+          "effects": [
+            {
+              "on": {
+                "to": "in_house"
+              },
+              "via": "room_id",
+              "set": {
+                "status": "occupied"
+              }
+            },
+            {
+              "on": {
+                "to": "departed"
+              },
+              "via": "room_id",
+              "set": {
+                "status": "cleaning"
+              }
+            }
+          ]
+        },
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "ref_seq",
+            "type": "int",
+            "label": {
+              "en-US": "Reference (running)"
+            },
+            "nullable": true,
+            "rules": {
+              "sequence": {
+                "gapless": true,
+                "startSetting": {
+                  "table": "settings",
+                  "column": "ref_start"
+                }
+              }
+            }
+          },
+          {
+            "ref": "ref",
+            "type": "text",
+            "maxLength": 16,
+            "label": {
+              "en-US": "Reference"
+            },
+            "nullable": true,
+            "unique": true,
+            "rules": {
+              "format": {
+                "from": "ref_seq",
+                "prefixSetting": {
+                  "table": "settings",
+                  "column": "ref_prefix"
+                }
+              }
+            }
+          },
+          {
+            "ref": "status",
+            "type": "enum",
+            "enum": [
+              "booked",
+              "in_house",
+              "departed",
+              "cancelled",
+              "no_show"
+            ],
+            "label": {
+              "en-US": "Status"
+            },
+            "default": "booked",
+            "rules": {
+              "enumLabels": {
+                "labels": {
+                  "booked": {
+                    "en-US": "Booked"
+                  },
+                  "in_house": {
+                    "en-US": "In house"
+                  },
+                  "departed": {
+                    "en-US": "Checked out"
+                  },
+                  "cancelled": {
+                    "en-US": "Cancelled"
+                  },
+                  "no_show": {
+                    "en-US": "No-show"
+                  }
+                },
+                "tones": {
+                  "booked": "info",
+                  "in_house": "pos",
+                  "departed": "neutral",
+                  "cancelled": "danger",
+                  "no_show": "warn"
+                }
+              }
+            }
+          },
+          {
+            "ref": "room_type_id",
+            "type": "fk",
+            "references": "room_types",
+            "label": {
+              "en-US": "Room type"
+            },
+            "index": true
+          },
+          {
+            "ref": "room_id",
+            "type": "fk",
+            "references": "rooms",
+            "label": {
+              "en-US": "Room"
+            },
+            "nullable": true,
+            "index": true
+          },
+          {
+            "ref": "arrive",
+            "type": "date",
+            "label": {
+              "en-US": "Arriving"
+            }
+          },
+          {
+            "ref": "depart",
+            "type": "date",
+            "label": {
+              "en-US": "Leaving"
+            }
+          },
+          {
+            "ref": "guests",
+            "type": "int",
+            "label": {
+              "en-US": "Guests"
+            },
+            "default": 2,
+            "rules": {
+              "validation": {
+                "min": 1,
+                "max": 8
+              }
+            }
+          },
+          {
+            "ref": "nights",
+            "type": "int",
+            "label": {
+              "en-US": "Nights"
+            },
+            "nullable": true,
+            "rules": {
+              "formula": {
+                "daysBetween": [
+                  "arrive",
+                  "depart"
+                ]
+              }
+            }
+          },
+          {
+            "ref": "first_name",
+            "type": "text",
+            "maxLength": 60,
+            "label": {
+              "en-US": "First name"
+            }
+          },
+          {
+            "ref": "last_name",
+            "type": "text",
+            "maxLength": 60,
+            "label": {
+              "en-US": "Surname"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "guest_name",
+            "type": "text",
+            "maxLength": 130,
+            "label": {
+              "en-US": "Guest"
+            },
+            "nullable": true,
+            "semantic": "name",
+            "rules": {
+              "formula": {
+                "join": [
+                  "first_name",
+                  " ",
+                  "last_name"
+                ]
+              }
+            }
+          },
+          {
+            "ref": "email",
+            "type": "text",
+            "maxLength": 254,
+            "label": {
+              "en-US": "Email"
+            },
+            "nullable": true,
+            "semantic": "email",
+            "rules": {
+              "normalize": "email",
+              "validation": {
+                "format": "email"
+              }
+            }
+          },
+          {
+            "ref": "mobile",
+            "type": "text",
+            "maxLength": 32,
+            "label": {
+              "en-US": "Mobile"
+            },
+            "nullable": true,
+            "rules": {
+              "validation": {
+                "format": "phone"
+              }
+            }
+          },
+          {
+            "ref": "arrival_time",
+            "type": "text",
+            "maxLength": 5,
+            "label": {
+              "en-US": "Arriving about"
+            },
+            "nullable": true,
+            "rules": {
+              "options": {
+                "values": [
+                  {
+                    "value": "15:00"
+                  },
+                  {
+                    "value": "16:00"
+                  },
+                  {
+                    "value": "17:00"
+                  },
+                  {
+                    "value": "18:00"
+                  },
+                  {
+                    "value": "19:00"
+                  },
+                  {
+                    "value": "20:00"
+                  },
+                  {
+                    "value": "21:00"
+                  },
+                  {
+                    "value": "22:00"
+                  },
+                  {
+                    "value": "22:30"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "ref": "note",
+            "type": "text",
+            "maxLength": 500,
+            "label": {
+              "en-US": "Note from the guest"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "expect_by",
+            "type": "date",
+            "label": {
+              "en-US": "Expected"
+            },
+            "nullable": true,
+            "rules": {
+              "notBefore": {
+                "column": "arrive"
+              }
+            }
+          },
+          {
+            "ref": "language",
+            "type": "text",
+            "maxLength": 16,
+            "nullable": true,
+            "label": {
+              "en-US": "Language"
+            },
+            "rules": {
+              "options": {
+                "values": [
+                  {
+                    "value": "en-US",
+                    "label": "English"
+                  },
+                  {
+                    "value": "de-DE",
+                    "label": "Deutsch"
+                  },
+                  {
+                    "value": "fr-FR",
+                    "label": "Français"
+                  },
+                  {
+                    "value": "da-DK",
+                    "label": "Dansk"
+                  },
+                  {
+                    "value": "cs-CZ",
+                    "label": "Čeština"
+                  },
+                  {
+                    "value": "ar-EG",
+                    "label": "العربية"
+                  },
+                  {
+                    "value": "zh-CN",
+                    "label": "简体中文"
+                  },
+                  {
+                    "value": "zh-TW",
+                    "label": "繁體中文"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "ref": "channel",
+            "type": "enum",
+            "enum": [
+              "online",
+              "desk"
+            ],
+            "label": {
+              "en-US": "Made"
+            },
+            "default": "online",
+            "rules": {
+              "enumLabels": {
+                "labels": {
+                  "online": {
+                    "en-US": "Online"
+                  },
+                  "desk": {
+                    "en-US": "At the desk"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "ref": "room_total",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Room"
+            },
+            "rules": {
+              "perNight": {
+                "from": "arrive",
+                "to": "depart",
+                "rate": {
+                  "via": "room_type_id",
+                  "column": "base_rate"
+                },
+                "adjust": {
+                  "table": "rate_rules",
+                  "match": {
+                    "via": "room_type_id",
+                    "weekdays": "weekdays",
+                    "from": "from_date",
+                    "to": "to_date"
+                  },
+                  "add": "amount",
+                  "name": "name",
+                  "where": {
+                    "column": "active",
+                    "eq": true
+                  }
+                }
+              }
+            }
+          },
+          {
+            "ref": "extras_total",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Extras"
+            },
+            "rules": {
+              "rollup": {
+                "from": "stay_extras",
+                "via": "stay_id",
+                "sum": "amount",
+                "where": {
+                  "column": "state",
+                  "eq": "on"
+                }
+              }
+            }
+          },
+          {
+            "ref": "extras_nightly",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Extras a night"
+            },
+            "rules": {
+              "rollup": {
+                "from": "stay_extras",
+                "via": "stay_id",
+                "sum": "nightly",
+                "where": {
+                  "column": "state",
+                  "eq": "on"
+                }
+              }
+            }
+          },
+          {
+            "ref": "charges_total",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Charges"
+            },
+            "rules": {
+              "rollup": {
+                "from": "charges",
+                "via": "stay_id",
+                "sum": "amount",
+                "where": {
+                  "column": "voided",
+                  "eq": false
+                }
+              }
+            }
+          },
+          {
+            "ref": "credits_total",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Nights not stayed"
+            },
+            "rules": {
+              "rollup": {
+                "from": "stay_credits",
+                "via": "stay_id",
+                "sum": "amount",
+                "where": {
+                  "column": "voided",
+                  "eq": false
+                }
+              }
+            }
+          },
+          {
+            "ref": "subtotal",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Before tax"
+            },
+            "rules": {
+              "formula": {
+                "sub": [
+                  {
+                    "add": [
+                      "room_total",
+                      {
+                        "coalesce": [
+                          "extras_total",
+                          0
+                        ]
+                      },
+                      {
+                        "coalesce": [
+                          "charges_total",
+                          0
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "coalesce": [
+                      "credits_total",
+                      0
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "ref": "tax_rate",
+            "type": "decimal",
+            "scale": 3,
+            "nullable": true,
+            "label": {
+              "en-US": "Tax rate (%)"
+            },
+            "rules": {
+              "default": {
+                "from": {
+                  "table": "settings",
+                  "column": "tax_rate"
+                }
+              }
+            }
+          },
+          {
+            "ref": "tax_label",
+            "type": "text",
+            "maxLength": 60,
+            "label": {
+              "en-US": "Tax name"
+            },
+            "nullable": true,
+            "rules": {
+              "default": {
+                "from": {
+                  "table": "settings",
+                  "column": "tax_label"
+                }
+              }
+            }
+          },
+          {
+            "ref": "tax",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Tax"
+            },
+            "rules": {
+              "formula": {
+                "round": {
+                  "div": [
+                    {
+                      "mul": [
+                        "subtotal",
+                        {
+                          "coalesce": [
+                            "tax_rate",
+                            0
+                          ]
+                        }
+                      ]
+                    },
+                    100
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "ref": "total",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Total"
+            },
+            "rules": {
+              "formula": {
+                "add": [
+                  "subtotal",
+                  {
+                    "coalesce": [
+                      "tax",
+                      0
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "ref": "paid",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Paid"
+            },
+            "rules": {
+              "rollup": {
+                "from": "payments",
+                "via": "stay_id",
+                "sum": "signed",
+                "where": {
+                  "column": "voided",
+                  "eq": false
+                },
+                "balance": {
+                  "column": "balance",
+                  "of": "total"
+                },
+                "cap": true
+              }
+            }
+          },
+          {
+            "ref": "balance",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Owing"
+            }
+          },
+          {
+            "ref": "late_cancel",
+            "type": "bool",
+            "default": false,
+            "label": {
+              "en-US": "Late cancellation"
+            }
+          },
+          {
+            "ref": "cancel_code",
+            "type": "enum",
+            "enum": [
+              "self",
+              "guest_asked",
+              "house"
+            ],
+            "label": {
+              "en-US": "Who cancelled"
+            },
+            "nullable": true,
+            "rules": {
+              "enumLabels": {
+                "labels": {
+                  "self": {
+                    "en-US": "The guest, online"
+                  },
+                  "guest_asked": {
+                    "en-US": "The guest asked the desk"
+                  },
+                  "house": {
+                    "en-US": "The house"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "ref": "cancel_by",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Cancel at no charge until"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": {
+                  "moment": {
+                    "column": "arrive",
+                    "time": {
+                      "table": "settings",
+                      "column": "arrive_from"
+                    },
+                    "minus": {
+                      "days": {
+                        "table": "settings",
+                        "column": "cancel_days"
+                      }
+                    }
+                  }
+                },
+                "on": {
+                  "columns": [
+                    "arrive"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "ref": "created_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Made"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "now",
+                "on": "create"
+              }
+            }
+          },
+          {
+            "ref": "checked_in_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Checked in"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "now",
+                "on": {
+                  "column": "status",
+                  "values": [
+                    "in_house"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "ref": "checked_in_by",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Checked in by"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "user-name",
+                "on": {
+                  "column": "status",
+                  "values": [
+                    "in_house"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "ref": "checked_out_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Checked out"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "now",
+                "on": {
+                  "column": "status",
+                  "values": [
+                    "departed"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "ref": "checked_out_by",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Checked out by"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "user-name",
+                "on": {
+                  "column": "status",
+                  "values": [
+                    "departed"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "ref": "cancelled_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Cancelled"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "now",
+                "on": {
+                  "column": "status",
+                  "values": [
+                    "cancelled"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "ref": "cancelled_by",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Cancelled by"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": {
+                  "byOrigin": {
+                    "public": "guest",
+                    "staff": "user-name"
+                  }
+                },
+                "on": {
+                  "column": "status",
+                  "values": [
+                    "cancelled"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "ref": "no_show_marked_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Marked as a no-show"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "now",
+                "on": {
+                  "column": "status",
+                  "values": [
+                    "no_show"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "ref": "customer_id",
+            "type": "fk",
+            "references": "customers",
+            "label": {
+              "en-US": "Guest account"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "link_token",
+            "type": "text",
+            "maxLength": 16,
+            "label": {
+              "en-US": "Link code"
+            },
+            "nullable": true,
+            "rules": {
+              "code": {
+                "length": 16
+              }
+            }
+          },
+          {
+            "ref": "link_stopped",
+            "type": "bool",
+            "default": false,
+            "label": {
+              "en-US": "Link stopped"
+            }
+          },
+          {
+            "ref": "client_key",
+            "type": "text",
+            "maxLength": 64,
+            "label": {
+              "en-US": "Retry key"
+            },
+            "nullable": true,
+            "unique": true
+          }
+        ]
+      },
+      {
+        "ref": "stay_extras",
+        "label": {
+          "en-US": "Extra on a stay"
+        },
+        "labelPlural": {
+          "en-US": "Extras on stays"
+        },
+        "keyField": "label",
+        "unique": [
+          [
+            "stay_id",
+            "extra_id"
+          ]
+        ],
+        "capacity": {
+          "kind": "night",
+          "from": {
+            "via": "stay_id",
+            "column": "arrive"
+          },
+          "to": {
+            "via": "stay_id",
+            "column": "depart"
+          },
+          "countWhere": [
+            {
+              "column": "state",
+              "values": [
+                "on"
+              ]
+            },
+            {
+              "column": "status",
+              "values": [
+                "booked",
+                "in_house"
+              ],
+              "via": "stay_id"
+            }
+          ],
+          "pool": {
+            "via": "extra_id",
+            "size": {
+              "column": "spaces"
+            }
+          }
+        },
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "stay_id",
+            "type": "fk",
+            "references": "stays",
+            "label": {
+              "en-US": "Reservation"
+            },
+            "index": true
+          },
+          {
+            "ref": "extra_id",
+            "type": "fk",
+            "references": "extras",
+            "label": {
+              "en-US": "Extra"
+            }
+          },
+          {
+            "ref": "state",
+            "type": "enum",
+            "enum": [
+              "on",
+              "off"
+            ],
+            "label": {
+              "en-US": "On the stay"
+            },
+            "default": "on",
+            "rules": {
+              "enumLabels": {
+                "labels": {
+                  "on": {
+                    "en-US": "On"
+                  },
+                  "off": {
+                    "en-US": "Dropped"
+                  }
+                },
+                "tones": {
+                  "on": "pos",
+                  "off": "neutral"
+                }
+              }
+            }
+          },
+          {
+            "ref": "label",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Name"
+            },
+            "nullable": true,
+            "rules": {
+              "copy": {
+                "via": "extra_id",
+                "from": "label",
+                "mode": "always"
+              }
+            }
+          },
+          {
+            "ref": "each",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Price"
+            },
+            "rules": {
+              "copy": {
+                "via": "extra_id",
+                "from": "amount",
+                "mode": "always"
+              }
+            }
+          },
+          {
+            "ref": "per",
+            "type": "enum",
+            "enum": [
+              "person_night",
+              "night",
+              "stay"
+            ],
+            "label": {
+              "en-US": "Charged"
+            },
+            "nullable": true,
+            "rules": {
+              "copy": {
+                "via": "extra_id",
+                "from": "per",
+                "mode": "always"
+              },
+              "enumLabels": {
+                "labels": {
+                  "person_night": {
+                    "en-US": "Per person, per night"
+                  },
+                  "night": {
+                    "en-US": "Per night"
+                  },
+                  "stay": {
+                    "en-US": "Once a stay"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "ref": "nights",
+            "type": "int",
+            "label": {
+              "en-US": "Nights"
+            },
+            "nullable": true,
+            "rules": {
+              "copy": {
+                "via": "stay_id",
+                "from": "nights",
+                "mode": "always",
+                "follow": true
+              }
+            }
+          },
+          {
+            "ref": "guests",
+            "type": "int",
+            "label": {
+              "en-US": "Guests"
+            },
+            "nullable": true,
+            "rules": {
+              "copy": {
+                "via": "stay_id",
+                "from": "guests",
+                "mode": "always",
+                "follow": true
+              }
+            }
+          },
+          {
+            "ref": "nightly",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "A night"
+            },
+            "rules": {
+              "formula": {
+                "if": [
+                  {
+                    "eq": [
+                      "per",
+                      "person_night"
+                    ]
+                  },
+                  {
+                    "mul": [
+                      "each",
+                      {
+                        "coalesce": [
+                          "guests",
+                          1
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "if": [
+                      {
+                        "eq": [
+                          "per",
+                          "night"
+                        ]
+                      },
+                      "each",
+                      0
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "ref": "amount",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Amount"
+            },
+            "rules": {
+              "formula": {
+                "if": [
+                  {
+                    "eq": [
+                      "per",
+                      "stay"
+                    ]
+                  },
+                  "each",
+                  {
+                    "mul": [
+                      "nightly",
+                      {
+                        "coalesce": [
+                          "nights",
+                          0
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "ref": "added_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Added"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "now",
+                "on": "create"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": "charges",
+        "label": {
+          "en-US": "Charge"
+        },
+        "labelPlural": {
+          "en-US": "Charges"
+        },
+        "keyField": "label",
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "stay_id",
+            "type": "fk",
+            "references": "stays",
+            "label": {
+              "en-US": "Reservation"
+            },
+            "index": true
+          },
+          {
+            "ref": "charge_item_id",
+            "type": "fk",
+            "references": "charge_items",
+            "label": {
+              "en-US": "Item"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "label",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Name"
+            },
+            "nullable": true,
+            "rules": {
+              "copy": {
+                "via": "charge_item_id",
+                "from": "label",
+                "mode": "always"
+              }
+            }
+          },
+          {
+            "ref": "amount",
+            "type": "decimal",
+            "scale": "currency",
+            "label": {
+              "en-US": "Amount"
+            },
+            "rules": {
+              "copy": {
+                "via": "charge_item_id",
+                "from": "amount",
+                "mode": "always"
+              },
+              "validation": {
+                "min": 0
+              }
+            }
+          },
+          {
+            "ref": "note",
+            "type": "text",
+            "maxLength": 240,
+            "label": {
+              "en-US": "Note"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "charged_on",
+            "type": "date",
+            "label": {
+              "en-US": "Charged on"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "today",
+                "on": "create"
+              }
+            }
+          },
+          {
+            "ref": "recorded_by",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Recorded by"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "user-name",
+                "on": "create"
+              }
+            }
+          },
+          {
+            "ref": "voided",
+            "type": "bool",
+            "default": false,
+            "label": {
+              "en-US": "Voided"
+            }
+          },
+          {
+            "ref": "void_reason",
+            "type": "text",
+            "maxLength": 240,
+            "label": {
+              "en-US": "Why it was voided"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "voided_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Voided on"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "now",
+                "on": {
+                  "column": "voided",
+                  "values": [
+                    true
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "ref": "voided_by",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Voided by"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "user-name",
+                "on": {
+                  "column": "voided",
+                  "values": [
+                    true
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": "stay_credits",
+        "label": {
+          "en-US": "Nights not stayed"
+        },
+        "labelPlural": {
+          "en-US": "Nights not stayed"
+        },
+        "keyField": "reason",
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "stay_id",
+            "type": "fk",
+            "references": "stays",
+            "label": {
+              "en-US": "Reservation"
+            },
+            "index": true
+          },
+          {
+            "ref": "reason",
+            "type": "enum",
+            "enum": [
+              "left_early",
+              "missed"
+            ],
+            "label": {
+              "en-US": "Why"
+            },
+            "default": "left_early",
+            "rules": {
+              "enumLabels": {
+                "labels": {
+                  "left_early": {
+                    "en-US": "Left early"
+                  },
+                  "missed": {
+                    "en-US": "A night they missed"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "ref": "from_date",
+            "type": "date",
+            "label": {
+              "en-US": "First night"
+            },
+            "rules": {
+              "notBefore": {
+                "column": "arrive",
+                "via": "stay_id"
+              }
+            }
+          },
+          {
+            "ref": "to_date",
+            "type": "date",
+            "label": {
+              "en-US": "Until"
+            },
+            "rules": {
+              "notBefore": {
+                "column": "from_date"
+              }
+            }
+          },
+          {
+            "ref": "room_type_id",
+            "type": "fk",
+            "references": "room_types",
+            "label": {
+              "en-US": "Room type"
+            },
+            "nullable": true,
+            "rules": {
+              "copy": {
+                "via": "stay_id",
+                "from": "room_type_id",
+                "mode": "always",
+                "follow": true
+              }
+            }
+          },
+          {
+            "ref": "nights",
+            "type": "int",
+            "label": {
+              "en-US": "Nights"
+            },
+            "nullable": true,
+            "rules": {
+              "formula": {
+                "daysBetween": [
+                  "from_date",
+                  "to_date"
+                ]
+              }
+            }
+          },
+          {
+            "ref": "room_amount",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Room"
+            },
+            "rules": {
+              "perNight": {
+                "from": "from_date",
+                "to": "to_date",
+                "rate": {
+                  "via": "room_type_id",
+                  "column": "base_rate"
+                },
+                "adjust": {
+                  "table": "rate_rules",
+                  "match": {
+                    "via": "room_type_id",
+                    "weekdays": "weekdays",
+                    "from": "from_date",
+                    "to": "to_date"
+                  },
+                  "add": "amount",
+                  "name": "name",
+                  "where": {
+                    "column": "active",
+                    "eq": true
+                  }
+                }
+              }
+            }
+          },
+          {
+            "ref": "extras_nightly",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Extras a night"
+            },
+            "rules": {
+              "copy": {
+                "via": "stay_id",
+                "from": "extras_nightly",
+                "mode": "always",
+                "follow": true
+              }
+            }
+          },
+          {
+            "ref": "amount",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Amount"
+            },
+            "rules": {
+              "formula": {
+                "add": [
+                  "room_amount",
+                  {
+                    "mul": [
+                      {
+                        "coalesce": [
+                          "extras_nightly",
+                          0
+                        ]
+                      },
+                      {
+                        "coalesce": [
+                          "nights",
+                          0
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "ref": "line_amount",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "On the folio"
+            },
+            "rules": {
+              "formula": {
+                "sub": [
+                  0,
+                  "amount"
+                ]
+              }
+            }
+          },
+          {
+            "ref": "recorded_by",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Recorded by"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "user-name",
+                "on": "create"
+              }
+            }
+          },
+          {
+            "ref": "created_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Recorded"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "now",
+                "on": "create"
+              }
+            }
+          },
+          {
+            "ref": "voided",
+            "type": "bool",
+            "default": false,
+            "label": {
+              "en-US": "Voided"
+            }
+          },
+          {
+            "ref": "void_reason",
+            "type": "text",
+            "maxLength": 240,
+            "label": {
+              "en-US": "Why it was voided"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "voided_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Voided on"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "now",
+                "on": {
+                  "column": "voided",
+                  "values": [
+                    true
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "ref": "voided_by",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Voided by"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "user-name",
+                "on": {
+                  "column": "voided",
+                  "values": [
+                    true
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": "payments",
+        "label": {
+          "en-US": "Payment"
+        },
+        "labelPlural": {
+          "en-US": "Payments"
+        },
+        "keyField": "method",
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "stay_id",
+            "type": "fk",
+            "references": "stays",
+            "label": {
+              "en-US": "Reservation"
+            },
+            "index": true
+          },
+          {
+            "ref": "kind",
+            "type": "enum",
+            "enum": [
+              "taken",
+              "given_back"
+            ],
+            "label": {
+              "en-US": "Kind"
+            },
+            "default": "taken",
+            "rules": {
+              "enumLabels": {
+                "labels": {
+                  "taken": {
+                    "en-US": "Taken"
+                  },
+                  "given_back": {
+                    "en-US": "Given back"
+                  }
+                },
+                "tones": {
+                  "taken": "pos",
+                  "given_back": "warn"
+                }
+              }
+            }
+          },
+          {
+            "ref": "amount",
+            "type": "decimal",
+            "scale": "currency",
+            "label": {
+              "en-US": "Amount"
+            },
+            "rules": {
+              "validation": {
+                "min": 0.01
+              }
+            }
+          },
+          {
+            "ref": "method",
+            "type": "enum",
+            "enum": [
+              "card",
+              "cash",
+              "transfer"
+            ],
+            "label": {
+              "en-US": "How"
+            },
+            "default": "card",
+            "rules": {
+              "enumLabels": {
+                "labels": {
+                  "card": {
+                    "en-US": "Card"
+                  },
+                  "cash": {
+                    "en-US": "Cash"
+                  },
+                  "transfer": {
+                    "en-US": "Transfer"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "ref": "reference",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Reference"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "note",
+            "type": "text",
+            "maxLength": 240,
+            "label": {
+              "en-US": "Note"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "signed",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Counted"
+            },
+            "rules": {
+              "formula": {
+                "if": [
+                  {
+                    "eq": [
+                      "kind",
+                      "given_back"
+                    ]
+                  },
+                  {
+                    "sub": [
+                      0,
+                      "amount"
+                    ]
+                  },
+                  "amount"
+                ]
+              }
+            }
+          },
+          {
+            "ref": "paid_on",
+            "type": "date",
+            "label": {
+              "en-US": "On"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "today",
+                "on": "create"
+              }
+            }
+          },
+          {
+            "ref": "recorded_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Recorded"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "now",
+                "on": "create"
+              }
+            }
+          },
+          {
+            "ref": "recorded_by",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Recorded by"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "user-name",
+                "on": "create"
+              }
+            }
+          },
+          {
+            "ref": "voided",
+            "type": "bool",
+            "default": false,
+            "label": {
+              "en-US": "Voided"
+            }
+          },
+          {
+            "ref": "void_reason",
+            "type": "text",
+            "maxLength": 240,
+            "label": {
+              "en-US": "Why it was voided"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "voided_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Voided on"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "now",
+                "on": {
+                  "column": "voided",
+                  "values": [
+                    true
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "ref": "voided_by",
+            "type": "text",
+            "maxLength": 80,
+            "label": {
+              "en-US": "Voided by"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "user-name",
+                "on": {
+                  "column": "voided",
+                  "values": [
+                    true
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "ref": "messages",
+        "label": {
+          "en-US": "Email"
+        },
+        "labelPlural": {
+          "en-US": "Emails"
+        },
+        "keyField": "kind",
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "kind",
+            "type": "enum",
+            "enum": [
+              "stay-made",
+              "stay-made-desk",
+              "stay-cancelled-self",
+              "stay-cancelled-self-late",
+              "stay-cancelled-desk",
+              "stay-cancelled-desk-late",
+              "stay-cancelled-house",
+              "stay-no-show"
+            ],
+            "label": {
+              "en-US": "Kind"
+            },
+            "rules": {
+              "enumLabels": {
+                "labels": {
+                  "stay-made": {
+                    "en-US": "Reservation made"
+                  },
+                  "stay-made-desk": {
+                    "en-US": "Reservation made at the desk"
+                  },
+                  "stay-cancelled-self": {
+                    "en-US": "Cancelled by the guest"
+                  },
+                  "stay-cancelled-self-late": {
+                    "en-US": "Cancelled by the guest, late"
+                  },
+                  "stay-cancelled-desk": {
+                    "en-US": "Cancelled at the guest's request"
+                  },
+                  "stay-cancelled-desk-late": {
+                    "en-US": "Cancelled at the guest's request, late"
+                  },
+                  "stay-cancelled-house": {
+                    "en-US": "Cancelled by the house"
+                  },
+                  "stay-no-show": {
+                    "en-US": "We missed you"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "ref": "status",
+            "type": "enum",
+            "enum": [
+              "queued",
+              "sent",
+              "failed",
+              "skipped"
+            ],
+            "label": {
+              "en-US": "Status"
+            },
+            "default": "queued",
+            "rules": {
+              "enumLabels": {
+                "labels": {
+                  "queued": {
+                    "en-US": "Going out"
+                  },
+                  "sent": {
+                    "en-US": "Sent"
+                  },
+                  "failed": {
+                    "en-US": "Not sent"
+                  },
+                  "skipped": {
+                    "en-US": "Skipped"
+                  }
+                },
+                "tones": {
+                  "queued": "info",
+                  "sent": "pos",
+                  "failed": "danger",
+                  "skipped": "neutral"
+                }
+              }
+            }
+          },
+          {
+            "ref": "to_address",
+            "type": "text",
+            "maxLength": 254,
+            "label": {
+              "en-US": "To"
+            },
+            "nullable": true,
+            "semantic": "email"
+          },
+          {
+            "ref": "language",
+            "type": "text",
+            "maxLength": 16,
+            "label": {
+              "en-US": "Language"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "stay_id",
+            "type": "fk",
+            "references": "stays",
+            "label": {
+              "en-US": "Reservation"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "customer_id",
+            "type": "fk",
+            "references": "customers",
+            "label": {
+              "en-US": "Guest"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "due",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Due"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "created_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Created"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "now",
+                "on": "create"
+              }
+            }
+          },
+          {
+            "ref": "sent_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Sent"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "error",
+            "type": "text",
+            "maxLength": 500,
+            "label": {
+              "en-US": "What went wrong"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "skip_reason",
+            "type": "enum",
+            "enum": [
+              "overtaken",
+              "paid",
+              "void",
+              "no-longer-needed",
+              "by-hand"
+            ],
+            "label": {
+              "en-US": "Why it was skipped"
+            },
+            "nullable": true,
+            "rules": {
+              "enumLabels": {
+                "labels": {
+                  "overtaken": {
+                    "en-US": "A later email took its place"
+                  },
+                  "paid": {
+                    "en-US": "Paid"
+                  },
+                  "void": {
+                    "en-US": "Void"
+                  },
+                  "no-longer-needed": {
+                    "en-US": "No longer needed"
+                  },
+                  "by-hand": {
+                    "en-US": "Skipped by hand"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    ]
+  },
   "pages": [
     {
-      "ref": "hotel-dashboard",
+      "ref": "hotel-overview",
       "template": "page-dashboard",
       "title": {
-        "key": "mft.hotel.page.dashboard",
-        "fallback": "Dashboard"
+        "key": "mft.hotel.overview",
+        "fallback": "Overview"
       },
+      "titles": {},
       "nav": {
-        "group": "manifest:hotel",
+        "group": "overview",
         "icon": "layout-dashboard",
-        "order": 1
+        "order": 0
+      },
+      "config": {
+        "layout": {
+          "version": 1,
+          "items": [
+            {
+              "i": "in-house",
+              "widget": "kpi-stat-card",
+              "x": 0,
+              "y": 0,
+              "w": 3,
+              "h": 3,
+              "config": {
+                "title": "In house now",
+                "titles": {
+                  "en-US": "In house now"
+                },
+                "metricFormat": "plain",
+                "deltaMode": "none",
+                "showSparkline": false,
+                "iconName": "bed-double",
+                "binding": {
+                  "kind": "table-query",
+                  "source": {
+                    "name": "stays",
+                    "type": "table"
+                  },
+                  "shape": "metric+delta",
+                  "aggregations": [
+                    {
+                      "fn": "count",
+                      "alias": "stays"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "column": "status",
+                      "op": "eq",
+                      "value": "in_house"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "i": "arriving",
+              "widget": "kpi-stat-card",
+              "x": 3,
+              "y": 0,
+              "w": 3,
+              "h": 3,
+              "config": {
+                "title": "Arriving today",
+                "titles": {
+                  "en-US": "Arriving today"
+                },
+                "metricFormat": "plain",
+                "deltaMode": "none",
+                "showSparkline": false,
+                "iconName": "log-in",
+                "binding": {
+                  "kind": "table-query",
+                  "source": {
+                    "name": "stays",
+                    "type": "table"
+                  },
+                  "shape": "metric+delta",
+                  "aggregations": [
+                    {
+                      "fn": "count",
+                      "alias": "stays"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "column": "status",
+                      "op": "in",
+                      "value": [
+                        "booked",
+                        "in_house"
+                      ]
+                    }
+                  ],
+                  "window": {
+                    "column": "arrive",
+                    "last": 1,
+                    "unit": "day",
+                    "calendar": true
+                  }
+                }
+              }
+            },
+            {
+              "i": "leaving",
+              "widget": "kpi-stat-card",
+              "x": 6,
+              "y": 0,
+              "w": 3,
+              "h": 3,
+              "config": {
+                "title": "Leaving today",
+                "titles": {
+                  "en-US": "Leaving today"
+                },
+                "metricFormat": "plain",
+                "deltaMode": "none",
+                "showSparkline": false,
+                "iconName": "log-out",
+                "binding": {
+                  "kind": "table-query",
+                  "source": {
+                    "name": "stays",
+                    "type": "table"
+                  },
+                  "shape": "metric+delta",
+                  "aggregations": [
+                    {
+                      "fn": "count",
+                      "alias": "stays"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "column": "status",
+                      "op": "in",
+                      "value": [
+                        "in_house",
+                        "departed"
+                      ]
+                    }
+                  ],
+                  "window": {
+                    "column": "depart",
+                    "last": 1,
+                    "unit": "day",
+                    "calendar": true
+                  }
+                }
+              }
+            },
+            {
+              "i": "on-accounts",
+              "widget": "kpi-stat-card",
+              "x": 9,
+              "y": 0,
+              "w": 3,
+              "h": 3,
+              "config": {
+                "title": "On guests' accounts",
+                "titles": {
+                  "en-US": "On guests' accounts"
+                },
+                "metricFormat": "currency",
+                "deltaMode": "none",
+                "showSparkline": false,
+                "iconName": "wallet",
+                "binding": {
+                  "kind": "table-query",
+                  "source": {
+                    "name": "stays",
+                    "type": "table"
+                  },
+                  "shape": "metric+delta",
+                  "aggregations": [
+                    {
+                      "fn": "sum",
+                      "column": "balance",
+                      "alias": "owing"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "column": "status",
+                      "op": "eq",
+                      "value": "in_house"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "i": "recorded",
+              "widget": "kpi-stat-card",
+              "x": 0,
+              "y": 3,
+              "w": 4,
+              "h": 3,
+              "config": {
+                "title": "Money recorded this month",
+                "titles": {
+                  "en-US": "Money recorded this month"
+                },
+                "metricFormat": "currency",
+                "deltaMode": "none",
+                "showSparkline": false,
+                "iconName": "banknote",
+                "binding": {
+                  "kind": "table-query",
+                  "source": {
+                    "name": "payments",
+                    "type": "table"
+                  },
+                  "shape": "metric+delta",
+                  "aggregations": [
+                    {
+                      "fn": "sum",
+                      "column": "signed",
+                      "alias": "recorded"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "column": "voided",
+                      "op": "eq",
+                      "value": false
+                    }
+                  ],
+                  "window": {
+                    "column": "paid_on",
+                    "last": 1,
+                    "unit": "month",
+                    "calendar": true
+                  }
+                }
+              }
+            },
+            {
+              "i": "late-cancellations",
+              "widget": "kpi-stat-card",
+              "x": 4,
+              "y": 3,
+              "w": 4,
+              "h": 3,
+              "config": {
+                "title": "Late cancellations this month",
+                "titles": {
+                  "en-US": "Late cancellations this month"
+                },
+                "metricFormat": "plain",
+                "deltaMode": "none",
+                "showSparkline": false,
+                "iconName": "calendar-x",
+                "binding": {
+                  "kind": "table-query",
+                  "source": {
+                    "name": "stays",
+                    "type": "table"
+                  },
+                  "shape": "metric+delta",
+                  "aggregations": [
+                    {
+                      "fn": "count",
+                      "alias": "stays"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "column": "late_cancel",
+                      "op": "eq",
+                      "value": true
+                    },
+                    {
+                      "column": "cancel_code",
+                      "op": "in",
+                      "value": [
+                        "self",
+                        "guest_asked"
+                      ]
+                    }
+                  ],
+                  "window": {
+                    "column": "cancelled_at",
+                    "last": 1,
+                    "unit": "month",
+                    "calendar": true
+                  }
+                }
+              }
+            },
+            {
+              "i": "no-shows",
+              "widget": "kpi-stat-card",
+              "x": 8,
+              "y": 3,
+              "w": 4,
+              "h": 3,
+              "config": {
+                "title": "No-shows this month",
+                "titles": {
+                  "en-US": "No-shows this month"
+                },
+                "metricFormat": "plain",
+                "deltaMode": "none",
+                "showSparkline": false,
+                "iconName": "user-x",
+                "binding": {
+                  "kind": "table-query",
+                  "source": {
+                    "name": "stays",
+                    "type": "table"
+                  },
+                  "shape": "metric+delta",
+                  "aggregations": [
+                    {
+                      "fn": "count",
+                      "alias": "stays"
+                    }
+                  ],
+                  "filters": [
+                    {
+                      "column": "status",
+                      "op": "eq",
+                      "value": "no_show"
+                    }
+                  ],
+                  "window": {
+                    "column": "arrive",
+                    "last": 1,
+                    "unit": "month",
+                    "calendar": true
+                  }
+                }
+              }
+            },
+            {
+              "i": "made-by-week",
+              "widget": "chart-bar",
+              "x": 0,
+              "y": 6,
+              "w": 12,
+              "h": 8,
+              "config": {
+                "title": "Reservations made each week",
+                "titles": {
+                  "en-US": "Reservations made each week"
+                },
+                "binding": {
+                  "kind": "table-query",
+                  "source": {
+                    "name": "stays",
+                    "type": "table"
+                  },
+                  "shape": "timeseries",
+                  "aggregations": [
+                    {
+                      "fn": "count",
+                      "alias": "stays"
+                    }
+                  ],
+                  "bucket": {
+                    "column": "created_at",
+                    "unit": "week"
+                  },
+                  "window": {
+                    "column": "created_at",
+                    "last": 8,
+                    "unit": "week",
+                    "calendar": true
+                  }
+                }
+              }
+            }
+          ]
+        }
       }
     },
     {
-      "ref": "hotel-room-types",
+      "ref": "hotel-reservations",
       "template": "page-crud",
       "title": {
-        "key": "mft.hotel.tbl.room_types",
-        "fallback": "Room types"
-      },
-      "nav": {
-        "group": "manifest:hotel",
-        "icon": "table",
-        "order": 2
-      },
-      "bindings": {
-        "rows": "room_types"
-      }
-    },
-    {
-      "ref": "hotel-room-type-features",
-      "template": "page-crud",
-      "title": {
-        "key": "mft.hotel.tbl.features",
-        "fallback": "What is in the room"
-      },
-      "nav": {
-        "group": "manifest:hotel",
-        "icon": "list",
-        "order": 3
-      },
-      "bindings": {
-        "rows": "room_type_features"
-      }
-    },
-    {
-      "ref": "hotel-rooms",
-      "template": "page-crud",
-      "title": {
-        "key": "mft.hotel.tbl.rooms",
-        "fallback": "Rooms"
-      },
-      "nav": {
-        "group": "manifest:hotel",
-        "icon": "layers",
-        "order": 4
-      },
-      "bindings": {
-        "rows": "rooms"
-      }
-    },
-    {
-      "ref": "hotel-extras",
-      "template": "page-crud",
-      "title": {
-        "key": "mft.hotel.tbl.extras",
-        "fallback": "Extras"
-      },
-      "nav": {
-        "group": "manifest:hotel",
-        "icon": "boxes",
-        "order": 5
-      },
-      "bindings": {
-        "rows": "extras"
-      }
-    },
-    {
-      "ref": "hotel-stays",
-      "template": "page-crud",
-      "title": {
-        "key": "mft.hotel.tbl.stays",
+        "key": "mft.hotel.reservations",
         "fallback": "Reservations"
       },
+      "titles": {},
       "nav": {
-        "group": "manifest:hotel",
-        "icon": "receipt",
-        "order": 6
+        "group": "records",
+        "icon": "book-open",
+        "order": 1
       },
       "bindings": {
         "rows": "stays"
+      },
+      "config": {
+        "form": {
+          "v": 2,
+          "sections": [
+            {
+              "id": "s1",
+              "fields": [
+                {
+                  "column": "ref",
+                  "control": "title",
+                  "span": 2
+                },
+                {
+                  "column": "status",
+                  "control": "segmented"
+                },
+                {
+                  "column": "arrive",
+                  "control": "date"
+                },
+                {
+                  "column": "depart",
+                  "control": "date"
+                },
+                {
+                  "column": "nights"
+                },
+                {
+                  "column": "guests",
+                  "control": "stepper"
+                }
+              ]
+            },
+            {
+              "id": "s2",
+              "fields": [
+                {
+                  "column": "room_type_id",
+                  "control": "reference"
+                },
+                {
+                  "column": "room_id",
+                  "control": "reference"
+                },
+                {
+                  "column": "arrival_time"
+                },
+                {
+                  "column": "expect_by",
+                  "control": "date"
+                },
+                {
+                  "column": "channel",
+                  "control": "segmented"
+                },
+                {
+                  "column": "language"
+                }
+              ]
+            },
+            {
+              "id": "s3",
+              "fields": [
+                {
+                  "column": "first_name"
+                },
+                {
+                  "column": "last_name"
+                },
+                {
+                  "column": "email",
+                  "control": "email"
+                },
+                {
+                  "column": "mobile",
+                  "control": "phone"
+                },
+                {
+                  "column": "note",
+                  "control": "textarea",
+                  "span": 2
+                },
+                {
+                  "column": "customer_id",
+                  "control": "reference"
+                }
+              ]
+            },
+            {
+              "id": "s4",
+              "fields": [
+                {
+                  "relation": "stay_extras",
+                  "control": "child-rows",
+                  "span": 2,
+                  "columns": [
+                    {
+                      "column": "extra_id",
+                      "control": "reference",
+                      "width": "2fr"
+                    },
+                    {
+                      "column": "state",
+                      "width": "110px"
+                    },
+                    {
+                      "column": "nights",
+                      "width": "80px"
+                    },
+                    {
+                      "column": "guests",
+                      "width": "80px"
+                    },
+                    {
+                      "column": "amount",
+                      "control": "currency",
+                      "width": "110px"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "s5",
+              "fields": [
+                {
+                  "column": "room_total",
+                  "control": "currency"
+                },
+                {
+                  "column": "extras_total",
+                  "control": "currency"
+                },
+                {
+                  "column": "charges_total",
+                  "control": "currency"
+                },
+                {
+                  "column": "credits_total",
+                  "control": "currency"
+                },
+                {
+                  "column": "subtotal",
+                  "control": "currency"
+                },
+                {
+                  "column": "tax_label"
+                },
+                {
+                  "column": "tax_rate",
+                  "control": "number"
+                },
+                {
+                  "column": "tax",
+                  "control": "currency"
+                },
+                {
+                  "column": "total",
+                  "control": "currency"
+                },
+                {
+                  "column": "paid",
+                  "control": "currency"
+                },
+                {
+                  "column": "balance",
+                  "control": "currency"
+                }
+              ]
+            },
+            {
+              "id": "s6",
+              "fields": [
+                {
+                  "column": "cancel_by",
+                  "control": "datetime"
+                },
+                {
+                  "column": "cancel_code",
+                  "control": "select"
+                },
+                {
+                  "column": "late_cancel",
+                  "control": "toggle-row"
+                },
+                {
+                  "column": "cancelled_at",
+                  "control": "datetime"
+                },
+                {
+                  "column": "cancelled_by"
+                },
+                {
+                  "column": "no_show_marked_at",
+                  "control": "datetime"
+                }
+              ]
+            },
+            {
+              "id": "s7",
+              "fields": [
+                {
+                  "column": "created_at",
+                  "control": "datetime"
+                },
+                {
+                  "column": "checked_in_at",
+                  "control": "datetime"
+                },
+                {
+                  "column": "checked_in_by"
+                },
+                {
+                  "column": "checked_out_at",
+                  "control": "datetime"
+                },
+                {
+                  "column": "checked_out_by"
+                },
+                {
+                  "column": "link_stopped",
+                  "control": "toggle-row"
+                }
+              ]
+            }
+          ]
+        }
       }
     },
     {
-      "ref": "hotel-stay-extras",
+      "ref": "hotel-guests",
       "template": "page-crud",
       "title": {
-        "key": "mft.hotel.tbl.stay_extras",
-        "fallback": "Extras on a stay"
+        "key": "mft.hotel.guests",
+        "fallback": "Guests"
       },
+      "titles": {},
       "nav": {
-        "group": "manifest:hotel",
-        "icon": "users",
-        "order": 7
+        "group": "records",
+        "icon": "contact",
+        "order": 2
       },
       "bindings": {
-        "rows": "stay_extras"
+        "rows": "customers"
+      },
+      "config": {
+        "form": {
+          "v": 2,
+          "sections": [
+            {
+              "id": "s1",
+              "fields": [
+                {
+                  "column": "first_name"
+                },
+                {
+                  "column": "last_name"
+                },
+                {
+                  "column": "email",
+                  "control": "email"
+                },
+                {
+                  "column": "created_at",
+                  "control": "datetime"
+                },
+                {
+                  "column": "forgotten_at",
+                  "control": "datetime"
+                }
+              ]
+            }
+          ]
+        }
       }
     },
     {
       "ref": "hotel-charges",
       "template": "page-crud",
       "title": {
-        "key": "mft.hotel.tbl.charges",
+        "key": "mft.hotel.charges",
         "fallback": "Charges"
       },
+      "titles": {},
       "nav": {
-        "group": "manifest:hotel",
-        "icon": "package",
-        "order": 8
+        "group": "records",
+        "icon": "receipt",
+        "order": 3
       },
       "bindings": {
         "rows": "charges"
+      },
+      "config": {
+        "form": {
+          "v": 2,
+          "sections": [
+            {
+              "id": "s1",
+              "fields": [
+                {
+                  "column": "stay_id",
+                  "control": "reference"
+                },
+                {
+                  "column": "charge_item_id",
+                  "control": "reference"
+                },
+                {
+                  "column": "label"
+                },
+                {
+                  "column": "amount",
+                  "control": "currency"
+                },
+                {
+                  "column": "note",
+                  "control": "text",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "id": "s2",
+              "fields": [
+                {
+                  "column": "charged_on",
+                  "control": "date"
+                },
+                {
+                  "column": "recorded_by"
+                },
+                {
+                  "column": "voided",
+                  "control": "toggle-row"
+                },
+                {
+                  "column": "void_reason",
+                  "control": "text",
+                  "span": 2
+                },
+                {
+                  "column": "voided_at",
+                  "control": "datetime"
+                },
+                {
+                  "column": "voided_by"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "ref": "hotel-nights-not-stayed",
+      "template": "page-crud",
+      "title": {
+        "key": "mft.hotel.nights.not.stayed",
+        "fallback": "Nights not stayed"
+      },
+      "titles": {},
+      "nav": {
+        "group": "records",
+        "icon": "calendar-minus",
+        "order": 4
+      },
+      "bindings": {
+        "rows": "stay_credits"
+      },
+      "config": {
+        "form": {
+          "v": 2,
+          "sections": [
+            {
+              "id": "s1",
+              "fields": [
+                {
+                  "column": "stay_id",
+                  "control": "reference"
+                },
+                {
+                  "column": "reason",
+                  "control": "segmented"
+                },
+                {
+                  "column": "from_date",
+                  "control": "date"
+                },
+                {
+                  "column": "to_date",
+                  "control": "date"
+                },
+                {
+                  "column": "nights"
+                },
+                {
+                  "column": "room_amount",
+                  "control": "currency"
+                },
+                {
+                  "column": "amount",
+                  "control": "currency"
+                }
+              ]
+            },
+            {
+              "id": "s2",
+              "fields": [
+                {
+                  "column": "recorded_by"
+                },
+                {
+                  "column": "created_at",
+                  "control": "datetime"
+                },
+                {
+                  "column": "voided",
+                  "control": "toggle-row"
+                },
+                {
+                  "column": "void_reason",
+                  "control": "text",
+                  "span": 2
+                },
+                {
+                  "column": "voided_at",
+                  "control": "datetime"
+                },
+                {
+                  "column": "voided_by"
+                }
+              ]
+            }
+          ]
+        }
       }
     },
     {
       "ref": "hotel-payments",
       "template": "page-crud",
       "title": {
-        "key": "mft.hotel.tbl.payments",
+        "key": "mft.hotel.payments",
         "fallback": "Payments"
       },
+      "titles": {},
       "nav": {
-        "group": "manifest:hotel",
-        "icon": "clipboard-list",
-        "order": 9
+        "group": "records",
+        "icon": "wallet",
+        "order": 5
       },
       "bindings": {
         "rows": "payments"
+      },
+      "config": {
+        "form": {
+          "v": 2,
+          "sections": [
+            {
+              "id": "s1",
+              "fields": [
+                {
+                  "column": "stay_id",
+                  "control": "reference"
+                },
+                {
+                  "column": "kind",
+                  "control": "segmented"
+                },
+                {
+                  "column": "amount",
+                  "control": "currency"
+                },
+                {
+                  "column": "method",
+                  "control": "segmented"
+                },
+                {
+                  "column": "reference"
+                },
+                {
+                  "column": "note",
+                  "control": "text",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "id": "s2",
+              "fields": [
+                {
+                  "column": "paid_on",
+                  "control": "date"
+                },
+                {
+                  "column": "recorded_at",
+                  "control": "datetime"
+                },
+                {
+                  "column": "recorded_by"
+                },
+                {
+                  "column": "voided",
+                  "control": "toggle-row"
+                },
+                {
+                  "column": "void_reason",
+                  "control": "text",
+                  "span": 2
+                },
+                {
+                  "column": "voided_at",
+                  "control": "datetime"
+                },
+                {
+                  "column": "voided_by"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "ref": "hotel-messages",
+      "template": "page-crud",
+      "title": {
+        "key": "mft.hotel.messages",
+        "fallback": "Messages"
+      },
+      "titles": {},
+      "nav": {
+        "group": "records",
+        "icon": "message-square",
+        "order": 6
+      },
+      "bindings": {
+        "rows": "messages"
+      },
+      "config": {
+        "form": {
+          "v": 2,
+          "sections": [
+            {
+              "id": "s1",
+              "fields": [
+                {
+                  "column": "kind"
+                },
+                {
+                  "column": "status",
+                  "control": "select"
+                },
+                {
+                  "column": "to_address",
+                  "control": "email"
+                },
+                {
+                  "column": "language"
+                },
+                {
+                  "column": "stay_id",
+                  "control": "reference"
+                },
+                {
+                  "column": "customer_id",
+                  "control": "reference"
+                },
+                {
+                  "column": "due",
+                  "control": "datetime"
+                },
+                {
+                  "column": "sent_at",
+                  "control": "datetime"
+                },
+                {
+                  "column": "skip_reason",
+                  "control": "select"
+                },
+                {
+                  "column": "error",
+                  "control": "text",
+                  "span": 2
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "ref": "hotel-room-types",
+      "template": "page-crud",
+      "title": {
+        "key": "mft.hotel.room.types",
+        "fallback": "Room types"
+      },
+      "titles": {},
+      "nav": {
+        "group": "manage",
+        "icon": "bed-double",
+        "order": 1
+      },
+      "bindings": {
+        "rows": "room_types"
+      },
+      "config": {
+        "form": {
+          "v": 2,
+          "sections": [
+            {
+              "id": "s1",
+              "fields": [
+                {
+                  "column": "name",
+                  "control": "title",
+                  "span": 2
+                },
+                {
+                  "column": "code"
+                },
+                {
+                  "column": "base_rate",
+                  "control": "currency"
+                },
+                {
+                  "column": "sleeps",
+                  "control": "stepper"
+                },
+                {
+                  "column": "blurb",
+                  "control": "text",
+                  "span": 2
+                },
+                {
+                  "column": "description",
+                  "control": "textarea",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "id": "s2",
+              "fields": [
+                {
+                  "relation": "room_type_features",
+                  "control": "child-rows",
+                  "span": 2,
+                  "columns": [
+                    {
+                      "column": "feature",
+                      "width": "3fr"
+                    },
+                    {
+                      "column": "icon",
+                      "width": "1fr"
+                    },
+                    {
+                      "column": "position",
+                      "width": "80px"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "s3",
+              "fields": [
+                {
+                  "column": "color"
+                },
+                {
+                  "column": "icon"
+                },
+                {
+                  "column": "position",
+                  "control": "stepper"
+                },
+                {
+                  "column": "active",
+                  "control": "toggle-row"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "ref": "hotel-rooms",
+      "template": "page-crud",
+      "title": {
+        "key": "mft.hotel.rooms",
+        "fallback": "Rooms"
+      },
+      "titles": {},
+      "nav": {
+        "group": "manage",
+        "icon": "door-open",
+        "order": 2
+      },
+      "bindings": {
+        "rows": "rooms"
+      },
+      "config": {
+        "form": {
+          "v": 2,
+          "sections": [
+            {
+              "id": "s1",
+              "fields": [
+                {
+                  "column": "number",
+                  "control": "title",
+                  "span": 2
+                },
+                {
+                  "column": "floor",
+                  "control": "stepper"
+                },
+                {
+                  "column": "room_type_id",
+                  "control": "reference"
+                },
+                {
+                  "column": "sleeps"
+                },
+                {
+                  "column": "status",
+                  "control": "segmented"
+                },
+                {
+                  "column": "note",
+                  "control": "text",
+                  "span": 2
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "ref": "hotel-out-of-service",
+      "template": "page-crud",
+      "title": {
+        "key": "mft.hotel.out.of.service",
+        "fallback": "Out of service"
+      },
+      "titles": {},
+      "nav": {
+        "group": "manage",
+        "icon": "wrench",
+        "order": 3
+      },
+      "bindings": {
+        "rows": "room_closures"
+      },
+      "config": {
+        "form": {
+          "v": 2,
+          "sections": [
+            {
+              "id": "s1",
+              "fields": [
+                {
+                  "column": "room_id",
+                  "control": "reference"
+                },
+                {
+                  "column": "from_date",
+                  "control": "date"
+                },
+                {
+                  "column": "to_date",
+                  "control": "date"
+                },
+                {
+                  "column": "reason",
+                  "control": "text",
+                  "span": 2
+                },
+                {
+                  "column": "active",
+                  "control": "toggle-row"
+                },
+                {
+                  "column": "set_by"
+                },
+                {
+                  "column": "created_at",
+                  "control": "datetime"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "ref": "hotel-rate-rules",
+      "template": "page-crud",
+      "title": {
+        "key": "mft.hotel.rate.rules",
+        "fallback": "Rate rules"
+      },
+      "titles": {},
+      "nav": {
+        "group": "manage",
+        "icon": "tags",
+        "order": 4
+      },
+      "bindings": {
+        "rows": "rate_rules"
+      },
+      "config": {
+        "form": {
+          "v": 2,
+          "sections": [
+            {
+              "id": "s1",
+              "fields": [
+                {
+                  "column": "name",
+                  "control": "title",
+                  "span": 2
+                },
+                {
+                  "column": "room_type_id",
+                  "control": "reference"
+                },
+                {
+                  "column": "amount",
+                  "control": "currency"
+                },
+                {
+                  "column": "weekdays"
+                },
+                {
+                  "column": "from_date",
+                  "control": "date"
+                },
+                {
+                  "column": "to_date",
+                  "control": "date"
+                },
+                {
+                  "column": "active",
+                  "control": "toggle-row"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "ref": "hotel-extras",
+      "template": "page-crud",
+      "title": {
+        "key": "mft.hotel.extras",
+        "fallback": "Extras"
+      },
+      "titles": {},
+      "nav": {
+        "group": "manage",
+        "icon": "croissant",
+        "order": 5
+      },
+      "bindings": {
+        "rows": "extras"
+      },
+      "config": {
+        "form": {
+          "v": 2,
+          "sections": [
+            {
+              "id": "s1",
+              "fields": [
+                {
+                  "column": "label",
+                  "control": "title",
+                  "span": 2
+                },
+                {
+                  "column": "short"
+                },
+                {
+                  "column": "code"
+                },
+                {
+                  "column": "amount",
+                  "control": "currency"
+                },
+                {
+                  "column": "per",
+                  "control": "segmented"
+                },
+                {
+                  "column": "spaces",
+                  "control": "stepper"
+                }
+              ]
+            },
+            {
+              "id": "s2",
+              "fields": [
+                {
+                  "column": "how",
+                  "control": "text",
+                  "span": 2
+                },
+                {
+                  "column": "icon"
+                },
+                {
+                  "column": "position",
+                  "control": "stepper"
+                },
+                {
+                  "column": "active",
+                  "control": "toggle-row"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "ref": "hotel-charge-items",
+      "template": "page-crud",
+      "title": {
+        "key": "mft.hotel.charge.items",
+        "fallback": "Charge items"
+      },
+      "titles": {},
+      "nav": {
+        "group": "manage",
+        "icon": "list-plus",
+        "order": 6
+      },
+      "bindings": {
+        "rows": "charge_items"
+      },
+      "config": {
+        "form": {
+          "v": 2,
+          "sections": [
+            {
+              "id": "s1",
+              "fields": [
+                {
+                  "column": "label",
+                  "control": "title",
+                  "span": 2
+                },
+                {
+                  "column": "detail"
+                },
+                {
+                  "column": "amount",
+                  "control": "currency"
+                },
+                {
+                  "column": "extra_id",
+                  "control": "reference"
+                },
+                {
+                  "column": "icon"
+                },
+                {
+                  "column": "position",
+                  "control": "stepper"
+                },
+                {
+                  "column": "active",
+                  "control": "toggle-row"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "ref": "hotel-settings",
+      "template": "page-crud",
+      "title": {
+        "key": "mft.hotel.settings",
+        "fallback": "Settings"
+      },
+      "titles": {},
+      "nav": {
+        "group": "manage",
+        "icon": "settings",
+        "order": 7
+      },
+      "bindings": {
+        "rows": "settings"
+      },
+      "config": {
+        "form": {
+          "v": 2,
+          "sections": [
+            {
+              "id": "s1",
+              "fields": [
+                {
+                  "column": "name",
+                  "control": "title",
+                  "span": 2
+                },
+                {
+                  "column": "phone",
+                  "control": "phone"
+                },
+                {
+                  "column": "email",
+                  "control": "email"
+                },
+                {
+                  "column": "address",
+                  "control": "text",
+                  "span": 2
+                },
+                {
+                  "column": "town"
+                },
+                {
+                  "column": "since",
+                  "control": "number"
+                }
+              ]
+            },
+            {
+              "id": "s2",
+              "fields": [
+                {
+                  "column": "about",
+                  "control": "text",
+                  "span": 2
+                },
+                {
+                  "column": "finding",
+                  "control": "textarea",
+                  "span": 2
+                },
+                {
+                  "column": "morning",
+                  "control": "textarea",
+                  "span": 2
+                },
+                {
+                  "column": "directions_train",
+                  "control": "textarea",
+                  "span": 2
+                },
+                {
+                  "column": "directions_car",
+                  "control": "textarea",
+                  "span": 2
+                },
+                {
+                  "column": "directions_foot",
+                  "control": "textarea",
+                  "span": 2
+                }
+              ]
+            },
+            {
+              "id": "s3",
+              "fields": [
+                {
+                  "column": "arrive_from"
+                },
+                {
+                  "column": "leave_by"
+                },
+                {
+                  "column": "late_until"
+                },
+                {
+                  "column": "no_show_at"
+                },
+                {
+                  "column": "breakfast_hours"
+                },
+                {
+                  "column": "late_arrival_note"
+                }
+              ]
+            },
+            {
+              "id": "s4",
+              "fields": [
+                {
+                  "column": "tax_label"
+                },
+                {
+                  "column": "tax_rate",
+                  "control": "number"
+                },
+                {
+                  "column": "cancel_days",
+                  "control": "stepper"
+                },
+                {
+                  "column": "max_nights",
+                  "control": "stepper"
+                },
+                {
+                  "column": "ahead_days",
+                  "control": "stepper"
+                },
+                {
+                  "column": "ref_prefix"
+                },
+                {
+                  "column": "ref_start",
+                  "control": "number"
+                }
+              ]
+            },
+            {
+              "id": "s5",
+              "fields": [
+                {
+                  "column": "guest_emails_on",
+                  "control": "toggle-row"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "ref": "hotel-house-notes",
+      "template": "page-crud",
+      "title": {
+        "key": "mft.hotel.house.notes",
+        "fallback": "House notes"
+      },
+      "titles": {},
+      "nav": {
+        "group": "manage",
+        "icon": "sticky-note",
+        "order": 8
+      },
+      "bindings": {
+        "rows": "house_notes"
+      },
+      "config": {
+        "form": {
+          "v": 2,
+          "sections": [
+            {
+              "id": "s1",
+              "fields": [
+                {
+                  "column": "text",
+                  "control": "text",
+                  "span": 2
+                },
+                {
+                  "column": "icon"
+                },
+                {
+                  "column": "position",
+                  "control": "stepper"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "roles": [
+    {
+      "key": "front-desk",
+      "name": "Front desk",
+      "screensOnly": true,
+      "permissions": [
+        "app:@:staff",
+        "table:@settings:read",
+        "table:@house_notes:read",
+        "table:@room_types:read",
+        "table:@room_type_features:read",
+        "table:@rooms:read",
+        "table:@room_closures:read",
+        "table:@rate_rules:read",
+        "table:@extras:read",
+        "table:@charge_items:read",
+        "table:@customers:read",
+        "table:@stays:read",
+        "table:@stay_extras:read",
+        "table:@charges:read",
+        "table:@stay_credits:read",
+        "table:@payments:read",
+        "table:@stays:read_pii",
+        "table:@customers:read_pii",
+        "table:@stays:create",
+        "table:@stays:update",
+        "table:@stay_extras:create",
+        "table:@stay_extras:update",
+        "table:@charges:create",
+        "table:@stay_credits:create",
+        "table:@payments:create",
+        "table:@rooms:update",
+        "table:@room_closures:create",
+        "table:@room_closures:update"
+      ],
+      "limits": {
+        "stays": {
+          "writable": [
+            "status",
+            "room_type_id",
+            "room_id",
+            "arrive",
+            "depart",
+            "guests",
+            "first_name",
+            "last_name",
+            "email",
+            "mobile",
+            "arrival_time",
+            "note",
+            "expect_by",
+            "language",
+            "cancel_code",
+            "customer_id"
+          ],
+          "writableValues": {
+            "status": [
+              "booked",
+              "in_house",
+              "departed",
+              "cancelled",
+              "no_show"
+            ],
+            "cancel_code": [
+              "guest_asked",
+              "house"
+            ]
+          }
+        },
+        "stay_extras": {
+          "writable": [
+            "state"
+          ]
+        },
+        "rooms": {
+          "writable": [
+            "status",
+            "note"
+          ],
+          "writableValues": {
+            "status": [
+              "ready",
+              "cleaning",
+              "occupied"
+            ]
+          }
+        },
+        "room_closures": {
+          "writable": [
+            "to_date",
+            "reason",
+            "active"
+          ]
+        }
+      }
+    },
+    {
+      "key": "housekeeping",
+      "name": "Housekeeping",
+      "screensOnly": true,
+      "permissions": [
+        "app:@:staff",
+        "table:@rooms:read",
+        "table:@room_types:read",
+        "table:@room_closures:read",
+        "table:@rooms:update"
+      ],
+      "limits": {
+        "rooms": {
+          "writable": [
+            "status"
+          ],
+          "writableValues": {
+            "status": [
+              "ready",
+              "cleaning"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "key": "manager",
+      "name": "Manager",
+      "permissions": [
+        "app:@:staff",
+        "table:@settings:read",
+        "table:@settings:create",
+        "table:@settings:update",
+        "table:@settings:delete",
+        "table:@house_notes:read",
+        "table:@house_notes:create",
+        "table:@house_notes:update",
+        "table:@house_notes:delete",
+        "table:@room_types:read",
+        "table:@room_types:create",
+        "table:@room_types:update",
+        "table:@room_types:delete",
+        "table:@room_type_features:read",
+        "table:@room_type_features:create",
+        "table:@room_type_features:update",
+        "table:@room_type_features:delete",
+        "table:@rooms:read",
+        "table:@rooms:create",
+        "table:@rooms:update",
+        "table:@rooms:delete",
+        "table:@room_closures:read",
+        "table:@room_closures:create",
+        "table:@room_closures:update",
+        "table:@room_closures:delete",
+        "table:@rate_rules:read",
+        "table:@rate_rules:create",
+        "table:@rate_rules:update",
+        "table:@rate_rules:delete",
+        "table:@extras:read",
+        "table:@extras:create",
+        "table:@extras:update",
+        "table:@extras:delete",
+        "table:@charge_items:read",
+        "table:@charge_items:create",
+        "table:@charge_items:update",
+        "table:@charge_items:delete",
+        "table:@customers:read",
+        "table:@customers:create",
+        "table:@customers:update",
+        "table:@customers:delete",
+        "table:@stays:read",
+        "table:@stays:create",
+        "table:@stays:update",
+        "table:@stays:delete",
+        "table:@stay_extras:read",
+        "table:@stay_extras:create",
+        "table:@stay_extras:update",
+        "table:@stay_extras:delete",
+        "table:@charges:read",
+        "table:@charges:create",
+        "table:@charges:update",
+        "table:@charges:delete",
+        "table:@stay_credits:read",
+        "table:@stay_credits:create",
+        "table:@stay_credits:update",
+        "table:@stay_credits:delete",
+        "table:@payments:read",
+        "table:@payments:create",
+        "table:@payments:update",
+        "table:@payments:delete",
+        "table:@messages:read",
+        "table:@messages:create",
+        "table:@messages:update",
+        "page:@hotel-overview:view",
+        "page:@hotel-overview:edit",
+        "page:@hotel-reservations:view",
+        "page:@hotel-reservations:edit",
+        "page:@hotel-guests:view",
+        "page:@hotel-guests:edit",
+        "page:@hotel-charges:view",
+        "page:@hotel-charges:edit",
+        "page:@hotel-nights-not-stayed:view",
+        "page:@hotel-nights-not-stayed:edit",
+        "page:@hotel-payments:view",
+        "page:@hotel-payments:edit",
+        "page:@hotel-messages:view",
+        "page:@hotel-messages:edit",
+        "page:@hotel-room-types:view",
+        "page:@hotel-room-types:edit",
+        "page:@hotel-rooms:view",
+        "page:@hotel-rooms:edit",
+        "page:@hotel-out-of-service:view",
+        "page:@hotel-out-of-service:edit",
+        "page:@hotel-rate-rules:view",
+        "page:@hotel-rate-rules:edit",
+        "page:@hotel-extras:view",
+        "page:@hotel-extras:edit",
+        "page:@hotel-charge-items:view",
+        "page:@hotel-charge-items:edit",
+        "page:@hotel-settings:view",
+        "page:@hotel-settings:edit",
+        "page:@hotel-house-notes:view",
+        "page:@hotel-house-notes:edit",
+        "table:@stays:read_pii",
+        "table:@customers:read_pii",
+        "table:@messages:read_pii"
+      ]
+    }
+  ],
+  "publicKeys": {
+    "link": {}
+  },
+  "publicAccess": [
+    {
+      "table": "customers",
+      "methods": [
+        "GET",
+        "PATCH"
+      ],
+      "select": [
+        "first_name",
+        "last_name",
+        "email"
+      ],
+      "writable": [
+        "first_name",
+        "last_name"
+      ],
+      "claim": {
+        "verify": "email-link",
+        "email": "email"
+      },
+      "humanCheck": true,
+      "forget": {
+        "columns": [
+          "email",
+          "first_name",
+          "last_name"
+        ],
+        "stamp": "forgotten_at"
+      }
+    },
+    {
+      "table": "stays",
+      "methods": [
+        "GET",
+        "PATCH"
+      ],
+      "level": "verified",
+      "claimedBy": {
+        "table": "customers",
+        "column": "customer_id"
+      },
+      "select": [
+        "id",
+        "ref",
+        "status",
+        "room_type_id",
+        "room_id",
+        "arrive",
+        "depart",
+        "guests",
+        "nights",
+        "first_name",
+        "last_name",
+        "email",
+        "mobile",
+        "arrival_time",
+        "note",
+        "language",
+        "room_total",
+        "extras_total",
+        "charges_total",
+        "credits_total",
+        "subtotal",
+        "tax_rate",
+        "tax_label",
+        "tax",
+        "total",
+        "paid",
+        "balance",
+        "cancel_by",
+        "created_at",
+        "checked_in_at",
+        "checked_out_at",
+        "cancelled_at",
+        "no_show_marked_at"
+      ],
+      "writable": [
+        "arrival_time",
+        "status"
+      ],
+      "writableValues": {
+        "status": [
+          "cancelled"
+        ],
+        "arrival_time": [
+          "15:00",
+          "16:00",
+          "17:00",
+          "18:00",
+          "19:00",
+          "20:00",
+          "21:00",
+          "22:00",
+          "22:30"
+        ]
+      },
+      "writableWhen": {
+        "status": [
+          "booked"
+        ],
+        "arrive": {
+          "before": {
+            "time": {
+              "table": "settings",
+              "column": "arrive_from"
+            }
+          }
+        }
+      },
+      "defaults": {
+        "cancel_code": "self"
+      }
+    },
+    {
+      "table": "stays",
+      "methods": [
+        "PATCH"
+      ],
+      "level": "verified",
+      "claimedBy": {
+        "table": "customers",
+        "column": "customer_id"
+      },
+      "select": [
+        "id",
+        "ref",
+        "status",
+        "room_type_id",
+        "room_id",
+        "arrive",
+        "depart",
+        "guests",
+        "nights",
+        "first_name",
+        "last_name",
+        "email",
+        "mobile",
+        "arrival_time",
+        "note",
+        "language",
+        "room_total",
+        "extras_total",
+        "charges_total",
+        "credits_total",
+        "subtotal",
+        "tax_rate",
+        "tax_label",
+        "tax",
+        "total",
+        "paid",
+        "balance",
+        "cancel_by",
+        "created_at",
+        "checked_in_at",
+        "checked_out_at",
+        "cancelled_at",
+        "no_show_marked_at"
+      ],
+      "writable": [
+        "arrive",
+        "depart"
+      ],
+      "writableWhen": {
+        "status": [
+          "booked"
+        ],
+        "cancel_by": {
+          "before": {}
+        }
+      },
+      "dryRun": true,
+      "expect": "total"
+    },
+    {
+      "table": "stay_extras",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "level": "verified",
+      "visibleWith": {
+        "table": "stays",
+        "via": "stay_id"
+      },
+      "select": [
+        "id",
+        "stay_id",
+        "extra_id",
+        "state",
+        "label",
+        "each",
+        "per",
+        "nights",
+        "guests",
+        "amount"
+      ],
+      "writable": [
+        "stay_id",
+        "extra_id"
+      ]
+    },
+    {
+      "table": "stay_extras",
+      "methods": [
+        "PATCH"
+      ],
+      "level": "verified",
+      "visibleWith": {
+        "table": "stays",
+        "via": "stay_id"
+      },
+      "select": [
+        "id",
+        "stay_id",
+        "extra_id",
+        "state",
+        "label",
+        "each",
+        "per",
+        "nights",
+        "guests",
+        "amount"
+      ],
+      "writable": [
+        "state"
+      ],
+      "writableValues": {
+        "state": [
+          "on",
+          "off"
+        ]
+      },
+      "writableWhen": {
+        "stay_id": {
+          "before": {
+            "column": "arrive",
+            "time": {
+              "table": "settings",
+              "column": "arrive_from"
+            }
+          }
+        }
+      }
+    },
+    {
+      "table": "charges",
+      "methods": [
+        "GET"
+      ],
+      "level": "verified",
+      "visibleWith": {
+        "table": "stays",
+        "via": "stay_id"
+      },
+      "select": [
+        "id",
+        "stay_id",
+        "label",
+        "amount",
+        "note",
+        "charged_on",
+        "voided"
+      ]
+    },
+    {
+      "table": "stay_credits",
+      "methods": [
+        "GET"
+      ],
+      "level": "verified",
+      "visibleWith": {
+        "table": "stays",
+        "via": "stay_id"
+      },
+      "select": [
+        "id",
+        "stay_id",
+        "reason",
+        "from_date",
+        "to_date",
+        "nights",
+        "amount",
+        "voided"
+      ]
+    },
+    {
+      "table": "payments",
+      "methods": [
+        "GET"
+      ],
+      "level": "verified",
+      "visibleWith": {
+        "table": "stays",
+        "via": "stay_id"
+      },
+      "select": [
+        "id",
+        "stay_id",
+        "kind",
+        "amount",
+        "method",
+        "paid_on",
+        "voided"
+      ]
+    },
+    {
+      "table": "room_types",
+      "methods": [
+        "GET"
+      ],
+      "select": [
+        "id",
+        "code",
+        "name",
+        "blurb",
+        "description",
+        "sleeps",
+        "base_rate",
+        "color",
+        "icon",
+        "position"
+      ],
+      "filters": [
+        {
+          "column": "active",
+          "op": "eq",
+          "value": true
+        }
+      ]
+    },
+    {
+      "table": "room_type_features",
+      "methods": [
+        "GET"
+      ],
+      "select": [
+        "id",
+        "room_type_id",
+        "feature",
+        "icon",
+        "position"
+      ]
+    },
+    {
+      "table": "rooms",
+      "methods": [
+        "GET"
+      ],
+      "select": [
+        "id",
+        "number",
+        "floor",
+        "room_type_id"
+      ]
+    },
+    {
+      "table": "extras",
+      "methods": [
+        "GET"
+      ],
+      "select": [
+        "id",
+        "code",
+        "label",
+        "short",
+        "how",
+        "icon",
+        "amount",
+        "per",
+        "spaces",
+        "position"
+      ],
+      "filters": [
+        {
+          "column": "active",
+          "op": "eq",
+          "value": true
+        }
+      ]
+    },
+    {
+      "table": "settings",
+      "methods": [
+        "GET"
+      ],
+      "select": [
+        "name",
+        "address",
+        "town",
+        "phone",
+        "email",
+        "since",
+        "about",
+        "finding",
+        "morning",
+        "directions_train",
+        "directions_car",
+        "directions_foot",
+        "breakfast_hours",
+        "late_arrival_note",
+        "tax_rate",
+        "tax_label",
+        "arrive_from",
+        "leave_by",
+        "late_until",
+        "cancel_days",
+        "max_nights",
+        "ahead_days",
+        "guest_emails_on"
+      ]
+    },
+    {
+      "table": "house_notes",
+      "methods": [
+        "GET"
+      ],
+      "select": [
+        "id",
+        "icon",
+        "text",
+        "position"
+      ]
+    },
+    {
+      "table": "stays",
+      "methods": [
+        "POST"
+      ],
+      "humanCheck": true,
+      "level": "verified",
+      "select": [
+        "id",
+        "ref",
+        "status",
+        "room_type_id",
+        "room_id",
+        "arrive",
+        "depart",
+        "guests",
+        "nights",
+        "first_name",
+        "last_name",
+        "email",
+        "mobile",
+        "arrival_time",
+        "note",
+        "language",
+        "room_total",
+        "extras_total",
+        "charges_total",
+        "credits_total",
+        "subtotal",
+        "tax_rate",
+        "tax_label",
+        "tax",
+        "total",
+        "paid",
+        "balance",
+        "cancel_by",
+        "created_at",
+        "checked_in_at",
+        "checked_out_at",
+        "cancelled_at",
+        "no_show_marked_at"
+      ],
+      "writable": [
+        "room_type_id",
+        "arrive",
+        "depart",
+        "guests",
+        "first_name",
+        "last_name",
+        "email",
+        "mobile",
+        "arrival_time",
+        "note",
+        "language",
+        "client_key"
+      ],
+      "requires": [
+        "first_name",
+        "last_name",
+        "email"
+      ],
+      "claimedBy": {
+        "table": "customers",
+        "column": "customer_id",
+        "optional": true
+      },
+      "identity": {
+        "table": "customers",
+        "email": "email",
+        "link": "customer_id",
+        "fill": {
+          "first_name": "first_name",
+          "last_name": "last_name"
+        }
+      },
+      "shareLink": "link_token",
+      "agrees": [
+        {
+          "column": "guests",
+          "lte": {
+            "via": "room_type_id",
+            "column": "sleeps"
+          }
+        },
+        {
+          "column": "guests",
+          "lte": {
+            "via": "room_id",
+            "column": "sleeps"
+          }
+        }
+      ],
+      "anonymous": {
+        "perValue": {
+          "columns": [
+            "email"
+          ],
+          "n": 10
+        },
+        "perKeyHour": 300,
+        "plainText": [
+          "first_name",
+          "last_name",
+          "note",
+          "mobile"
+        ]
+      },
+      "children": {
+        "stay_extras": {
+          "via": "stay_id",
+          "writable": [
+            "extra_id"
+          ],
+          "select": [
+            "id",
+            "extra_id",
+            "state",
+            "label",
+            "each",
+            "per",
+            "nights",
+            "guests",
+            "amount"
+          ],
+          "max": 8
+        }
+      },
+      "dryRun": true,
+      "expect": "total",
+      "clientKey": "client_key"
+    },
+    {
+      "table": "stays",
+      "key": "link",
+      "methods": [
+        "GET",
+        "PATCH"
+      ],
+      "select": [
+        "id",
+        "ref",
+        "status",
+        "room_type_id",
+        "room_id",
+        "arrive",
+        "depart",
+        "guests",
+        "nights",
+        "first_name",
+        "last_name",
+        "email",
+        "mobile",
+        "arrival_time",
+        "note",
+        "language",
+        "room_total",
+        "extras_total",
+        "charges_total",
+        "credits_total",
+        "subtotal",
+        "tax_rate",
+        "tax_label",
+        "tax",
+        "total",
+        "paid",
+        "balance",
+        "cancel_by",
+        "created_at",
+        "checked_in_at",
+        "checked_out_at",
+        "cancelled_at",
+        "no_show_marked_at"
+      ],
+      "claim": {
+        "by": "token",
+        "column": "link_token",
+        "stopped": "link_stopped",
+        "own": true,
+        "address": "email"
+      },
+      "writable": [
+        "arrival_time",
+        "status"
+      ],
+      "writableValues": {
+        "status": [
+          "cancelled"
+        ],
+        "arrival_time": [
+          "15:00",
+          "16:00",
+          "17:00",
+          "18:00",
+          "19:00",
+          "20:00",
+          "21:00",
+          "22:00",
+          "22:30"
+        ]
+      },
+      "writableWhen": {
+        "status": [
+          "booked"
+        ],
+        "arrive": {
+          "before": {
+            "time": {
+              "table": "settings",
+              "column": "arrive_from"
+            }
+          }
+        }
+      },
+      "defaults": {
+        "cancel_code": "self"
+      }
+    },
+    {
+      "table": "stay_extras",
+      "key": "link",
+      "methods": [
+        "GET",
+        "POST"
+      ],
+      "level": "verified",
+      "visibleWith": {
+        "table": "stays",
+        "via": "stay_id"
+      },
+      "select": [
+        "id",
+        "stay_id",
+        "extra_id",
+        "state",
+        "label",
+        "each",
+        "per",
+        "nights",
+        "guests",
+        "amount"
+      ],
+      "writable": [
+        "stay_id",
+        "extra_id"
+      ]
+    },
+    {
+      "table": "stay_extras",
+      "key": "link",
+      "methods": [
+        "PATCH"
+      ],
+      "level": "verified",
+      "visibleWith": {
+        "table": "stays",
+        "via": "stay_id"
+      },
+      "select": [
+        "id",
+        "stay_id",
+        "extra_id",
+        "state",
+        "label",
+        "each",
+        "per",
+        "nights",
+        "guests",
+        "amount"
+      ],
+      "writable": [
+        "state"
+      ],
+      "writableValues": {
+        "state": [
+          "on",
+          "off"
+        ]
+      },
+      "writableWhen": {
+        "stay_id": {
+          "before": {
+            "column": "arrive",
+            "time": {
+              "table": "settings",
+              "column": "arrive_from"
+            }
+          }
+        }
+      }
+    },
+    {
+      "table": "charges",
+      "key": "link",
+      "methods": [
+        "GET"
+      ],
+      "level": "verified",
+      "visibleWith": {
+        "table": "stays",
+        "via": "stay_id"
+      },
+      "select": [
+        "id",
+        "stay_id",
+        "label",
+        "amount",
+        "note",
+        "charged_on",
+        "voided"
+      ]
+    },
+    {
+      "table": "stay_credits",
+      "key": "link",
+      "methods": [
+        "GET"
+      ],
+      "level": "verified",
+      "visibleWith": {
+        "table": "stays",
+        "via": "stay_id"
+      },
+      "select": [
+        "id",
+        "stay_id",
+        "reason",
+        "from_date",
+        "to_date",
+        "nights",
+        "amount",
+        "voided"
+      ]
+    },
+    {
+      "table": "payments",
+      "key": "link",
+      "methods": [
+        "GET"
+      ],
+      "level": "verified",
+      "visibleWith": {
+        "table": "stays",
+        "via": "stay_id"
+      },
+      "select": [
+        "id",
+        "stay_id",
+        "kind",
+        "amount",
+        "method",
+        "paid_on",
+        "voided"
+      ]
+    }
+  ],
+  "outbox": {
+    "table": "messages",
+    "columns": {
+      "kind": "kind",
+      "status": "status",
+      "to": "to_address",
+      "language": "language",
+      "due": "due",
+      "sentAt": "sent_at",
+      "error": "error",
+      "skipReason": "skip_reason"
+    },
+    "links": {
+      "stay": "stay_id",
+      "customer": "customer_id"
+    },
+    "recipient": {
+      "via": "customer_id",
+      "table": "customers",
+      "email": "email",
+      "name": "first_name",
+      "fallback": {
+        "via": "stay_id",
+        "email": "email",
+        "name": "first_name",
+        "language": "language"
+      }
+    },
+    "settings": {
+      "table": "settings",
+      "name": "name",
+      "phone": "phone"
+    },
+    "pages": {
+      "manage": "/r",
+      "booking": "/"
+    },
+    "kinds": {
+      "stay-made": "hotel-stay-made",
+      "stay-made-desk": "hotel-stay-made-desk",
+      "stay-cancelled-self": "hotel-stay-cancelled-self",
+      "stay-cancelled-self-late": "hotel-stay-cancelled-self-late",
+      "stay-cancelled-desk": "hotel-stay-cancelled-desk",
+      "stay-cancelled-desk-late": "hotel-stay-cancelled-desk-late",
+      "stay-cancelled-house": "hotel-stay-cancelled-house",
+      "stay-no-show": "hotel-stay-no-show"
+    },
+    "producers": [
+      {
+        "kind": "stay-made",
+        "link": "stay_id",
+        "gate": {
+          "setting": {
+            "table": "settings",
+            "column": "guest_emails_on"
+          }
+        },
+        "onCreate": {
+          "table": "stays",
+          "where": {
+            "column": "channel",
+            "eq": "online"
+          }
+        }
+      },
+      {
+        "kind": "stay-made-desk",
+        "link": "stay_id",
+        "gate": {
+          "setting": {
+            "table": "settings",
+            "column": "guest_emails_on"
+          }
+        },
+        "onCreate": {
+          "table": "stays",
+          "where": {
+            "column": "channel",
+            "eq": "desk"
+          }
+        }
+      },
+      {
+        "kind": "stay-cancelled-self",
+        "link": "stay_id",
+        "gate": {
+          "setting": {
+            "table": "settings",
+            "column": "guest_emails_on"
+          }
+        },
+        "onChange": {
+          "table": "stays",
+          "column": "cancel_code",
+          "to": "self",
+          "where": {
+            "column": "late_cancel",
+            "eq": false
+          }
+        }
+      },
+      {
+        "kind": "stay-cancelled-self-late",
+        "link": "stay_id",
+        "gate": {
+          "setting": {
+            "table": "settings",
+            "column": "guest_emails_on"
+          }
+        },
+        "onChange": {
+          "table": "stays",
+          "column": "cancel_code",
+          "to": "self",
+          "where": {
+            "column": "late_cancel",
+            "eq": true
+          }
+        }
+      },
+      {
+        "kind": "stay-cancelled-desk",
+        "link": "stay_id",
+        "gate": {
+          "setting": {
+            "table": "settings",
+            "column": "guest_emails_on"
+          }
+        },
+        "onChange": {
+          "table": "stays",
+          "column": "cancel_code",
+          "to": "guest_asked",
+          "where": {
+            "column": "late_cancel",
+            "eq": false
+          }
+        }
+      },
+      {
+        "kind": "stay-cancelled-desk-late",
+        "link": "stay_id",
+        "gate": {
+          "setting": {
+            "table": "settings",
+            "column": "guest_emails_on"
+          }
+        },
+        "onChange": {
+          "table": "stays",
+          "column": "cancel_code",
+          "to": "guest_asked",
+          "where": {
+            "column": "late_cancel",
+            "eq": true
+          }
+        }
+      },
+      {
+        "kind": "stay-cancelled-house",
+        "link": "stay_id",
+        "gate": {
+          "setting": {
+            "table": "settings",
+            "column": "guest_emails_on"
+          }
+        },
+        "onChange": {
+          "table": "stays",
+          "column": "cancel_code",
+          "to": "house"
+        }
+      },
+      {
+        "kind": "stay-no-show",
+        "link": "stay_id",
+        "gate": {
+          "setting": {
+            "table": "settings",
+            "column": "guest_emails_on"
+          }
+        },
+        "onChange": {
+          "table": "stays",
+          "column": "status",
+          "to": "no_show"
+        }
+      }
+    ]
+  },
+  "emailTemplates": [
+    {
+      "key": "hotel-stay-made",
+      "name": {
+        "en-US": "Reservation made"
+      },
+      "vars": [
+        "manage_url",
+        "practice.address",
+        "practice.arrive_from",
+        "practice.email",
+        "practice.leave_by",
+        "practice.phone",
+        "recipient.first_name",
+        "room_type.name",
+        "stay.arrive.day_month",
+        "stay.cancel_by.date",
+        "stay.cancel_by.time",
+        "stay.depart.day_month",
+        "stay.link_token",
+        "stay.ref",
+        "stay.room_total",
+        "stay.tax",
+        "stay.tax_label",
+        "stay.total"
+      ],
+      "locales": {
+        "en-US": {
+          "subject": "Your room at {{appName}}, {{stay.ref}}",
+          "preheader": "{{stay.arrive.day_month}} to {{stay.depart.day_month}} · {{stay.total}} · nothing is taken online",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "You have a room, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Your reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Arriving {{stay.arrive.day_month}}, from {{practice.arrive_from}}. Leaving {{stay.depart.day_month}}, by {{practice.leave_by}}."
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "room",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{room_type.name}}, {{stay.arrive.day_month}} to {{stay.depart.day_month}}",
+                    "amount": "{{stay.room_total}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "extras",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "table": "stay_extras",
+                  "via": "stay_id",
+                  "orderBy": "id",
+                  "where": {
+                    "column": "state",
+                    "in": [
+                      "on"
+                    ]
+                  },
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.label}}",
+                  "amount": "{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{stay.tax_label}}",
+                    "amount": "{{stay.tax}}"
+                  },
+                  {
+                    "label": "Total",
+                    "amount": "{{stay.total}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.box",
+              "id": "settle",
+              "data": {
+                "label": "Nothing is taken online. You settle at the desk."
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "Cancel at no charge until {{stay.cancel_by.time}} on {{stay.cancel_by.date}}.",
+                  "Late or early? Write to {{practice.email}} or ring us on {{practice.phone}}."
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "See your reservation",
+                "url": "{{manage_url}}#{{stay.link_token}}"
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us."
+        }
+      }
+    },
+    {
+      "key": "hotel-stay-made-desk",
+      "name": {
+        "en-US": "Reservation made at the desk"
+      },
+      "vars": [
+        "practice.address",
+        "practice.arrive_from",
+        "practice.email",
+        "practice.leave_by",
+        "practice.phone",
+        "recipient.first_name",
+        "room_type.name",
+        "stay.arrive.day_month",
+        "stay.cancel_by.date",
+        "stay.cancel_by.time",
+        "stay.depart.day_month",
+        "stay.ref",
+        "stay.room_total",
+        "stay.tax",
+        "stay.tax_label",
+        "stay.total"
+      ],
+      "locales": {
+        "en-US": {
+          "subject": "Your room at {{appName}}, {{stay.ref}}",
+          "preheader": "{{stay.arrive.day_month}} to {{stay.depart.day_month}} · {{stay.total}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "You have a room, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Your reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Arriving {{stay.arrive.day_month}}, from {{practice.arrive_from}}. Leaving {{stay.depart.day_month}}, by {{practice.leave_by}}."
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "room",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{room_type.name}}, {{stay.arrive.day_month}} to {{stay.depart.day_month}}",
+                    "amount": "{{stay.room_total}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "extras",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "table": "stay_extras",
+                  "via": "stay_id",
+                  "orderBy": "id",
+                  "where": {
+                    "column": "state",
+                    "in": [
+                      "on"
+                    ]
+                  },
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.label}}",
+                  "amount": "{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{stay.tax_label}}",
+                    "amount": "{{stay.tax}}"
+                  },
+                  {
+                    "label": "Total",
+                    "amount": "{{stay.total}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.box",
+              "id": "settle",
+              "data": {
+                "label": "Nothing is taken online. You settle at the desk."
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "Cancel at no charge until {{stay.cancel_by.time}} on {{stay.cancel_by.date}}.",
+                  "Late or early? Write to {{practice.email}} or ring us on {{practice.phone}}."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us."
+        }
+      }
+    },
+    {
+      "key": "hotel-stay-cancelled-self",
+      "name": {
+        "en-US": "Cancelled by the guest"
+      },
+      "vars": [
+        "practice.address",
+        "practice.email",
+        "practice.phone",
+        "stay.ref"
+      ],
+      "locales": {
+        "en-US": {
+          "subject": "Your reservation {{stay.ref}} is cancelled",
+          "preheader": "Nothing is charged",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Your reservation is cancelled."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Your reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Nothing is charged.",
+                  "If you did not mean to cancel, write to {{practice.email}} or ring us on {{practice.phone}} and we will see what is still open."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us."
+        }
+      }
+    },
+    {
+      "key": "hotel-stay-cancelled-self-late",
+      "name": {
+        "en-US": "Cancelled by the guest, late"
+      },
+      "vars": [
+        "practice.address",
+        "practice.email",
+        "practice.phone",
+        "stay.cancel_by.date",
+        "stay.cancel_by.time",
+        "stay.ref"
+      ],
+      "locales": {
+        "en-US": {
+          "subject": "Your reservation {{stay.ref}} is cancelled",
+          "preheader": "Nothing is charged",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Your reservation is cancelled."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Your reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "You cancelled after {{stay.cancel_by.time}} on {{stay.cancel_by.date}}, so it is marked as a late cancellation. Nothing is charged.",
+                  "If you did not mean to cancel, write to {{practice.email}} or ring us on {{practice.phone}} and we will see what is still open."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us."
+        }
+      }
+    },
+    {
+      "key": "hotel-stay-cancelled-desk",
+      "name": {
+        "en-US": "Cancelled at the guest's request"
+      },
+      "vars": [
+        "practice.address",
+        "practice.email",
+        "practice.phone",
+        "stay.ref"
+      ],
+      "locales": {
+        "en-US": {
+          "subject": "Your reservation {{stay.ref}} is cancelled",
+          "preheader": "Nothing is charged",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Your reservation is cancelled."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Your reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "As you asked, we have cancelled it. Nothing is charged.",
+                  "If you did not mean to cancel, write to {{practice.email}} or ring us on {{practice.phone}} and we will see what is still open."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us."
+        }
+      }
+    },
+    {
+      "key": "hotel-stay-cancelled-desk-late",
+      "name": {
+        "en-US": "Cancelled at the guest's request, late"
+      },
+      "vars": [
+        "practice.address",
+        "practice.email",
+        "practice.phone",
+        "stay.cancel_by.date",
+        "stay.cancel_by.time",
+        "stay.ref"
+      ],
+      "locales": {
+        "en-US": {
+          "subject": "Your reservation {{stay.ref}} is cancelled",
+          "preheader": "Nothing is charged",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Your reservation is cancelled."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Your reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "As you asked, we have cancelled it. It was after {{stay.cancel_by.time}} on {{stay.cancel_by.date}}, so it is marked as a late cancellation. Nothing is charged.",
+                  "If you did not mean to cancel, write to {{practice.email}} or ring us on {{practice.phone}} and we will see what is still open."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us."
+        }
+      }
+    },
+    {
+      "key": "hotel-stay-cancelled-house",
+      "name": {
+        "en-US": "Cancelled by the house"
+      },
+      "vars": [
+        "practice.address",
+        "practice.email",
+        "practice.phone",
+        "recipient.first_name",
+        "room_type.name",
+        "stay.arrive.day_month",
+        "stay.depart.day_month",
+        "stay.ref"
+      ],
+      "locales": {
+        "en-US": {
+          "subject": "We have had to cancel {{stay.ref}}",
+          "preheader": "We are very sorry · nothing is charged",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "We are very sorry, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Your reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "We have had to cancel your reservation {{stay.ref}} ({{room_type.name}}, {{stay.arrive.day_month}} to {{stay.depart.day_month}}). We are very sorry. Nothing is charged.",
+                  "Ring us on {{practice.phone}} and we will help you find another room."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us."
+        }
+      }
+    },
+    {
+      "key": "hotel-stay-no-show",
+      "name": {
+        "en-US": "We missed you"
+      },
+      "vars": [
+        "practice.address",
+        "practice.email",
+        "practice.phone",
+        "recipient.first_name",
+        "stay.arrive.day_month",
+        "stay.ref"
+      ],
+      "locales": {
+        "en-US": {
+          "subject": "We missed you — {{stay.ref}}",
+          "preheader": "Nothing is charged",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "We missed you, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Your reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "We kept your room for {{stay.arrive.day_month}}, but you did not arrive, so reservation {{stay.ref}} is marked as a no-show. Nothing is charged.",
+                  "If you are still on your way, ring us on {{practice.phone}}."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us."
+        }
       }
     }
   ]
