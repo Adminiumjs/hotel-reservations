@@ -13,7 +13,7 @@
  * carrying Adminium's code, so a screen has one path whoever answers: the
  * real server, or the demo's stand-in, which plays the same rules.
  */
-import type { ClaimReply, ExtraAvailability, Id, LiveFrame, Night, NightCount, PublicConfig, QuoteReply, Row, StayBody, StayReply, TypeAvailability } from "./wire.ts";
+import type { ClaimReply, ExtraAvailability, Id, LiveFrame, Night, NightAnswer, NightCount, PublicConfig, QuoteReply, Row, StayBody, StayReply } from "./wire.ts";
 
 /** The house as the guest site reads it. */
 export interface House {
@@ -50,7 +50,7 @@ export interface GuestPort {
   house(): Promise<House>;
 
   /** Each room type that sleeps the party, over the nights asked. */
-  availability(question: NightQuestion): Promise<TypeAvailability[]>;
+  availability(question: NightQuestion): Promise<NightAnswer>;
   /** Each extra with a limit a night (parking), over the nights asked. */
   extrasOpen(from: string, to: string): Promise<ExtraAvailability[]>;
 

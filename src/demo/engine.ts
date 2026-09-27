@@ -37,7 +37,7 @@
  * DEMO BUILD ONLY — nothing in a real build imports it.
  */
 import { RULES, pricedNights, type PerNight } from "../data/sampleRows.ts";
-import { ApiError, type ExtraAvailability, type Id, type Night, type NightCount, type Row, type TypeAvailability } from "../data/wire.ts";
+import { ApiError, type ExtraAvailability, type Id, type Night, type NightAnswer, type NightCount, type Row, type TypeAvailability } from "../data/wire.ts";
 import { addDays, daysBetween, instantOf, toMs, venueDay, type Day } from "../lib/venueTime.ts";
 import { MANIFEST_RULES } from "./rules.ts";
 import type { Table, World } from "./world.ts";
@@ -228,31 +228,36 @@ export class Engine {
     return Math.min(...nights.map((night) => this.typeSize(typeId, night).size - this.typeTaken(typeId, night, except)));
   }
 
-  /** The night availability: each room type that sleeps the party, open, full or closed by a stay rule. */
-  availability(q: { from: Day; to: Day; guests: number; earliest?: number; exclude?: Id }): TypeAvailability[] {
+  /**
+   * The night availability: each room type that sleeps the party, open, full
+   * or closed by a stay rule; with `earliest`, each type's first later arrival
+   * of the same length it is open from, and the first of those.
+   */
+  availability(q: { from: Day; to: Day; guests: number; earliest?: number; exclude?: Id }): NightAnswer {
     const types = this.world.where("room_types", (t) => t["active"] === true && Number(t["sleeps"]) >= q.guests).sort(byPosition);
     const ruleOk = this.nightsAllowed(q.from, q.to, "public");
     const length = daysBetween(q.from, q.to);
-    return types.map((type) => {
-      const answer: TypeAvailability = { room_type_id: type.id, state: "closed" };
-      if (ruleOk) {
-        const left = this.typeLeft(type.id, this.nightsOf(q.from, q.to), q.exclude);
-        answer.state = left > 0 ? "open" : "full";
-        if (left > 0 && left < AHEAD.showLeft) answer.left = left;
-      }
-      if (q.earliest !== undefined && answer.state !== "open" && length >= 1) {
-        answer.earliest = null;
-        for (let k = 1; k <= q.earliest; k += 1) {
+    let first: string | null = null;
+    const answer = types.map((type) => {
+      const left = this.typeLeft(type.id, this.nightsOf(q.from, q.to), q.exclude);
+      const state: TypeAvailability["state"] = !ruleOk ? "closed" : left < 1 ? "full" : "open";
+      const row: TypeAvailability = { pool: String(type.id), state, ...(state !== "closed" && left < AHEAD.showLeft ? { left: Math.max(0, left) } : {}) };
+      if ((q.earliest ?? 0) > 0 && length >= 1) {
+        row.earliest = null;
+        for (let k = 1; k <= q.earliest!; k += 1) {
           const a = addDays(q.from, k);
           const d = addDays(a, length);
-          if (this.nightsAllowed(a, d, "public") && this.typeLeft(type.id, this.nightsOf(a, d), q.exclude) > 0) {
-            answer.earliest = { arrive: a, depart: d };
+          if (!this.nightsAllowed(a, d, "public")) continue;
+          if (this.typeLeft(type.id, this.nightsOf(a, d), q.exclude) >= 1) {
+            row.earliest = a;
             break;
           }
         }
+        if (row.earliest !== null && (first === null || row.earliest < first)) first = row.earliest;
       }
-      return answer;
+      return row;
     });
+    return { types: answer, earliest: first };
   }
 
   /** Each extra with a limit a night, over some nights. */

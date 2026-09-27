@@ -11,7 +11,7 @@
  * DEMO BUILD ONLY — nothing in a real build imports it.
  */
 import type { GuestPort, House, NightQuestion, StayWithLines } from "../data/ports.ts";
-import { ApiError, type ClaimReply, type ExtraAvailability, type Id, type QuoteReply, type Row, type StayBody, type StayReply, type TypeAvailability } from "../data/wire.ts";
+import { ApiError, type ClaimReply, type ExtraAvailability, type Id, type QuoteReply, type Row, type StayBody, type StayReply, type NightAnswer } from "../data/wire.ts";
 import { byPosition, Engine, notFound, randomCode, refusedValue, type Writer } from "./engine.ts";
 import { MANIFEST_RULES } from "./rules.ts";
 
@@ -109,7 +109,7 @@ export class DemoGuest implements GuestPort {
     };
   }
 
-  async availability(q: NightQuestion): Promise<TypeAvailability[]> {
+  async availability(q: NightQuestion): Promise<NightAnswer> {
     await this.wait(this.latency.read);
     const exclude = q.exclude !== undefined && this.ownStay(q.exclude, false) !== undefined ? q.exclude : undefined;
     return this.engine.availability({ ...q, ...(exclude === undefined ? {} : { exclude }) });

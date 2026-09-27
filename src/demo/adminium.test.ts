@@ -57,12 +57,12 @@ describe("what the guest is told is open", () => {
   it("Mon 3 → Wed 5 Aug for two: Garden open, Harbour 2 left, the Loft full (earliest Wed 5 Aug), no Snug", async () => {
     const h = house();
     const answer = await h.a.guest.availability({ from: "2026-08-03", to: "2026-08-05", guests: 2, earliest: 42 });
-    const byName = Object.fromEntries(answer.map((x) => [h.a.world.get("room_types", x.room_type_id)!["name"], x]));
+    const byName = Object.fromEntries(answer.types.map((x) => [h.a.world.get("room_types", Number(x.pool))!["name"], x]));
     expect(Object.keys(byName)).toEqual(["Garden double", "Harbour double", "Loft suite"]);
     expect(byName["Garden double"]).toMatchObject({ state: "open" });
     expect(byName["Garden double"]!.left).toBeUndefined();
     expect(byName["Harbour double"]).toMatchObject({ state: "open", left: 2 });
-    expect(byName["Loft suite"]).toMatchObject({ state: "full", earliest: { arrive: "2026-08-05", depart: "2026-08-07" } });
+    expect(byName["Loft suite"]).toMatchObject({ state: "full", earliest: "2026-08-05" });
   });
 
   it("closes every type for one Saturday night, a stay over fourteen nights, and a past arrival", async () => {
@@ -73,7 +73,7 @@ describe("what the guest is told is open", () => {
       ["2026-07-27", "2026-07-29"],
     ] as const) {
       const answer = await h.a.guest.availability({ from, to, guests: 1 });
-      expect(answer.every((x) => x.state === "closed"), `${from} → ${to}`).toBe(true);
+      expect(answer.types.every((x) => x.state === "closed"), `${from} → ${to}`).toBe(true);
     }
   });
 

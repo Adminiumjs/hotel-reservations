@@ -26,17 +26,24 @@ export interface PublicConfig {
 }
 
 /**
- * A room type over the searched nights, as the night availability answers
- * it: open (with what is left when few are), full, or closed by a stay rule
- * (a Saturday arrival for one night, too long, too far ahead). A type too
- * small for the party is not listed. `earliest` is the first arrival, for as
- * many nights, the type is open from — when it was asked for.
+ * A room type over the searched nights, as the night availability answers it
+ * (one per pool the key may read that sleeps the party): open (with what is
+ * left when few are), full, or closed by a stay rule (a Saturday arrival for
+ * one night, too long, too far ahead). `earliest` is the first later arrival,
+ * for as many nights, the type is open from — when it was asked for.
  */
 export interface TypeAvailability {
-  room_type_id: Id;
+  /** The room type's id, as the pool's key. */
+  pool: string;
   state: "open" | "full" | "closed";
   left?: number;
-  earliest?: { arrive: string; depart: string } | null;
+  earliest?: string | null;
+}
+
+/** The night availability's answer: each type, and the earliest arrival any of them is open from. */
+export interface NightAnswer {
+  types: TypeAvailability[];
+  earliest: string | null;
 }
 
 /** An extra with a limit a night (parking) over the searched nights. */
