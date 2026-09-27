@@ -15,6 +15,8 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { buildManifest, manifestText } from "./build.ts";
+import { emailWords } from "./emails.ts";
+import { LOCALES, untranslated } from "./labels.ts";
 import { ARRIVAL_TIMES, DESK_CANCEL_CODES } from "./tables.ts";
 
 const FILE = join(__dirname, "..", "..", "manifest.json");
@@ -37,6 +39,23 @@ const entries = (t: string) => manifest.publicAccess.filter((e) => e.table === t
 describe("manifest.json is what src/manifest/ writes", () => {
   it("is byte for byte the modules' output — run `npm run manifest` after changing them", () => {
     expect(readFileSync(FILE, "utf8") === manifestText()).toBe(true);
+  });
+});
+
+describe("the manifest speaks all eight languages", () => {
+  it("has every label in every language (drafts until the native review)", () => {
+    buildManifest();
+    expect(untranslated()).toEqual([]);
+  });
+
+  it("has every email in every language, with the same variables as the English", () => {
+    const words = emailWords();
+    const vars = (value: unknown) => [...JSON.stringify(value).matchAll(/\{\{([a-z_.]+)\}\}/g)].map((m) => m[1]).sort();
+    for (const tag of LOCALES) {
+      for (const kind of Object.keys(words["en-US"]) as (keyof typeof words["en-US"])[]) {
+        expect(vars(words[tag][kind]), `${tag} ${String(kind)}`).toEqual(vars(words["en-US"][kind]));
+      }
+    }
   });
 });
 

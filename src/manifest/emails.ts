@@ -17,6 +17,7 @@
  * Only the online confirmation carries the reservation's own link: a code is
  * sent only to the person it opens the stay for.
  */
+import { EMAIL_AR, EMAIL_CS, EMAIL_DA, EMAIL_DE, EMAIL_FR, EMAIL_ZH_CN, EMAIL_ZH_TW } from "./email-words.ts";
 import type { Tag } from "./labels.ts";
 import type { Kind } from "./outbox.ts";
 
@@ -171,9 +172,18 @@ function layout(kind: Kind, all: EmailWords) {
   return { subject: w.subject, preheader: w.preheader, blocks, footer: all.foot };
 }
 
-/** Every language's words: English here, the others as they are translated. */
-export function emailWords(): Partial<Record<Tag, EmailWords>> & { "en-US": EmailWords } {
-  return { "en-US": EMAIL_EN };
+/** Every language's words: English here, the other seven (drafts until reviewed) in `email-words.ts`. */
+export function emailWords(): Record<Tag, EmailWords> {
+  return {
+    "en-US": EMAIL_EN,
+    "de-DE": EMAIL_DE,
+    "fr-FR": EMAIL_FR,
+    "da-DK": EMAIL_DA,
+    "cs-CZ": EMAIL_CS,
+    "ar-EG": EMAIL_AR,
+    "zh-CN": EMAIL_ZH_CN,
+    "zh-TW": EMAIL_ZH_TW,
+  };
 }
 
 /** The variables each template reads, for the template editor's list. */

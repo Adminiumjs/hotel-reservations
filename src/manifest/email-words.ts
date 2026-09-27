@@ -1,0 +1,365 @@
+/**
+ * The emails' words in the seven languages beside English (the English and
+ * the layout are in `emails.ts`).
+ *
+ * EVERY LANGUAGE HERE IS AN UNREVIEWED DRAFT until a native speaker has read
+ * it (the release waits for that review). `{{…}}` are the outbox's variables,
+ * left exactly as they are; a date and a time are formatted by Adminium in the
+ * guest's language.
+ */
+import type { EmailWords } from "./emails.ts";
+
+/** One language's words, from the sentences each email shares. */
+function words(
+  shared: Pick<EmailWords, "reference" | "theRoom" | "total" | "settle" | "cancelBy" | "lateOrEarly" | "foot">,
+  s: {
+    madeName: string;
+    madeDeskName: string;
+    madeSubject: string;
+    madePre: string;
+    madeDeskPre: string;
+    madeHeading: string;
+    madePara: string;
+    button: string;
+    cancelledSubject: string;
+    nothing: string;
+    cancelledHeading: string;
+    stillOpen: string;
+    selfLate: string;
+    desk: string;
+    deskLate: string;
+    names: { self: string; selfLate: string; desk: string; deskLate: string; house: string; noShow: string };
+    houseSubject: string;
+    housePre: string;
+    houseHeading: string;
+    housePara: string;
+    houseRing: string;
+    noShowSubject: string;
+    noShowHeading: string;
+    noShowPara: string;
+    noShowRing: string;
+  },
+): EmailWords {
+  const cancelled = (name: string, paras: string[]) => ({ name, subject: s.cancelledSubject, preheader: s.nothing.replace(/[.。]$/, ""), heading: s.cancelledHeading, paras });
+  return {
+    ...shared,
+    "stay-made": { name: s.madeName, subject: s.madeSubject, preheader: s.madePre, heading: s.madeHeading, paras: [s.madePara], button: s.button },
+    "stay-made-desk": { name: s.madeDeskName, subject: s.madeSubject, preheader: s.madeDeskPre, heading: s.madeHeading, paras: [s.madePara] },
+    "stay-cancelled-self": cancelled(s.names.self, [s.nothing, s.stillOpen]),
+    "stay-cancelled-self-late": cancelled(s.names.selfLate, [s.selfLate, s.stillOpen]),
+    "stay-cancelled-desk": cancelled(s.names.desk, [s.desk, s.stillOpen]),
+    "stay-cancelled-desk-late": cancelled(s.names.deskLate, [s.deskLate, s.stillOpen]),
+    "stay-cancelled-house": { name: s.names.house, subject: s.houseSubject, preheader: s.housePre, heading: s.houseHeading, paras: [s.housePara, s.houseRing] },
+    "stay-no-show": { name: s.names.noShow, subject: s.noShowSubject, preheader: s.nothing.replace(/[.。]$/, ""), heading: s.noShowHeading, paras: [s.noShowPara, s.noShowRing] },
+  };
+}
+
+const FOOT = "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}.";
+
+export const EMAIL_DE = words(
+  {
+    reference: "Ihre Referenz",
+    theRoom: "{{room_type.name}}, {{stay.arrive.day_month}} bis {{stay.depart.day_month}}",
+    total: "Gesamt",
+    settle: "Online wird nichts abgebucht. Sie begleichen alles an der Rezeption.",
+    cancelBy: "Stornierung ohne Kosten bis {{stay.cancel_by.time}} am {{stay.cancel_by.date}}.",
+    lateOrEarly: "Später oder früher? Schreiben Sie an {{practice.email}} oder rufen Sie uns an: {{practice.phone}}.",
+    foot: `${FOOT} Sie erhalten diese E-Mail, weil Sie bei uns ein Zimmer reserviert haben.`,
+  },
+  {
+    madeName: "Reservierung eingegangen",
+    madeDeskName: "Reservierung an der Rezeption",
+    madeSubject: "Ihr Zimmer bei {{appName}}, {{stay.ref}}",
+    madePre: "{{stay.arrive.day_month}} bis {{stay.depart.day_month}} · {{stay.total}} · online wird nichts abgebucht",
+    madeDeskPre: "{{stay.arrive.day_month}} bis {{stay.depart.day_month}} · {{stay.total}}",
+    madeHeading: "Ihr Zimmer ist reserviert, {{recipient.first_name}}.",
+    madePara: "Anreise am {{stay.arrive.day_month}} ab {{practice.arrive_from}}. Abreise am {{stay.depart.day_month}} bis {{practice.leave_by}}.",
+    button: "Ihre Reservierung ansehen",
+    cancelledSubject: "Ihre Reservierung {{stay.ref}} ist storniert",
+    nothing: "Es wird nichts berechnet.",
+    cancelledHeading: "Ihre Reservierung ist storniert.",
+    stillOpen: "Wenn Sie nicht stornieren wollten, schreiben Sie an {{practice.email}} oder rufen Sie uns an: {{practice.phone}} – wir sehen nach, was noch zu haben ist.",
+    selfLate: "Sie haben nach {{stay.cancel_by.time}} am {{stay.cancel_by.date}} storniert, daher gilt dies als späte Stornierung. Es wird nichts berechnet.",
+    desk: "Wie gewünscht haben wir sie storniert. Es wird nichts berechnet.",
+    deskLate: "Wie gewünscht haben wir sie storniert. Das war nach {{stay.cancel_by.time}} am {{stay.cancel_by.date}}, daher gilt dies als späte Stornierung. Es wird nichts berechnet.",
+    names: {
+      self: "Vom Gast storniert",
+      selfLate: "Vom Gast spät storniert",
+      desk: "Auf Wunsch des Gastes storniert",
+      deskLate: "Auf Wunsch des Gastes spät storniert",
+      house: "Vom Haus storniert",
+      noShow: "Wir haben Sie vermisst",
+    },
+    houseSubject: "Wir mussten {{stay.ref}} stornieren",
+    housePre: "Es tut uns sehr leid · es wird nichts berechnet",
+    houseHeading: "Es tut uns sehr leid, {{recipient.first_name}}.",
+    housePara: "Wir mussten Ihre Reservierung {{stay.ref}} ({{room_type.name}}, {{stay.arrive.day_month}} bis {{stay.depart.day_month}}) stornieren. Es tut uns sehr leid. Es wird nichts berechnet.",
+    houseRing: "Rufen Sie uns an unter {{practice.phone}}, und wir helfen Ihnen, ein anderes Zimmer zu finden.",
+    noShowSubject: "Wir haben Sie vermisst – {{stay.ref}}",
+    noShowHeading: "Wir haben Sie vermisst, {{recipient.first_name}}.",
+    noShowPara: "Wir haben Ihr Zimmer für den {{stay.arrive.day_month}} gehalten, aber Sie sind nicht angekommen. Daher ist die Reservierung {{stay.ref}} als nicht erschienen markiert. Es wird nichts berechnet.",
+    noShowRing: "Wenn Sie noch unterwegs sind, rufen Sie uns an: {{practice.phone}}.",
+  },
+);
+
+export const EMAIL_FR = words(
+  {
+    reference: "Votre référence",
+    theRoom: "{{room_type.name}}, du {{stay.arrive.day_month}} au {{stay.depart.day_month}}",
+    total: "Total",
+    settle: "Rien n'est prélevé en ligne. Vous réglez à la réception.",
+    cancelBy: "Annulation sans frais jusqu'à {{stay.cancel_by.time}} le {{stay.cancel_by.date}}.",
+    lateOrEarly: "En retard ou en avance ? Écrivez à {{practice.email}} ou appelez-nous au {{practice.phone}}.",
+    foot: `${FOOT} Vous recevez cet e-mail parce que vous avez réservé une chambre chez nous.`,
+  },
+  {
+    madeName: "Réservation effectuée",
+    madeDeskName: "Réservation faite à la réception",
+    madeSubject: "Votre chambre à {{appName}}, {{stay.ref}}",
+    madePre: "Du {{stay.arrive.day_month}} au {{stay.depart.day_month}} · {{stay.total}} · rien n'est prélevé en ligne",
+    madeDeskPre: "Du {{stay.arrive.day_month}} au {{stay.depart.day_month}} · {{stay.total}}",
+    madeHeading: "Votre chambre est réservée, {{recipient.first_name}}.",
+    madePara: "Arrivée le {{stay.arrive.day_month}} à partir de {{practice.arrive_from}}. Départ le {{stay.depart.day_month}} avant {{practice.leave_by}}.",
+    button: "Voir votre réservation",
+    cancelledSubject: "Votre réservation {{stay.ref}} est annulée",
+    nothing: "Vous ne payez rien.",
+    cancelledHeading: "Votre réservation est annulée.",
+    stillOpen: "Si vous ne vouliez pas annuler, écrivez à {{practice.email}} ou appelez-nous au {{practice.phone}} : nous verrons ce qui reste disponible.",
+    selfLate: "Vous avez annulé après {{stay.cancel_by.time}} le {{stay.cancel_by.date}} : l'annulation est donc marquée comme tardive. Vous ne payez rien.",
+    desk: "Comme vous l'avez demandé, nous l'avons annulée. Vous ne payez rien.",
+    deskLate: "Comme vous l'avez demandé, nous l'avons annulée. C'était après {{stay.cancel_by.time}} le {{stay.cancel_by.date}} : l'annulation est donc marquée comme tardive. Vous ne payez rien.",
+    names: {
+      self: "Annulé par le client",
+      selfLate: "Annulé tardivement par le client",
+      desk: "Annulé à la demande du client",
+      deskLate: "Annulé tardivement à la demande du client",
+      house: "Annulé par l'hôtel",
+      noShow: "Vous nous avez manqué",
+    },
+    houseSubject: "Nous avons dû annuler {{stay.ref}}",
+    housePre: "Toutes nos excuses · vous ne payez rien",
+    houseHeading: "Toutes nos excuses, {{recipient.first_name}}.",
+    housePara: "Nous avons dû annuler votre réservation {{stay.ref}} ({{room_type.name}}, du {{stay.arrive.day_month}} au {{stay.depart.day_month}}). Nous en sommes vraiment désolés. Vous ne payez rien.",
+    houseRing: "Appelez-nous au {{practice.phone}} et nous vous aiderons à trouver une autre chambre.",
+    noShowSubject: "Nous vous attendions — {{stay.ref}}",
+    noShowHeading: "Nous vous attendions, {{recipient.first_name}}.",
+    noShowPara: "Nous avons gardé votre chambre pour le {{stay.arrive.day_month}}, mais vous n'êtes pas arrivé : la réservation {{stay.ref}} est donc marquée comme non présentée. Vous ne payez rien.",
+    noShowRing: "Si vous êtes encore en route, appelez-nous au {{practice.phone}}.",
+  },
+);
+
+export const EMAIL_DA = words(
+  {
+    reference: "Din reference",
+    theRoom: "{{room_type.name}}, {{stay.arrive.day_month}} til {{stay.depart.day_month}}",
+    total: "I alt",
+    settle: "Der trækkes intet online. Du betaler i receptionen.",
+    cancelBy: "Afbestilling uden beregning indtil kl. {{stay.cancel_by.time}} den {{stay.cancel_by.date}}.",
+    lateOrEarly: "Sent eller tidligt? Skriv til {{practice.email}}, eller ring til os på {{practice.phone}}.",
+    foot: `${FOOT} Du får denne e-mail, fordi du har reserveret et værelse hos os.`,
+  },
+  {
+    madeName: "Reservation modtaget",
+    madeDeskName: "Reservation lavet i receptionen",
+    madeSubject: "Dit værelse på {{appName}}, {{stay.ref}}",
+    madePre: "{{stay.arrive.day_month}} til {{stay.depart.day_month}} · {{stay.total}} · der trækkes intet online",
+    madeDeskPre: "{{stay.arrive.day_month}} til {{stay.depart.day_month}} · {{stay.total}}",
+    madeHeading: "Du har et værelse, {{recipient.first_name}}.",
+    madePara: "Ankomst {{stay.arrive.day_month}} fra kl. {{practice.arrive_from}}. Afrejse {{stay.depart.day_month}} senest kl. {{practice.leave_by}}.",
+    button: "Se din reservation",
+    cancelledSubject: "Din reservation {{stay.ref}} er afbestilt",
+    nothing: "Der opkræves intet.",
+    cancelledHeading: "Din reservation er afbestilt.",
+    stillOpen: "Hvis det ikke var meningen at afbestille, så skriv til {{practice.email}} eller ring til os på {{practice.phone}}, så ser vi, hvad der stadig er ledigt.",
+    selfLate: "Du afbestilte efter kl. {{stay.cancel_by.time}} den {{stay.cancel_by.date}}, så den er markeret som en sen afbestilling. Der opkræves intet.",
+    desk: "Som du bad om, har vi afbestilt den. Der opkræves intet.",
+    deskLate: "Som du bad om, har vi afbestilt den. Det var efter kl. {{stay.cancel_by.time}} den {{stay.cancel_by.date}}, så den er markeret som en sen afbestilling. Der opkræves intet.",
+    names: {
+      self: "Afbestilt af gæsten",
+      selfLate: "Afbestilt sent af gæsten",
+      desk: "Afbestilt efter gæstens ønske",
+      deskLate: "Afbestilt sent efter gæstens ønske",
+      house: "Afbestilt af huset",
+      noShow: "Vi savnede dig",
+    },
+    houseSubject: "Vi har måttet afbestille {{stay.ref}}",
+    housePre: "Vi beklager meget · der opkræves intet",
+    houseHeading: "Vi beklager meget, {{recipient.first_name}}.",
+    housePara: "Vi har måttet afbestille din reservation {{stay.ref}} ({{room_type.name}}, {{stay.arrive.day_month}} til {{stay.depart.day_month}}). Vi beklager meget. Der opkræves intet.",
+    houseRing: "Ring til os på {{practice.phone}}, så hjælper vi dig med at finde et andet værelse.",
+    noShowSubject: "Vi savnede dig — {{stay.ref}}",
+    noShowHeading: "Vi savnede dig, {{recipient.first_name}}.",
+    noShowPara: "Vi holdt dit værelse til den {{stay.arrive.day_month}}, men du kom ikke, så reservation {{stay.ref}} er markeret som udeblevet. Der opkræves intet.",
+    noShowRing: "Hvis du stadig er på vej, så ring til os på {{practice.phone}}.",
+  },
+);
+
+export const EMAIL_CS = words(
+  {
+    reference: "Číslo vaší rezervace",
+    theRoom: "{{room_type.name}}, {{stay.arrive.day_month}} až {{stay.depart.day_month}}",
+    total: "Celkem",
+    settle: "Online se nic nestrhává. Platíte na recepci.",
+    cancelBy: "Zrušení bez poplatku do {{stay.cancel_by.time}} dne {{stay.cancel_by.date}}.",
+    lateOrEarly: "Přijedete později nebo dříve? Napište na {{practice.email}} nebo nám zavolejte na {{practice.phone}}.",
+    foot: `${FOOT} Tento e-mail dostáváte, protože jste si u nás rezervovali pokoj.`,
+  },
+  {
+    madeName: "Rezervace vytvořena",
+    madeDeskName: "Rezervace na recepci",
+    madeSubject: "Váš pokoj v {{appName}}, {{stay.ref}}",
+    madePre: "{{stay.arrive.day_month}} až {{stay.depart.day_month}} · {{stay.total}} · online se nic nestrhává",
+    madeDeskPre: "{{stay.arrive.day_month}} až {{stay.depart.day_month}} · {{stay.total}}",
+    madeHeading: "Pokoj je váš, {{recipient.first_name}}.",
+    madePara: "Příjezd {{stay.arrive.day_month}} od {{practice.arrive_from}}. Odjezd {{stay.depart.day_month}} do {{practice.leave_by}}.",
+    button: "Zobrazit rezervaci",
+    cancelledSubject: "Vaše rezervace {{stay.ref}} je zrušena",
+    nothing: "Nic se neúčtuje.",
+    cancelledHeading: "Vaše rezervace je zrušena.",
+    stillOpen: "Pokud jste rušit nechtěli, napište na {{practice.email}} nebo nám zavolejte na {{practice.phone}} a podíváme se, co je ještě volné.",
+    selfLate: "Zrušili jste po {{stay.cancel_by.time}} dne {{stay.cancel_by.date}}, proto je zrušení označeno jako pozdní. Nic se neúčtuje.",
+    desk: "Na vaši žádost jsme ji zrušili. Nic se neúčtuje.",
+    deskLate: "Na vaši žádost jsme ji zrušili. Bylo to po {{stay.cancel_by.time}} dne {{stay.cancel_by.date}}, proto je zrušení označeno jako pozdní. Nic se neúčtuje.",
+    names: {
+      self: "Zrušeno hostem",
+      selfLate: "Zrušeno hostem pozdě",
+      desk: "Zrušeno na přání hosta",
+      deskLate: "Zrušeno na přání hosta pozdě",
+      house: "Zrušeno hotelem",
+      noShow: "Chyběli jste nám",
+    },
+    houseSubject: "Museli jsme zrušit {{stay.ref}}",
+    housePre: "Velmi se omlouváme · nic se neúčtuje",
+    houseHeading: "Velmi se omlouváme, {{recipient.first_name}}.",
+    housePara: "Museli jsme zrušit vaši rezervaci {{stay.ref}} ({{room_type.name}}, {{stay.arrive.day_month}} až {{stay.depart.day_month}}). Velmi se omlouváme. Nic se neúčtuje.",
+    houseRing: "Zavolejte nám na {{practice.phone}} a pomůžeme vám najít jiný pokoj.",
+    noShowSubject: "Chyběli jste nám — {{stay.ref}}",
+    noShowHeading: "Chyběli jste nám, {{recipient.first_name}}.",
+    noShowPara: "Drželi jsme vám pokoj na {{stay.arrive.day_month}}, ale nedorazili jste, proto je rezervace {{stay.ref}} označena jako nedostavení. Nic se neúčtuje.",
+    noShowRing: "Pokud jste ještě na cestě, zavolejte nám na {{practice.phone}}.",
+  },
+);
+
+export const EMAIL_AR = words(
+  {
+    reference: "رقم حجزك",
+    theRoom: "{{room_type.name}}، من {{stay.arrive.day_month}} إلى {{stay.depart.day_month}}",
+    total: "الإجمالي",
+    settle: "لا يُقتطع أي مبلغ عبر الإنترنت. تدفع في مكتب الاستقبال.",
+    cancelBy: "يمكنك الإلغاء دون رسوم حتى {{stay.cancel_by.time}} يوم {{stay.cancel_by.date}}.",
+    lateOrEarly: "ستتأخر أو تصل مبكرًا؟ راسلنا على {{practice.email}} أو اتصل بنا على {{practice.phone}}.",
+    foot: `${FOOT} تصلك هذه الرسالة لأنك حجزت غرفة لدينا.`,
+  },
+  {
+    madeName: "تم الحجز",
+    madeDeskName: "حجز من الاستقبال",
+    madeSubject: "غرفتك في {{appName}}، {{stay.ref}}",
+    madePre: "من {{stay.arrive.day_month}} إلى {{stay.depart.day_month}} · {{stay.total}} · لا يُقتطع شيء عبر الإنترنت",
+    madeDeskPre: "من {{stay.arrive.day_month}} إلى {{stay.depart.day_month}} · {{stay.total}}",
+    madeHeading: "غرفتك محجوزة يا {{recipient.first_name}}.",
+    madePara: "الوصول في {{stay.arrive.day_month}} ابتداءً من {{practice.arrive_from}}. المغادرة في {{stay.depart.day_month}} قبل {{practice.leave_by}}.",
+    button: "عرض حجزك",
+    cancelledSubject: "أُلغي حجزك {{stay.ref}}",
+    nothing: "لا يُحتسب أي مبلغ.",
+    cancelledHeading: "أُلغي حجزك.",
+    stillOpen: "إن لم تكن تقصد الإلغاء، فراسلنا على {{practice.email}} أو اتصل بنا على {{practice.phone}} وسنرى ما لا يزال متاحًا.",
+    selfLate: "ألغيت بعد {{stay.cancel_by.time}} يوم {{stay.cancel_by.date}}، لذا سُجّل الإلغاء على أنه متأخر. لا يُحتسب أي مبلغ.",
+    desk: "ألغيناه كما طلبت. لا يُحتسب أي مبلغ.",
+    deskLate: "ألغيناه كما طلبت. كان ذلك بعد {{stay.cancel_by.time}} يوم {{stay.cancel_by.date}}، لذا سُجّل الإلغاء على أنه متأخر. لا يُحتسب أي مبلغ.",
+    names: {
+      self: "ألغاه الضيف",
+      selfLate: "ألغاه الضيف متأخرًا",
+      desk: "أُلغي بطلب من الضيف",
+      deskLate: "أُلغي بطلب من الضيف متأخرًا",
+      house: "ألغاه الفندق",
+      noShow: "افتقدناك",
+    },
+    houseSubject: "اضطررنا إلى إلغاء {{stay.ref}}",
+    housePre: "نعتذر كثيرًا · لا يُحتسب أي مبلغ",
+    houseHeading: "نعتذر كثيرًا يا {{recipient.first_name}}.",
+    housePara: "اضطررنا إلى إلغاء حجزك {{stay.ref}} ({{room_type.name}}، من {{stay.arrive.day_month}} إلى {{stay.depart.day_month}}). نعتذر كثيرًا. لا يُحتسب أي مبلغ.",
+    houseRing: "اتصل بنا على {{practice.phone}} وسنساعدك في إيجاد غرفة أخرى.",
+    noShowSubject: "افتقدناك — {{stay.ref}}",
+    noShowHeading: "افتقدناك يا {{recipient.first_name}}.",
+    noShowPara: "احتفظنا بغرفتك ليوم {{stay.arrive.day_month}} لكنك لم تصل، لذا سُجّل الحجز {{stay.ref}} على أنه عدم حضور. لا يُحتسب أي مبلغ.",
+    noShowRing: "إن كنت لا تزال في الطريق، فاتصل بنا على {{practice.phone}}.",
+  },
+);
+
+export const EMAIL_ZH_CN = words(
+  {
+    reference: "预订参考号",
+    theRoom: "{{room_type.name}}，{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}",
+    total: "总计",
+    settle: "网上不收取任何费用，请在前台结清。",
+    cancelBy: "{{stay.cancel_by.date}} {{stay.cancel_by.time}} 前取消不收费。",
+    lateOrEarly: "会晚到或早到？请发邮件至 {{practice.email}} 或致电 {{practice.phone}}。",
+    foot: "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到此邮件，是因为您在我们这里预订了房间。",
+  },
+  {
+    madeName: "预订成功",
+    madeDeskName: "前台预订",
+    madeSubject: "您在 {{appName}} 的房间，{{stay.ref}}",
+    madePre: "{{stay.arrive.day_month}} 至 {{stay.depart.day_month}} · {{stay.total}} · 网上不收取费用",
+    madeDeskPre: "{{stay.arrive.day_month}} 至 {{stay.depart.day_month}} · {{stay.total}}",
+    madeHeading: "{{recipient.first_name}}，您的房间已订好。",
+    madePara: "{{stay.arrive.day_month}} 入住，{{practice.arrive_from}} 起可办理。{{stay.depart.day_month}} 退房，请于 {{practice.leave_by}} 前离开。",
+    button: "查看您的预订",
+    cancelledSubject: "您的预订 {{stay.ref}} 已取消",
+    nothing: "不收取任何费用。",
+    cancelledHeading: "您的预订已取消。",
+    stillOpen: "如果您并非有意取消，请发邮件至 {{practice.email}} 或致电 {{practice.phone}}，我们会看看还有哪些房间。",
+    selfLate: "您在 {{stay.cancel_by.date}} {{stay.cancel_by.time}} 之后取消，因此记为逾期取消。不收取任何费用。",
+    desk: "已按您的要求取消。不收取任何费用。",
+    deskLate: "已按您的要求取消。取消时间在 {{stay.cancel_by.date}} {{stay.cancel_by.time}} 之后，因此记为逾期取消。不收取任何费用。",
+    names: { self: "客人取消", selfLate: "客人逾期取消", desk: "应客人要求取消", deskLate: "应客人要求逾期取消", house: "酒店取消", noShow: "我们错过了您" },
+    houseSubject: "我们不得不取消 {{stay.ref}}",
+    housePre: "非常抱歉 · 不收取任何费用",
+    houseHeading: "{{recipient.first_name}}，非常抱歉。",
+    housePara: "我们不得不取消您的预订 {{stay.ref}}（{{room_type.name}}，{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}）。非常抱歉。不收取任何费用。",
+    houseRing: "请致电 {{practice.phone}}，我们会帮您另找房间。",
+    noShowSubject: "我们错过了您 — {{stay.ref}}",
+    noShowHeading: "{{recipient.first_name}}，我们错过了您。",
+    noShowPara: "我们为您保留了 {{stay.arrive.day_month}} 的房间，但您没有到店，因此预订 {{stay.ref}} 记为未到店。不收取任何费用。",
+    noShowRing: "如果您仍在路上，请致电 {{practice.phone}}。",
+  },
+);
+
+export const EMAIL_ZH_TW = words(
+  {
+    reference: "預訂參考號",
+    theRoom: "{{room_type.name}}，{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}",
+    total: "總計",
+    settle: "線上不收取任何費用，請在櫃檯結清。",
+    cancelBy: "{{stay.cancel_by.date}} {{stay.cancel_by.time}} 前取消不收費。",
+    lateOrEarly: "會晚到或早到？請寄信至 {{practice.email}} 或來電 {{practice.phone}}。",
+    foot: "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到這封郵件，是因為您在我們這裡預訂了房間。",
+  },
+  {
+    madeName: "預訂成功",
+    madeDeskName: "櫃檯預訂",
+    madeSubject: "您在 {{appName}} 的房間，{{stay.ref}}",
+    madePre: "{{stay.arrive.day_month}} 至 {{stay.depart.day_month}} · {{stay.total}} · 線上不收取費用",
+    madeDeskPre: "{{stay.arrive.day_month}} 至 {{stay.depart.day_month}} · {{stay.total}}",
+    madeHeading: "{{recipient.first_name}}，您的房間已訂好。",
+    madePara: "{{stay.arrive.day_month}} 入住，{{practice.arrive_from}} 起可辦理。{{stay.depart.day_month}} 退房，請於 {{practice.leave_by}} 前離開。",
+    button: "查看您的預訂",
+    cancelledSubject: "您的預訂 {{stay.ref}} 已取消",
+    nothing: "不收取任何費用。",
+    cancelledHeading: "您的預訂已取消。",
+    stillOpen: "如果您並非有意取消，請寄信至 {{practice.email}} 或來電 {{practice.phone}}，我們會看看還有哪些房間。",
+    selfLate: "您在 {{stay.cancel_by.date}} {{stay.cancel_by.time}} 之後取消，因此記為逾期取消。不收取任何費用。",
+    desk: "已依您的要求取消。不收取任何費用。",
+    deskLate: "已依您的要求取消。取消時間在 {{stay.cancel_by.date}} {{stay.cancel_by.time}} 之後，因此記為逾期取消。不收取任何費用。",
+    names: { self: "客人取消", selfLate: "客人逾期取消", desk: "應客人要求取消", deskLate: "應客人要求逾期取消", house: "飯店取消", noShow: "我們錯過了您" },
+    houseSubject: "我們不得不取消 {{stay.ref}}",
+    housePre: "非常抱歉 · 不收取任何費用",
+    houseHeading: "{{recipient.first_name}}，非常抱歉。",
+    housePara: "我們不得不取消您的預訂 {{stay.ref}}（{{room_type.name}}，{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}）。非常抱歉。不收取任何費用。",
+    houseRing: "請來電 {{practice.phone}}，我們會幫您另找房間。",
+    noShowSubject: "我們錯過了您 — {{stay.ref}}",
+    noShowHeading: "{{recipient.first_name}}，我們錯過了您。",
+    noShowPara: "我們為您保留了 {{stay.arrive.day_month}} 的房間，但您沒有到店，因此預訂 {{stay.ref}} 記為未到店。不收取任何費用。",
+    noShowRing: "如果您仍在路上，請來電 {{practice.phone}}。",
+  },
+);
