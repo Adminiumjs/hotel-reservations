@@ -15,9 +15,8 @@ import { venueDay, venueMinutes } from "../lib/venueTime.ts";
 import { fDW, money, nightsOf, plus, setCurrency, strip } from "./fmt.ts";
 import { worldOf, type StV, type WorldV } from "./world.ts";
 
-export type View =
-  | "home" | "rooms" | "find" | "results" | "type" | "reserve" | "conf" | "signin" | "list" | "one" | "404"
-  | "today" | "newbooking" | "rack" | "calendar" | "reservations" | "folio";
+import type { View } from "./views.ts";
+export type { View };
 
 export interface Form {
   first: string;

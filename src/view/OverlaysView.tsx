@@ -2,6 +2,7 @@
 // Every value comes from the screens' values bag `v` (../app/vals/*.ts).
 import { Fragment } from "react";
 
+import { DESK, GUEST } from "../app/sides.ts";
 import { tr } from "../i18n/tr.ts";
 import { fx, Icon, st, trx } from "./dom.tsx";
 
@@ -55,7 +56,7 @@ export function OverlaysView({ v }: { v: any }) {
       </>
     ) : null}
     {" "}
-    {v.ci.open ? (
+    {DESK && v.ci.open ? (
       <>
         <div onClick={v.ci.close} style={st("position:fixed;inset:0;z-index:75;background:rgba(10,10,15,.55);backdrop-filter:blur(3px);display:flex;justify-content:flex-end")}>
           <aside data-sheet="" role="dialog" aria-modal="true" aria-label={tr("Check in")} onClick={v.stop} style={st("inline-size:min(560px,100%);background:var(--bg);block-size:100%;overflow:auto;border-inline-start:1px solid var(--border-strong);display:flex;flex-direction:column")}>
@@ -316,7 +317,7 @@ export function OverlaysView({ v }: { v: any }) {
       </>
     ) : null}
     {" "}
-    {v.co.open ? (
+    {DESK && v.co.open ? (
       <>
         <div onClick={v.co.close} style={st("position:fixed;inset:0;z-index:75;background:rgba(10,10,15,.55);backdrop-filter:blur(3px);display:flex;justify-content:flex-end")}>
           <aside data-sheet="" role="dialog" aria-modal="true" aria-label={tr("Check out")} onClick={v.stop} style={st("inline-size:min(540px,100%);background:var(--bg);block-size:100%;overflow:auto;border-inline-start:1px solid var(--border-strong);display:flex;flex-direction:column")}>
@@ -498,7 +499,7 @@ export function OverlaysView({ v }: { v: any }) {
       </>
     ) : null}
     {" "}
-    {v.rm.open ? (
+    {DESK && v.rm.open ? (
       <>
         <div onClick={v.rm.close} style={st("position:fixed;inset:0;z-index:78;background:rgba(10,10,15,.55);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px")}>
           <div role="dialog" aria-modal="true" aria-label={`Room ${v.rm.n}`} onClick={v.stop} style={st("inline-size:min(500px,100%);max-block-size:90vh;overflow:auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;box-shadow:var(--shadow-lift);animation:wh-pop .18s ease-out")}>
@@ -771,7 +772,7 @@ export function OverlaysView({ v }: { v: any }) {
       </>
     ) : null}
     {" "}
-    {v.ch.open ? (
+    {DESK && v.ch.open ? (
       <>
         <div onClick={v.ch.close} style={st("position:fixed;inset:0;z-index:80;background:rgba(10,10,15,.55);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px")}>
           <div role="dialog" aria-modal="true" aria-labelledby="ch-title" onClick={v.stop} style={st("inline-size:min(470px,100%);max-block-size:88vh;overflow:auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;box-shadow:var(--shadow-lift);animation:wh-pop .18s ease-out")}>
@@ -874,7 +875,7 @@ export function OverlaysView({ v }: { v: any }) {
       </>
     ) : null}
     {" "}
-    {v.se.open ? (
+    {DESK && v.se.open ? (
       <>
         <div onClick={v.se.close} style={st("position:fixed;inset:0;z-index:80;background:rgba(10,10,15,.55);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px")}>
           <div role="dialog" aria-modal="true" aria-labelledby="se-title" onClick={v.stop} style={st("inline-size:min(440px,100%);max-block-size:90vh;overflow:auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;box-shadow:var(--shadow-lift);animation:wh-pop .18s ease-out")}>
@@ -1032,7 +1033,7 @@ export function OverlaysView({ v }: { v: any }) {
       </>
     ) : null}
     {" "}
-    {v.ex.open ? (
+    {DESK && v.ex.open ? (
       <>
         <div onClick={v.ex.close} style={st("position:fixed;inset:0;z-index:80;background:rgba(10,10,15,.55);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px")}>
           <div role="dialog" aria-modal="true" aria-labelledby="ex-title" aria-describedby="ex-body" onClick={v.stop} style={st("inline-size:min(440px,100%);max-block-size:90vh;overflow:auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;box-shadow:var(--shadow-lift);animation:wh-pop .18s ease-out;padding:20px")}>
@@ -1089,7 +1090,7 @@ export function OverlaysView({ v }: { v: any }) {
       </>
     ) : null}
     {" "}
-    {v.vd.open ? (
+    {DESK && v.vd.open ? (
       <>
         <div onClick={v.vd.close} style={st("position:fixed;inset:0;z-index:82;background:rgba(10,10,15,.55);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px")}>
           <div role="alertdialog" aria-modal="true" aria-labelledby="vd-title" onClick={v.stop} style={st("inline-size:min(440px,100%);background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;box-shadow:var(--shadow-lift);animation:wh-pop .18s ease-out;padding:20px")}>
@@ -1146,7 +1147,7 @@ export function OverlaysView({ v }: { v: any }) {
       </>
     ) : null}
     {" "}
-    {v.mv.open ? (
+    {DESK && v.mv.open ? (
       <>
         <div onClick={v.mv.close} style={st("position:fixed;inset:0;z-index:80;background:rgba(10,10,15,.55);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px")}>
           <div role="dialog" aria-modal="true" aria-labelledby="mv-title" onClick={v.stop} style={st("inline-size:min(460px,100%);max-block-size:88vh;overflow:auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;box-shadow:var(--shadow-lift);animation:wh-pop .18s ease-out")}>
@@ -1256,7 +1257,7 @@ export function OverlaysView({ v }: { v: any }) {
       </>
     ) : null}
     {" "}
-    {v.dd.open ? (
+    {GUEST && v.dd.open ? (
       <>
         <div onClick={v.dd.close} style={st("position:fixed;inset:0;z-index:80;background:rgba(10,10,15,.55);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px")}>
           <div role="alertdialog" aria-modal="true" aria-labelledby="dd-title" aria-describedby="dd-body" onClick={v.stop} style={st("inline-size:min(440px,100%);background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;box-shadow:var(--shadow-lift);animation:wh-pop .18s ease-out;padding:20px")}>
@@ -1300,7 +1301,7 @@ export function OverlaysView({ v }: { v: any }) {
       </>
     ) : null}
     {" "}
-    {v.cd.open ? (
+    {GUEST && v.cd.open ? (
       <>
         <div onClick={v.cd.close} style={st("position:fixed;inset:0;z-index:75;background:rgba(10,10,15,.55);backdrop-filter:blur(3px);display:flex;justify-content:flex-end")}>
           <aside data-sheet="" role="dialog" aria-modal="true" aria-label={tr("Change the dates")} onClick={v.stop} style={st("inline-size:min(540px,100%);background:var(--bg);block-size:100%;overflow:auto;border-inline-start:1px solid var(--border-strong);display:flex;flex-direction:column")}>

@@ -10,6 +10,7 @@ import type { HouseApp, View } from "../house.ts";
 import { deskVals } from "./desk.ts";
 import { guestVals } from "./guest.ts";
 import { overlayVals } from "./overlays.ts";
+import { DESK, GUEST } from "../sides.ts";
 
 type V = Record<string, unknown>;
 
@@ -105,8 +106,10 @@ export function renderVals(app: HouseApp): V {
   };
   if (w === null || s.view === null) return { ...base, ...CLOSED_SCREENS };
   Object.assign(base, CLOSED_SCREENS);
-  if (guest) Object.assign(base, guestVals(app, w));
-  else Object.assign(base, deskVals(app, w));
+  // Each side's values only in the build that draws it: the other side's code is not in its bundle.
+  if (guest) {
+    if (GUEST) Object.assign(base, guestVals(app, w));
+  } else if (DESK) Object.assign(base, deskVals(app, w));
   Object.assign(base, overlayVals(app, w));
   return base;
 }

@@ -10,6 +10,7 @@ import { GuestView } from "../view/GuestView.tsx";
 import { OverlaysView } from "../view/OverlaysView.tsx";
 import { ToastsView } from "../view/ToastsView.tsx";
 import type { HouseApp } from "./house.ts";
+import { DESK, GUEST } from "./sides.ts";
 import { renderVals } from "./vals/base.ts";
 
 import "./house.css";
@@ -96,8 +97,8 @@ export function HouseRoot({ app }: { app: HouseApp }) {
     <div data-wh-root="" data-theme={String(v["themeAttr"])} dir={String(v["dir"])} lang={String(v["langCode"])} style={{ minBlockSize: "100vh", background: "var(--surface-3)", color: "var(--fg)" }}>
       <div data-wh-frame="">
         <div style={{ minBlockSize: "100vh", display: "flex", flexDirection: "column", background: "var(--bg)" }}>
-          <GuestView v={v} />
-          <DeskView v={v} />
+          {GUEST ? <GuestView v={v} /> : null}
+          {DESK ? <DeskView v={v} /> : null}
           <OverlaysView v={v} />
           <ToastsView v={v} />
           <div id="wh-said" className="wh-sr" role="status" aria-live="polite" />

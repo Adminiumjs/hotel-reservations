@@ -1,46 +1,21 @@
 /*
  * Entry point.
  *
- * The demo build draws the house's screens (`app/HouseRoot.tsx`, with their
- * own stylesheet). The connected and hosted builds load the earlier screens'
- * four global stylesheets, in order, before `App`: tokens (custom
- * properties) → base (reset, fonts, behaviour classes) → components (shared
- * UI) → screens (view-specific rules, which therefore always win a tie).
+ * Every build draws the house's screens (`app/HouseRoot.tsx`, with their own
+ * stylesheet). The demo build draws them on the demo's own Adminium, in this
+ * browser; every other build on a real one (`app/bootAdminium.tsx`): the desk
+ * served by Adminium to the person signed in to it, or the guest site through
+ * the house's browser keys.
  */
 
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-
-import { I18nProvider } from "./i18n/index.tsx";
-import { setDataSource } from "./data/source.ts";
-import { clientFromConfig, loadSnapshot, snapshotFailure, snapshotSource } from "./data/adminiumSource.ts";
-import { createSessionTransport } from "./data/sessionSource.ts";
-import { TABLE_OF_REF } from "./data/tableOfRef.ts";
-import { resolveStaffConnectionId } from "./staffConnection.ts";
-import { appName, setTenantCurrency, setTimezoneClaim } from "./i18n/ambient.ts";
-import { DEMO, HOSTED, SURFACE_SIDE } from "./surface.ts";
-
+import { DEMO } from "./surface.ts";
 
 const container = document.getElementById("root");
 if (!container) throw new Error("Missing #root — check index.html");
 
-/*
- * ONE condition decides demo vs connected: whether the API base URL and key are
- * present at build time. `createPublicClient` returns null when either is
- * missing, so the fallback is structural rather than a catch, and there is no
- * second flag to drift. The marketplace demo builds set neither and behave
- * byte-identically to before this file changed.
- *
- * The dynamic `import()` of `App` is load-bearing, not stylistic: `App` pulls
- * `state/store.ts`, which reads the data source at MODULE SCOPE (`PINNED`,
- * `ROOM_TYPES`, `EXTRAS`). A static import would evaluate the store during this
- * module's own imports — before the fetch below could resolve — and the app
- * would render demo data whatever the server said. The `await` has to sit
- * between the swap and the import, so the import has to be dynamic. The seam's
- * `setDataSource` throws if that ordering is ever broken, because the failure
- * is otherwise silent and looks exactly like a working app.
- */
 /** This app's name, as the failure screen says it. */
 const BRAND = "Wren House";
 
@@ -105,18 +80,6 @@ function showStartupFailure(mount: HTMLElement, detail: string, code: string | n
 }
 
 /**
- * The transport's code for a failure, when it carried one.
- *
- * Duck-typed rather than `instanceof`: the reason travels through
- * `snapshotFailure()` as a plain `Error`, and a build that swaps transports
- * should not have to share a class for the screen above to stay accurate.
- */
-function codeOf(reason: Error | null): string | null {
-  const code = (reason as { code?: unknown } | null)?.code;
-  return typeof code === "string" ? code : null;
-}
-
-/**
  * The demo build: the house's screens on the demo's own Adminium, in this
  * browser. `?side=desk` opens the desk (the demo card switches sides).
  */
@@ -150,165 +113,14 @@ async function boot(): Promise<void> {
     await bootDemo(container as HTMLElement);
     return;
   }
-  // The connected and hosted builds still draw the earlier screens, with their stylesheets, in this order.
-  await import("./styles/tokens.css");
-  await import("./styles/base.css");
-  await import("./styles/components.css");
-  await import("./styles/screens.css");
   /*
-   * A NON-DEMO BUILD NEVER RENDERS DEMO DATA.
-   *
-   * This used to fall through: no client, or a failed snapshot, and the seam
-   * kept its `demoSource` default — so a real deployment whose backend was
-   * unreachable painted a plausible app full of invented rows, for real people,
-   * with no error. Falling back to fiction is the failure the build-time split
-   * exists to remove, so it is a hard stop here instead.
-   *
-   * The transport is chosen at BUILD time and the two are not interchangeable.
-   * Hosted staff talks to this same origin with the operator's session — no
-   * key, no scope, no CORS. Everything else goes through the public API with a
-   * publishable key. `HOSTED` folds to a literal, so each build contains only
-   * the transport it uses.
+   * A NON-DEMO BUILD NEVER RENDERS DEMO DATA. The desk (hosted staff) reads
+   * through the signed-in person's session; the guest site (hosted customer, or
+   * a standalone build) through the house's browser keys. With no Adminium to
+   * reach, the build says so and stops — it never falls back to the demo's rows.
    */
-  if (!DEMO) {
-    /*
-     * The staff surface asks WHICH DATABASE it belongs to before it reads one
-     * (29 D9). Null — unbound, or an Adminium too old to answer — keeps the old
-     * inference, so this is additive for every instance that has one connection.
-     */
-    const boundConnection =
-      HOSTED && SURFACE_SIDE === "staff" ? await resolveStaffConnectionId() : null;
-
-    const client =
-      HOSTED && SURFACE_SIDE === "staff"
-        ? createSessionTransport({
-            tableOfRef: TABLE_OF_REF,
-            connectionId: boundConnection ?? undefined,
-          }).port
-        : // Baked vars first, then — hosted customer — the SERVED config
-          // (surface-config.json, 29 D10): the key an operator bound in Studio,
-          // fetched at boot, so rotation is Studio + reload with no rebuild.
-          await clientFromConfig();
-    const failure =
-      client === null
-        ? "This build has no backend configured. A hosted customer surface needs " +
-          "a key bound to it in Studio (or VITE_ADMINIUM_PUBLISHABLE_KEY baked at " +
-          "build time); a standalone build needs that and VITE_ADMINIUM_API_BASE_URL."
-        : null;
-
-    const snap = failure === null && client !== null ? await loadSnapshot(client) : null;
-    if (snap === null) {
-      const reason = failure === null ? snapshotFailure() : null;
-      showStartupFailure(
-        container as HTMLElement,
-        reason !== null
-          ? // The server said WHY. Repeating a generic sentence over the top of a
-            // specific one is how an operator ends up checking a key that does not
-            // exist in a build that never had one.
-            reason.message
-          : failure ??
-            "Could not load data from Adminium. The server may be unreachable, the " +
-              "session may have expired, or this app's tables may not match what it reads.",
-        // `failure` is set only on the no-backend path, which throws nothing and
-        // so carries no code of its own.
-        failure === null ? codeOf(reason) : "NO_BACKEND",
-      );
-      return;
-    }
-    // Before `App` mounts, so the first paint formats in the tenant's
-    // currency rather than flashing dollars and correcting itself.
-    setTenantCurrency(snap.currency);
-    // Same timing, same reason: the zone notice must be there on the first
-    // paint, not appear after one.
-    setTimezoneClaim(snap.timezone, snap.timezoneSource);
-    setDataSource(snapshotSource(snap));
-    console.info(
-        `[adminium] connected: ${String(snap.roomTypes.length)} room types, ` +
-          `${String(snap.rooms.length)} rooms, ${String(snap.stays.length)} stays`,
-    );
-  }
-
-  const { default: App } = await import("./app/App.tsx");
-
-  /*
-   * The side→persona map is the ONE app-specific line here, which is why it is
-   * not in `surface.ts`: every app names its personas differently, and a shared
-   * module that knew those names could not be shared.
-   */
-  const persona = SURFACE_SIDE === "staff" ? "desk" : SURFACE_SIDE === "customer" ? "guest" : null;
-  if (persona !== null) {
-    const { useStore } = await import("./state/store.ts");
-    useStore.getState().setPersona(persona);
-  }
-  /*
-   * URL ⇄ SCREEN, and the host bridge — both hosted-only, both before the first
-   * paint (29-app-surfaces.md D6/D8).
-   *
-   * Order matters and is not obvious:
-   *
-   *  1. `attachUrlSync` reads the CURRENT path and applies it, so a reload of
-   *     `/apps/hotel/staff/rack` renders that screen rather than the
-   *     default and then correcting itself.
-   *  2. `connectToHost` handshakes with the dashboard, if there is one. It is
-   *     AWAITED so `isEmbedded()` is settled before any component renders;
-   *     un-framed it returns immediately and costs nothing.
-   *  3. The store subscription reflects later screen changes into the URL and
-   *     tells the host, so the dashboard's address bar follows the app.
-   *
-   * `HOSTED` folds to a literal, so a demo or standalone build contains none of
-   * this — not the bridge, not the sync, not the subscription.
-   */
-  if (HOSTED) {
-    const { useStore } = await import("./state/store.ts");
-    const { attachUrlSync } = await import("./urlSync.ts");
-    const { connectToHost } = await import("./embed.ts");
-    const { SURFACE_NAV, APP_KEY } = await import("./surface-nav.ts");
-    const { setHostLocale } = await import("./i18n/index.tsx");
-
-    // Forward reference on purpose: the sync reports paths TO the bridge, and
-    // the bridge applies paths THROUGH the sync. Nothing fires before both
-    // exist — `attachUrlSync`'s own boot read does not call `onPath`.
-    let bridge: { navigated: (path: string) => void } | null = null;
-
-    const sync = attachUrlSync({
-      nav: SURFACE_NAV,
-      side: SURFACE_SIDE,
-      go: (view) => useStore.getState().go(view),
-      current: () => useStore.getState().view,
-      onPath: (path) => bridge?.navigated(path),
-    });
-
-    bridge = await connectToHost(APP_KEY, SURFACE_SIDE as "staff" | "customer", sync.path(), {
-      onTheme: (theme) => useStore.getState().setHostTheme(theme),
-      onLocale: setHostLocale,
-      onPath: (path) => sync.applyPath(path),
-    });
-
-    useStore.subscribe(sync.reflect);
-  }
-
-  /*
-   * THE BROWSER TAB carries the operator's name too.
-   *
-   * Everything on screen resolves through `useBrand()`, but the tab is not on
-   * screen — it is the static `<title>` in index.html, which is the name this
-   * app was BUILT with. Rename the app in Adminium and every heading changes
-   * while the tab still says "Client Portal", which is the same half-applied
-   * rename this whole change exists to remove.
-   *
-   * Only when an override is set: with none, index.html's own title is already
-   * the right answer and rewriting it with the same string is noise.
-   */
-  const named = appName();
-  if (named !== null) document.title = named;
-
-  createRoot(container as HTMLElement).render(
-    <StrictMode>
-      <I18nProvider>
-        <App />
-      </I18nProvider>
-    </StrictMode>,
-  );
+  const { bootAdminium } = await import("./app/bootAdminium.tsx");
+  await bootAdminium(container as HTMLElement, (detail, code) => showStartupFailure(container as HTMLElement, detail, code));
 }
 
 void boot();

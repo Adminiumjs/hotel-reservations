@@ -10,6 +10,7 @@ import { tr } from "../../i18n/tr.ts";
 import { fD, fDW, fT, guestsW, fsi, iso, money, nights, nightsOf, plus, strip, taxWords } from "../fmt.ts";
 import type { HouseApp } from "../house.ts";
 import type { RoomV, StV, WorldV } from "../world.ts";
+import { DESK, GUEST } from "../sides.ts";
 import { cancelStage, chgVals } from "./guest.ts";
 import { closedOn, firstClosed, floorInLine, floorName, freeAcross, hasExtra, heldForOther, holds, inRoom, nightFig, parseMoney, roomStatus, statusWord } from "./desk.ts";
 
@@ -38,7 +39,7 @@ export function overlayVals(app: HouseApp, w: WorldV): V {
 
   // ── check-out
   const os = app.stay(s.checkoutId);
-  if (os !== null && desk) {
+  if (DESK && os !== null && desk) {
     const t = w.typeById[os.type]!;
     const early = os.depart > today;
     const left = nightsOf(today, os.depart);
@@ -150,15 +151,15 @@ export function overlayVals(app: HouseApp, w: WorldV): V {
 
   // ── one room
   const rr = s.roomN === null ? null : w.rooms.find((r) => r.n === s.roomN) ?? null;
-  if (rr !== null && desk) v["rm"] = roomVals(app, w, rr);
+  if (DESK && rr !== null && desk) v["rm"] = roomVals(app, w, rr);
 
   // ── check-in
   const cs = app.stay(s.checkinId);
-  if (cs !== null && desk) v["ci"] = checkinVals(app, w, cs);
+  if (DESK && cs !== null && desk) v["ci"] = checkinVals(app, w, cs);
 
   // ── add a charge
   const fst = app.stay(s.folioId);
-  if (s.chargeOpen && fst !== null && desk) {
+  if (DESK && s.chargeOpen && fst !== null && desk) {
     const other = s.chargePick === "other";
     const items = [
       ...w.items.map((i) => ({ id: i.id, label: i.label, amount: i.amount as number | null, detail: i.detail, icon: i.icon, extra: i.extra })),
@@ -224,7 +225,7 @@ export function overlayVals(app: HouseApp, w: WorldV): V {
 
   // ── record a payment, or money given back
   const sst = app.stay(s.settleId) ?? fst;
-  if (s.settleOpen && sst !== null && desk) {
+  if (DESK && s.settleOpen && sst !== null && desk) {
     const back = s.settleKind === "given_back";
     const cap = s.settleCap !== null ? Math.max(0, s.settleCap) : back ? sst.m.paid : Math.max(0, sst.m.balance);
     const amt = parseMoney(s.settleAmount);
@@ -328,7 +329,7 @@ export function overlayVals(app: HouseApp, w: WorldV): V {
 
   // ── void a charge, a payment or a credit
   const vt = s.voidT;
-  if (vt !== null && desk) {
+  if (DESK && vt !== null && desk) {
     const vs = app.stay(vt.stay);
     if (vs !== null) {
       const err = s.voidTouched && !s.voidReason.trim() ? tr("Say why it is voided") : "";
@@ -384,7 +385,7 @@ export function overlayVals(app: HouseApp, w: WorldV): V {
 
   // ── move to another room (the rest of the stay), or give a room ahead
   const ms = app.stay(s.moveId);
-  if (ms !== null && desk) v["mv"] = moveVals(app, w, ms);
+  if (DESK && ms !== null && desk) v["mv"] = moveVals(app, w, ms);
 
   // ── cancel, in the guest's voice or the desk's
   const cst = app.stay(s.cancelId);
@@ -437,7 +438,7 @@ export function overlayVals(app: HouseApp, w: WorldV): V {
   }
 
   // ── delete my details
-  if (s.ddOpen) {
+  if (GUEST && s.ddOpen) {
     const stale = !s.signedAt || Date.now() - s.signedAt > 10 * 60_000;
     const em = s.signedIn ?? "";
     v["dd"] = {
@@ -460,7 +461,7 @@ export function overlayVals(app: HouseApp, w: WorldV): V {
 
   // ── keep the room for a late guest
   const es = app.stay(s.expectId);
-  if (es !== null && desk) {
+  if (DESK && es !== null && desk) {
     const first = plus(es.arrive, 1) < today ? today : plus(es.arrive, 1);
     const last = plus(es.depart, -1);
     const list: string[] = [];
@@ -508,7 +509,7 @@ export function overlayVals(app: HouseApp, w: WorldV): V {
     };
   }
 
-  Object.assign(v, chgVals(app, w));
+  if (GUEST) Object.assign(v, chgVals(app, w));
   return v;
 }
 
