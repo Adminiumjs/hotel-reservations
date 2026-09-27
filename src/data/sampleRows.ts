@@ -741,7 +741,7 @@ export function resolveSample(bundle: SampleBundleRows, options: ResolveOptions)
  * document's tax reads its subtotal, a stage line's rate reads its proposal's
  * total, so the rules run again until nothing moves (a handful of passes).
  */
-function settle(out: ResolvedSample, options: ResolveOptions): void {
+export function settle(out: ResolvedSample, options: Pick<ResolveOptions, "currency">): void {
   const order = [...Object.keys(COLUMNS)];
   for (let pass = 0; pass < 12; pass += 1) {
     let moved = false;
