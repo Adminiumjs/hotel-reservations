@@ -14,7 +14,13 @@
  *      a retry replayed without the link;
  *   5. the desk checks a guest in to a ready room (the room made occupied)
  *      and cannot check out a guest who still owes money;
- *   6. the sample removed.
+ *   6. the desk's day through the app's OWN doors (`AdminiumDesk`,
+ *      `AdminiumGuest`): a booking priced and saved once, an edit with its
+ *      extras, a room move, leaving early, cancelling late, a no-show taken
+ *      back, money given back, a void, a closure; the front desk's and
+ *      housekeeping's limits; and at once, from two desks or two guests: the
+ *      last room, one room given twice, one check-in twice;
+ *   7. the sample removed.
  *
  * It runs when asked (`ADMINIUM_CONTRACT=1`) where an Adminium checkout with
  * its built server and dashboard is (`ADMINIUM_REPO`), and says why it
@@ -28,7 +34,11 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { AdminiumDesk } from "../data/adminiumDesk.ts";
+import { AdminiumGuest } from "../data/adminiumGuest.ts";
 import { COLUMNS, resolveSample } from "../data/sampleRows.ts";
+import { createSessionTransport } from "../data/sessionSource.ts";
+import { loadStaffConfig } from "../staffConnection.ts";
 import { DEMO_BUNDLE, DEMO_CURRENCY, DEMO_START, DEMO_ZONE } from "../demo/world.ts";
 import { addOnBundle, appBundle, boot, Caller, ENGINES, missing, ok, PORTS_PER_ENGINE, solve, until, withInvoices, type Engine, type Server } from "./harness.ts";
 
@@ -53,6 +63,7 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
       let tableIds: Record<string, string> = {};
       /** Why the writes after the install cannot run on this Adminium, or null. */
       let notBuilt: string | null = null;
+      let skipped: unknown[] = [];
 
       beforeAll(async () => {
         server = await boot(engine as Engine, PORT_BASE + index * PORTS_PER_ENGINE, DEMO_START);
@@ -111,10 +122,14 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         const schema = ok(await staff.get<{ model: { tables: { id: string; name: string }[] } }>(`/api/v1/connections/${connectionId}/schema`));
         tableIds = Object.fromEntries(Object.entries(real).map(([ref, name]) => [ref, schema.model.tables.find((t) => t.name === name)!.id]));
         ok(await staff.patch(`/api/v1/connections/${connectionId}`, { timezone: DEMO_ZONE, currency: DEMO_CURRENCY }));
-        expect(JSON.stringify(installed.rules.skipped)).toBe("[]");
+        skipped = installed.rules.skipped;
         expect(Object.keys(installed.publicAccess.keys).sort()).toEqual(["customer", "link"]);
         expect(installed.outbox.defined).toBe(true);
       }, 180_000);
+
+      it("keeps every rule of the manifest (none skipped at install)", () => {
+        expect(JSON.stringify(skipped)).toBe("[]");
+      });
 
       it("adds the sample at 09:05 on 28 July: every stay's money as the rows work it out", async (ctx) => {
         const added = await staff.post("/api/v1/apps/hotel/sample-data");
@@ -187,6 +202,186 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         const refused = await staff.patch(`${data("stays")}/${String(byRef(stays, "WH-S3283").id)}`, { values: { status: "departed" } });
         expect([refused.status, refused.code, refused.details["requires"]]).toEqual([409, "STATE_MOVE_REFUSED", "balance"]);
       }, 60_000);
+
+      /** A desk on its own session: the app's door, through the staff config the server hands its screens. */
+      const deskOf = async (caller: Caller) => {
+        const fetchAs = caller.fetchAs();
+        const cfg = (await loadStaffConfig({ hostedStaff: true, base: `${server.base}/apps/hotel/staff/`, fetchImpl: fetchAs }))!;
+        const t = createSessionTransport({
+          tableOfRef: cfg.tables,
+          connectionId: cfg.connectionId ?? undefined,
+          staff: { csrfToken: cfg.csrfToken, timezone: cfg.timezone, timezoneSource: cfg.timezoneSource, serverTimezone: cfg.serverTimezone, currency: cfg.currency },
+          fetchImpl: fetchAs,
+        });
+        return { desk: new AdminiumDesk(t, cfg), t, cfg };
+      };
+      /** A guest's page: its own tab, the house's keys. */
+      const guestOf = async () => {
+        const c = ok(await new Caller(server.base).get<{ publishableKey: string; publicKeys?: Record<string, string>; tables: Record<string, string> }>("/apps/hotel/customer/surface-config.json"));
+        const fetchIn: typeof fetch = (input, init) => {
+          const headers = new Headers(init?.headers);
+          headers.set("origin", server.base);
+          return fetch(new URL(String(input), server.base), { ...init, headers });
+        };
+        return new AdminiumGuest({ baseUrl: server.base, publishableKey: c.publishableKey, publicKeys: c.publicKeys ?? {}, tables: c.tables }, { fetch: fetchIn, storage: null });
+      };
+      /** A person with one of the app's roles, invited and signed in. */
+      const person = async (slug: string, email: string, name: string) => {
+        const roles = ok(await staff.get<{ roles?: { id: string; slug: string }[] }>("/api/v1/roles")).roles ?? [];
+        const role = roles.find((r) => r.slug === slug)!;
+        const password = `contract-${slug}-password`;
+        const invited = ok(await staff.post<{ invite: { token: string } }>("/api/v1/users", { email, name, roleIds: [role.id] }), 201);
+        ok(await new Caller(server.base, { origin: server.base }).post("/api/v1/auth/password/reset", { token: invited.invite.token, newPassword: password }));
+        const caller = new Caller(server.base, { origin: server.base });
+        // A screens-only person opens the app's screens, not the dashboard: the sign-in alone, the token from the staff config.
+        ok(await caller.post("/api/v1/auth/login", { email, password }));
+        return deskOf(caller);
+      };
+      const refusalOf = async (run: () => Promise<unknown>): Promise<string> => {
+        try {
+          await run();
+          return "WROTE";
+        } catch (error) {
+          return String((error as { code?: string }).code ?? error);
+        }
+      };
+      const paramsOf = async (run: () => Promise<unknown>): Promise<Record<string, unknown>> => {
+        try {
+          await run();
+          return {};
+        } catch (error) {
+          return { code: (error as { code?: string }).code, ...((error as { params?: Record<string, unknown> }).params ?? {}) };
+        }
+      };
+
+      it("takes a booking at the desk: priced by its quote, saved once, a retry replayed, three in a double refused", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        const { desk } = await deskOf(staff);
+        const h = await desk.house();
+        const garden = h.types.find((x) => x["name"] === "Garden double")!;
+        const breakfast = h.extras.find((x) => x["code"] === "BRK")!;
+        const body = {
+          values: { room_type_id: garden.id, arrive: "2026-08-10", depart: "2026-08-12", guests: 2, first_name: "Orin", last_name: "Hale", email: "orin.hale@wrenhouse.test", language: "en-US" },
+          children: { stay_extras: [{ values: { extra_id: breakfast.id } }] },
+        };
+        const quote = await desk.quote(body);
+        expect(quote.nights.map((n) => n.date)).toEqual(["2026-08-10", "2026-08-11"]);
+        expect(await refusalOf(() => desk.book({ ...body, expect: { total: "1.00" } }))).toBe("PRICE_CHANGED");
+        const key = "b".repeat(43);
+        const made = await desk.book({ ...body, expect: { total: money(quote.data["total"]) }, clientKey: key });
+        const again = await desk.book({ ...body, expect: { total: money(quote.data["total"]) }, clientKey: key });
+        expect([again.data.id, again.replayed]).toEqual([made.data.id, true]);
+        expect(await paramsOf(() => desk.quote({ ...body, values: { ...body.values, guests: 3 } }))).toMatchObject({ code: "VALIDATION_FAILED", column: "guests", reason: "too-many" });
+        // An edit and its extras in one write, at the price its quote showed; four guests refused.
+        const parking = h.extras.find((x) => x["code"] === "PRK")!;
+        const q = await desk.quoteEdit(made.data.id, { depart: "2026-08-13" }, [{ extraId: parking.id, on: true }]);
+        expect(q.nights.length).toBe(3);
+        expect(q.children?.stay_extras?.map((c) => Number(c.data["nights"]))).toEqual([3, 3]);
+        const edited = await desk.edit(made.data.id, { depart: "2026-08-13" }, money(q.data["total"]), [{ extraId: parking.id, on: true }]);
+        expect(money(edited["total"])).toBe(money(q.data["total"]));
+        expect(await paramsOf(() => desk.edit(made.data.id, { guests: 4 }))).toMatchObject({ code: "VALIDATION_FAILED", column: "guests" });
+      }, 120_000);
+
+      it("moves a guest in the house to a ready room in one write, and leaves the rooms as they should be", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        const { desk } = await deskOf(staff);
+        const stays = await rows("stays");
+        const noor = byRef(stays, "WH-S3284");
+        const h = await desk.house();
+        const closed = new Set((await rows("room_closures")).filter((c) => c["active"] !== false && c["active"] !== 0).map((c) => c["room_id"]));
+        const ready = h.rooms.find((r) => r["room_type_id"] === noor["room_type_id"] && r["status"] === "ready" && !closed.has(r.id))!;
+        expect(await refusalOf(() => desk.moveRoom(noor.id, h.rooms.find((r) => r["number"] === "103")!.id))).toBe("STATE_MOVE_REFUSED");
+        await desk.moveRoom(noor.id, ready.id);
+        const after = await rows("rooms");
+        expect([after.find((r) => r.id === noor["room_id"])!["status"], after.find((r) => r.id === ready.id)!["status"]]).toEqual(["cleaning", "occupied"]);
+      }, 60_000);
+
+      it("lets a guest leave early at Adminium's price, and checks them out once settled", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        const { desk } = await deskOf(staff);
+        const ros = byRef(await rows("stays"), "WH-S3292");
+        const quote = await desk.quoteTakeOff(ros.id, "2026-07-28");
+        expect([quote.refused, money(quote.credit)]).toEqual([false, "360.00"]);
+        await desk.takeOffNights(ros.id, "2026-07-28");
+        const owing = byRef(await rows("stays"), "WH-S3292");
+        expect(money(owing["total"])).toBe(money(quote.total));
+        expect(await refusalOf(() => desk.checkOut(ros.id))).toBe("STATE_MOVE_REFUSED");
+        await desk.recordPayment(ros.id, { kind: "taken", amount: money(owing["balance"]), method: "card" });
+        await desk.checkOut(ros.id);
+        expect((await rows("rooms")).find((r) => r.id === ros["room_id"])!["status"]).toBe("cleaning");
+      }, 60_000);
+
+      it("cancels late, marks a no-show only from the guest's own time, and takes one back", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        const { desk } = await deskOf(staff);
+        const stays = await rows("stays");
+        await desk.cancel(byRef(stays, "WH-S3322").id, "guest_asked");
+        const saoirse = byRef(await rows("stays"), "WH-S3322");
+        expect([saoirse["status"], Number(saoirse["late_cancel"]) === 1 || saoirse["late_cancel"] === true]).toEqual(["cancelled", true]);
+        expect(await paramsOf(() => desk.noShow(byRef(stays, "WH-S3303").id))).toMatchObject({ code: "STATE_MOVE_REFUSED", requires: "time" });
+        const rafe = byRef(stays, "WH-S3279");
+        await desk.noShow(rafe.id);
+        await desk.cameAfterAll(rafe.id, null);
+        const back = byRef(await rows("stays"), "WH-S3279");
+        expect([back["status"], back["no_show_marked_at"]]).toEqual(["booked", null]);
+      }, 60_000);
+
+      it("gives money back only with a note, and voids a charge at the price its quote said", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        const { desk } = await deskOf(staff);
+        const teo = byRef(await rows("stays"), "WH-S3283");
+        expect(await refusalOf(() => desk.recordPayment(teo.id, { kind: "given_back", amount: "5.00", method: "cash" }))).toBe("VALIDATION_FAILED");
+        const wine = (await rows("charges")).find((c) => c["stay_id"] === teo.id)!;
+        const quote = await desk.quoteVoid("charges", wine.id);
+        expect(quote.refused).toBe(false);
+        await desk.voidRow("charges", wine.id, "Not theirs");
+        expect(money(byRef(await rows("stays"), "WH-S3283")["total"])).toBe(money(quote.total));
+      }, 60_000);
+
+      it("holds the front desk and housekeeping to their roles", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        const fd = await person("hotel-front-desk", `maeve.${engine}@wrenhouse.test`, "Maeve R.");
+        expect(await fd.desk.me()).toEqual({ name: "Maeve R.", roles: ["front-desk"] });
+        const charge = (await rows("charges"))[0]!;
+        expect(await refusalOf(() => fd.desk.voidRow("charges", charge.id, "no"))).toBe("TABLE_FORBIDDEN");
+        const teo = byRef(await rows("stays"), "WH-S3283");
+        expect(await refusalOf(() => fd.t.mutate(`/api/v1/data/${fd.cfg.connectionId!}/${fd.cfg.tables["stays"]!}/${String(teo.id)}`, "PATCH", { values: { total: "1.00" } }))).toBe("COLUMN_FORBIDDEN");
+        const hk = await person("hotel-housekeeping", `jory.${engine}@wrenhouse.test`, "Jory");
+        const seen = await hk.desk.stays();
+        expect(seen.length).toBeGreaterThan(40);
+        for (const s of seen) for (const c of ["first_name", "last_name", "email", "mobile", "total"]) expect(s.stay[c], c).toBeUndefined();
+        expect(seen.every((s) => s.charges.length === 0 && s.payments.length === 0)).toBe(true);
+        expect(await refusalOf(() => hk.t.get(`/api/v1/data/${hk.cfg.connectionId!}/${hk.cfg.tables["stays"]!}?limit=3&select=first_name`))).toBe("COLUMN_FORBIDDEN");
+      }, 120_000);
+
+      it("gives one room to one of two desks asking at once, checks one guest in once, and sells the last room once", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        const a = (await deskOf(staff)).desk;
+        const b = (await deskOf(staff)).desk;
+        const stays = await rows("stays");
+        const rooms = await rows("rooms");
+        // Hugo (Sat–Mon) and Beatrix (Sun–Thu) share Sunday night: room 301 to both at once, one of them.
+        const room301 = rooms.find((r) => r["number"] === "301")!;
+        const given = await Promise.allSettled([a.giveRoom(byRef(stays, "WH-S3306").id, room301.id), b.giveRoom(byRef(stays, "WH-S3307").id, room301.id)]);
+        expect(given.map((g) => g.status).sort()).toEqual(["fulfilled", "rejected"]);
+        // Priya checked in by two desks at once: once, and her room occupied once.
+        const closed = new Set((await rows("room_closures")).filter((c) => c["active"] !== false && c["active"] !== 0).map((c) => c["room_id"]));
+        const priya = byRef(stays, "WH-S3303");
+        const ready = (await rows("rooms")).find((r) => r["room_type_id"] === priya["room_type_id"] && r["status"] === "ready" && !closed.has(r.id))!;
+        const checked = await Promise.allSettled([a.checkIn(priya.id, ready.id), b.checkIn(priya.id, ready.id)]);
+        expect(checked.map((c) => c.status).sort()).toEqual(["fulfilled", "rejected"]);
+        expect([byRef(await rows("stays"), "WH-S3303")["status"], (await rows("rooms")).find((r) => r.id === ready.id)!["status"]]).toEqual(["in_house", "occupied"]);
+        // Two guests, the Harbour doubles left for Mon 3 → Wed 5 August and one more each: never more than there are.
+        const guests = await Promise.all([guestOf(), guestOf()]);
+        const harbour = (await rows("room_types")).find((t) => t["name"] === "Harbour double")!;
+        const left = (await guests[0]!.availability({ from: "2026-08-03", to: "2026-08-05", guests: 2 })).types.find((x) => x.pool === String(harbour.id))!.left ?? 0;
+        const reserve = (g: AdminiumGuest, i: number) =>
+          g.reserve({ values: { room_type_id: harbour.id, arrive: "2026-08-03", depart: "2026-08-05", guests: 2, first_name: "Last", last_name: `Room${String(i)}`, email: `last.room${String(i)}.${engine}@wrenhouse.test` }, children: { stay_extras: [] } }, `${String(i)}`.repeat(43));
+        const asked = Array.from({ length: left + 1 }, (_, i) => i);
+        const made = await Promise.allSettled(asked.map((i) => reserve(guests[i % 2]!, i)));
+        expect(made.filter((m) => m.status === "fulfilled").length).toBe(left);
+        expect(made.filter((m) => m.status === "rejected").map((m) => (m as PromiseRejectedResult).reason.code)).toEqual(["PUBLIC_NO_ROOM"]);
+      }, 180_000);
 
       it("removes the sample", async (ctx) => {
         needsWrites(() => ctx.skip());

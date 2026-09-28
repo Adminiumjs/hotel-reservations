@@ -439,7 +439,10 @@ export function guestVals(app: HouseApp, w: WorldV): V {
       payNote: tr("Nothing is taken online. You settle at the desk."),
       goOne: () => app.openOne(bs.id),
     };
-  } else v["cf"] = { nights: [], lines: [] };
+  } else {
+    // Until the stay is read back, the heading already greets the guest by the name they gave.
+    v["cf"] = { first: b?.first ?? "", nights: [], lines: [] };
+  }
 
   // ── sign in by email
   const a = s.auth;
