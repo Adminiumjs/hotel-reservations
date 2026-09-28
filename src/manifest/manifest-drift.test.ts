@@ -111,8 +111,29 @@ describe("a guest reads nothing of anyone else's, and nothing the desk keeps", (
 
   it("reads a stay's extras, charges, credits and payments only where the stay is", () => {
     for (const t of ["stay_extras", "charges", "stay_credits", "payments"]) {
-      for (const entry of entries(t)) expect(entry["visibleWith"], `${t} ${entry.key ?? "customer"}`).toEqual({ table: "stays", via: "stay_id" });
+      for (const entry of entries(t).filter((e) => e.kind !== "availability")) {
+        expect(entry["visibleWith"], `${t} ${entry.key ?? "customer"}`).toEqual({ table: "stays", via: "stay_id" });
+      }
     }
+  });
+
+  it("answers what is left each night as a count only when few are, never a row", () => {
+    for (const t of ["stays", "stay_extras"]) {
+      const found = entries(t).filter((e) => e.kind === "availability");
+      expect(found.length, t).toBe(1);
+      expect(found[0]!.methods).toEqual(["GET"]);
+      expect(found[0]!.key).toBeUndefined();
+      expect(found[0]!.select).toBeUndefined();
+    }
+  });
+
+  it("stops a guest's reservation links when they delete their details, and makes a new one when they ask", () => {
+    const identity = entries("customers").find((e) => e["claim"] !== undefined)!;
+    expect((identity["forget"] as Json)["links"]).toBe(true);
+    const own = entries("stays").filter((e) => e["newLink"] !== undefined);
+    expect(own.length).toBe(1);
+    expect(own[0]!["newLink"]).toEqual({ column: "link_token", kind: "stay-new-link" });
+    expect(own[0]!["claimedBy"]).toBeDefined();
   });
 
   it("shows the house's own phone, address and email on its site: a business's, not a person's", () => {
@@ -143,6 +164,7 @@ describe("the guest's writes are the few the site needs", () => {
     expect(post()["anonymous"]).toEqual({
       perValue: { columns: ["email"], n: 10 },
       perKeyHour: 300,
+      perIpHour: 10,
       plainText: ["first_name", "last_name", "note", "mobile"],
     });
   });
@@ -167,15 +189,43 @@ describe("the guest's writes are the few the site needs", () => {
     expect(moving[0]!["expect"]).toBe("total");
   });
 
-  it("drops or puts back an extra only until the arrival afternoon", () => {
-    for (const entry of entries("stay_extras").filter((e) => e.methods.includes("PATCH"))) {
+  it("adds, drops or puts back an extra only until the arrival afternoon", () => {
+    const window = { stay_id: { before: { column: "arrive", time: { table: "settings", column: "arrive_from" } } } };
+    const patching = entries("stay_extras").filter((e) => e.methods.includes("PATCH"));
+    const adding = entries("stay_extras").filter((e) => e.methods.includes("POST"));
+    expect(patching.length).toBe(2);
+    expect(adding.length).toBe(2);
+    for (const entry of patching) {
       expect(entry["writable"]).toEqual(["state"]);
-      expect(entry["writableWhen"]).toEqual({ stay_id: { before: { column: "arrive", time: { table: "settings", column: "arrive_from" } } } });
+      expect(entry["writableWhen"]).toEqual(window);
     }
+    for (const entry of adding) {
+      expect(entry["writable"]).toEqual(["stay_id", "extra_id"]);
+      expect(entry["writableWhen"]).toEqual(window);
+    }
+  });
+
+  it("reads the extras on offer on both keys, so an extra added through a reservation's own link is known", () => {
+    expect(entries("extras").map((e) => e.key ?? "customer").sort()).toEqual(["customer", "link"]);
   });
 });
 
 describe("the stay's life is Adminium's", () => {
+  it("judges a guest in the house from tonight on: nights slept are never judged again", () => {
+    for (const rule of table("stays")["capacity"] as Json[]) expect(rule["arrived"]).toEqual({ states: ["in_house"] });
+    expect((table("stay_extras")["capacity"] as Json)["arrived"]).toEqual({ states: ["in_house"], via: "stay_id" });
+  });
+
+  it("adds a stay's rows only while it is live, and lets a manager void one after", () => {
+    const children = states()["children"] as Record<string, Json>;
+    expect(children["stay_extras"]).toEqual({ via: "stay_id", parentIn: ["booked", "in_house"] });
+    const any = ["booked", "in_house", "departed", "cancelled", "no_show"];
+    expect(children["charges"]).toEqual({ via: "stay_id", createIn: ["booked", "in_house"], changeIn: any });
+    expect(children["stay_credits"]).toEqual({ via: "stay_id", createIn: ["in_house", "no_show"], changeIn: any });
+    // Money in and money given back: on a stay in any state.
+    expect(children["payments"]).toBeUndefined();
+  });
+
   it("moves one step at a time and refuses a second desk's repeat", () => {
     expect(states()["strict"]).toBe(true);
     expect(Object.keys(states().moves).sort()).toEqual(["booked", "in_house", "no_show"]);
@@ -215,15 +265,29 @@ describe("the stay's life is Adminium's", () => {
     for (const move of states().moves["no_show"]!) {
       expect((move as Json)["requires"]).toMatchObject({ time: { before: { column: "depart", time: { table: "settings", column: "leave_by" } } } });
     }
+    // Brought back to booked: a taking back, so the no-show mark is emptied.
+    expect(states().moves["no_show"]).toContainEqual(expect.objectContaining({ to: "booked", undo: true }));
+    expect(rules("stays", "no_show_marked_at")["stamp"]).toMatchObject({ clearOnBack: true });
+  });
+
+  it("lets the desk mark a no-show from the time the guest said they would come, or the arrival afternoon", () => {
+    const noShow = states().moves["booked"]!.find((m) => typeof m === "object" && m["to"] === "no_show") as Json;
+    expect(noShow["requires"]).toEqual({
+      time: { after: { column: "arrive", time: { column: "arrival_time" }, or: [{ column: "arrive", time: { table: "settings", column: "arrive_from" } }] } },
+    });
   });
 
   it("makes the room occupied at check-in and sends it to be cleaned at check-out, in the same write", () => {
     expect(states()["effects"]).toEqual([
       { on: { to: "in_house" }, via: "room_id", set: { status: "occupied" } },
       { on: { to: "departed" }, via: "room_id", set: { status: "cleaning" } },
+      // A guest in the house moved: the room left is cleaned, the ready room given is theirs.
+      { on: { change: "room_id", in: ["in_house"] }, old: { set: { status: "cleaning" } }, new: { set: { status: "occupied" } } },
     ]);
-    expect(states("rooms").moves["ready"]).toContainEqual({ to: "occupied", roles: ["manager", "front-desk"] });
-    expect(states("rooms").moves["occupied"]).toContainEqual({ to: "cleaning", roles: ["manager", "front-desk"] });
+    // By hand, only a manager puts right a room a mistaken check-in left occupied.
+    expect(states("rooms").moves["ready"]).toContainEqual({ to: "occupied", roles: ["manager"] });
+    expect(states("rooms").moves["occupied"]).toContainEqual({ to: "cleaning", roles: ["manager"] });
+    expect((role("front-desk").limits!["rooms"]!["writableValues"] as Json)["status"]).toEqual(["ready", "cleaning"]);
   });
 
   it("works out every price, reference and total on the server", () => {
@@ -275,14 +339,22 @@ describe("the desk writes only what running the day needs", () => {
     }
   });
 
-  it("gives housekeeping the rooms and nothing of a guest", () => {
+  it("gives housekeeping the rooms, and of a reservation only its room, dates and status — nothing of a guest", () => {
     const hk = role("housekeeping");
     expect(hk.permissions.filter((p) => p.includes(":read"))).toEqual([
       "table:@rooms:read",
       "table:@room_types:read",
       "table:@room_closures:read",
+      "table:@extras:read",
+      "table:@stays:read",
+      "table:@stay_extras:read",
     ]);
-    expect(hk.limits).toEqual({ rooms: { writable: ["status"], writableValues: { status: ["ready", "cleaning"] } } });
+    expect(hk.permissions.some((p) => p.endsWith(":read_pii"))).toBe(false);
+    expect(hk.limits).toEqual({
+      rooms: { writable: ["status"], writableValues: { status: ["ready", "cleaning"] } },
+      stays: { readable: ["room_id", "arrive", "depart", "status"] },
+      stay_extras: { readable: ["stay_id", "extra_id", "state"] },
+    });
   });
 });
 
@@ -291,6 +363,19 @@ describe("the emails wait for the house's switch and name who cancelled", () => 
     for (const producer of manifest.outbox.producers) {
       expect(producer["gate"], String(producer["kind"])).toEqual({ setting: { table: "settings", column: "guest_emails_on" } });
     }
+  });
+
+  it("writes to a guest in the language their reservation is kept in, and takes replies at the house's address", () => {
+    const outbox = manifest.outbox as unknown as { recipient: Json; settings: Json };
+    expect(outbox.recipient["language"]).toEqual({ column: "language" });
+    expect(outbox.settings["replyTo"]).toBe("email");
+  });
+
+  it("tells a guest each change of their dates, with the dates and total before it", () => {
+    const dates = manifest.outbox.producers.find((p) => p["kind"] === "stay-dates-changed")!;
+    expect(dates["onChange"]).toEqual({ table: "stays", columns: ["arrive", "depart"], changed: true, where: { column: "status", eq: "booked" } });
+    expect(dates["repeat"]).toBe(true);
+    expect(dates["was"]).toEqual(["arrive", "depart", "total"]);
   });
 
   it("never tells a guest the house's own cancellation was their late one", () => {

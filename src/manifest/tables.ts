@@ -186,6 +186,8 @@ export const EMAIL_KINDS: Record<string, string> = {
   "stay-cancelled-desk-late": "Cancelled at the guest's request, late",
   "stay-cancelled-house": "Cancelled by the house",
   "stay-no-show": "We missed you",
+  "stay-dates-changed": "Dates changed",
+  "stay-new-link": "A new link",
 };
 
 // ── the stay's rules ────────────────────────────────────────────────────────
@@ -209,6 +211,8 @@ const NIGHT_RULES = [
       given: { via: "room_id", column: "room_type_id" },
     },
     nights: { min: 1, max: setting("max_nights"), minByArrival: { sat: 2 }, aheadDays: setting("ahead_days") },
+    // A guest in the house moved to another room or type is judged from tonight on.
+    arrived: { states: ["in_house"] },
   },
   {
     kind: "night",
@@ -216,6 +220,7 @@ const NIGHT_RULES = [
     to: "depart",
     countWhere: { column: "status", values: COUNTED },
     pool: { via: "room_id", size: 1, outOfService: OUT_OF_SERVICE },
+    arrived: { states: ["in_house"] },
   },
 ];
 
@@ -245,8 +250,11 @@ const STAY_STATES = {
     booked: [
       { to: "in_house", requires: { ...readyRoom, time: { after: arrivalDay } } },
       { to: "cancelled", requires: { where: [{ column: "cancel_code", isNull: false }] } },
-      // From the arrival afternoon; the desk's screen waits for the time the guest gave.
-      { to: "no_show", requires: { time: { after: { column: "arrive", time: setting("arrive_from") } } } },
+      // From the time the guest said they would come, or the arrival afternoon when they said none.
+      {
+        to: "no_show",
+        requires: { time: { after: { column: "arrive", time: { column: "arrival_time" }, or: [{ column: "arrive", time: setting("arrive_from") }] } } },
+      },
     ],
     in_house: [
       { to: "departed", requires: { where: [{ column: "balance", lte: 0 }] } },
@@ -255,7 +263,8 @@ const STAY_STATES = {
     ],
     // They came after all: while a night of the stay is left.
     no_show: [
-      { to: "booked", requires: { time: { before: lastMorning } } },
+      // Taken back: the no-show mark is emptied.
+      { to: "booked", undo: true, requires: { time: { before: lastMorning } } },
       { to: "in_house", requires: { ...readyRoom, time: { before: lastMorning } } },
     ],
   },
@@ -263,10 +272,11 @@ const STAY_STATES = {
   lock: { when: ["departed", "cancelled"], except: ["link_stopped", "language"] },
   children: {
     stay_extras: { via: "stay_id", parentIn: ["booked", "in_house"] },
-    // Charges while the stay is live; on a cancelled or no-show stay, so a
-    // manager can correct what was recorded before it.
-    charges: { via: "stay_id", parentIn: ["booked", "in_house", "cancelled", "no_show"] },
-    stay_credits: { via: "stay_id", parentIn: ["booked", "in_house", "no_show"] },
+    // Charged while the stay is live; voided whatever state it is in, so a
+    // manager can correct what was recorded before it closed.
+    charges: { via: "stay_id", createIn: ["booked", "in_house"], changeIn: [...STATUSES] },
+    // Nights not stayed: at check-out, or a missed night when a no-show comes after all.
+    stay_credits: { via: "stay_id", createIn: ["in_house", "no_show"], changeIn: [...STATUSES] },
   },
   // Inside the cancel-by moment a cancellation is marked late. Nothing is charged.
   late: [{ to: "cancelled", from: ["booked"], moment: { column: "cancel_by" }, within: { minutes: 0 }, mode: "flag", flag: "late_cancel" }],
@@ -276,6 +286,9 @@ const STAY_STATES = {
   effects: [
     { on: { to: "in_house" }, via: "room_id", set: { status: "occupied" } },
     { on: { to: "departed" }, via: "room_id", set: { status: "cleaning" } },
+    // A guest in the house moved to another room: the room left is cleaned, the
+    // room given (which must be ready) is theirs — in the same write.
+    { on: { change: "room_id", in: ["in_house"] }, old: { set: { status: "cleaning" } }, new: { set: { status: "occupied" } } },
   ],
 };
 
@@ -375,16 +388,17 @@ export const TABLES: Table[] = [
     label: l("Room"),
     labelPlural: l("Rooms"),
     keyField: "number",
-    // Ready → occupied at check-in and occupied → being cleaned at check-out
-    // are made by the stay's own moves. By hand, housekeeping and the desk
-    // move a room between ready and being cleaned.
+    // Ready → occupied at check-in, occupied → being cleaned at check-out, and
+    // both when a guest is moved, are made by the stay's own writes. By hand,
+    // housekeeping and the desk move a room between ready and being cleaned;
+    // a manager puts right a room a mistaken check-in left occupied.
     states: {
       column: "status",
       initial: "ready",
       moves: {
-        ready: ["cleaning", { to: "occupied", roles: ["manager", "front-desk"] }],
+        ready: ["cleaning", { to: "occupied", roles: ["manager"] }],
         cleaning: ["ready"],
-        occupied: [{ to: "cleaning", roles: ["manager", "front-desk"] }],
+        occupied: [{ to: "cleaning", roles: ["manager"] }],
       },
     },
     columns: [
@@ -594,7 +608,7 @@ export const TABLES: Table[] = [
       at("cancelled_at", "Cancelled", { ...opt, rules: stamp("now", onStatus("cancelled")) }),
       // Staff only: a person's name, or "guest" for the guest's own cancel.
       text("cancelled_by", 80, "Cancelled by", { ...opt, rules: stamp({ byOrigin: { public: "guest", staff: "user-name" } }, onStatus("cancelled")) }),
-      at("no_show_marked_at", "Marked as a no-show", { ...opt, rules: stamp("now", onStatus("no_show")) }),
+      at("no_show_marked_at", "Marked as a no-show", { ...opt, rules: { stamp: { set: "now", on: onStatus("no_show"), clearOnBack: true } } }),
       fk("customer_id", "customers", "Guest account", opt),
       // The reservation's own link: emailed to the guest, never shown in a list.
       text("link_token", 16, "Link code", { ...opt, rules: { code: { length: 16 } } }),
@@ -620,6 +634,7 @@ export const TABLES: Table[] = [
         { column: "status", values: COUNTED, via: "stay_id" },
       ],
       pool: { via: "extra_id", size: { column: "spaces" } },
+      arrived: { states: ["in_house"], via: "stay_id" },
     },
     columns: [
       id,
@@ -747,6 +762,10 @@ export const TABLES: Table[] = [
       at("created_at", "Created", { ...opt, rules: stamp("now", onCreate) }),
       at("sent_at", "Sent", opt),
       text("error", 500, "What went wrong", opt),
+      // What a changed stay was before the change, for the email that tells it.
+      text("was", 1000, "Before the change", opt),
+      // Which new link an email was for: each is sent once.
+      text("repeat_key", 64, "Sent for", opt),
       choice("skip_reason", "Why it was skipped", {
         overtaken: "A later email took its place",
         paid: "Paid",

@@ -329,6 +329,7 @@ export class DemoDesk implements DeskPort {
       const row = this.world.get(table, id);
       if (row === undefined) throw notFound("staff");
       this.engine.judgeLimits(table, { voided: true, void_reason: reason }, this.writer);
+      if (table !== "payments") this.engine.judgeChildState(this.world.get("stays", row["stay_id"] as Id)!, table, "change");
       if (row["voided"] === true) throw new ApiError(409, "STATE_UNCHANGED", "It is voided already.", { at: row["voided_at"] });
       if (empty(reason)) throw refusedValue("void_reason", "required", "staff");
       const before = { ...row };

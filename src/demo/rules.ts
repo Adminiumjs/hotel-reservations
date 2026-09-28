@@ -114,7 +114,8 @@ export const MANIFEST_RULES = {
           "values": [
             "no_show"
           ]
-        }
+        },
+        "clearOnBack": true
       }
     },
     "stay_extras": {
@@ -297,7 +298,9 @@ export const MANIFEST_RULES = {
         "stay-cancelled-desk",
         "stay-cancelled-desk-late",
         "stay-cancelled-house",
-        "stay-no-show"
+        "stay-no-show",
+        "stay-dates-changed",
+        "stay-new-link"
       ],
       "status": [
         "queued",
@@ -361,6 +364,11 @@ export const MANIFEST_RULES = {
             "table": "settings",
             "column": "ahead_days"
           }
+        },
+        "arrived": {
+          "states": [
+            "in_house"
+          ]
         }
       },
       {
@@ -384,6 +392,11 @@ export const MANIFEST_RULES = {
             "to": "to_date",
             "active": "active"
           }
+        },
+        "arrived": {
+          "states": [
+            "in_house"
+          ]
         }
       }
     ],
@@ -418,6 +431,12 @@ export const MANIFEST_RULES = {
         "size": {
           "column": "spaces"
         }
+      },
+      "arrived": {
+        "states": [
+          "in_house"
+        ],
+        "via": "stay_id"
       }
     }
   },
@@ -431,8 +450,7 @@ export const MANIFEST_RULES = {
           {
             "to": "occupied",
             "roles": [
-              "manager",
-              "front-desk"
+              "manager"
             ]
           }
         ],
@@ -443,8 +461,7 @@ export const MANIFEST_RULES = {
           {
             "to": "cleaning",
             "roles": [
-              "manager",
-              "front-desk"
+              "manager"
             ]
           }
         ]
@@ -502,9 +519,17 @@ export const MANIFEST_RULES = {
                 "after": {
                   "column": "arrive",
                   "time": {
-                    "table": "settings",
-                    "column": "arrive_from"
-                  }
+                    "column": "arrival_time"
+                  },
+                  "or": [
+                    {
+                      "column": "arrive",
+                      "time": {
+                        "table": "settings",
+                        "column": "arrive_from"
+                      }
+                    }
+                  ]
                 }
               }
             }
@@ -532,6 +557,7 @@ export const MANIFEST_RULES = {
         "no_show": [
           {
             "to": "booked",
+            "undo": true,
             "requires": {
               "time": {
                 "before": {
@@ -597,18 +623,29 @@ export const MANIFEST_RULES = {
         },
         "charges": {
           "via": "stay_id",
-          "parentIn": [
+          "createIn": [
+            "booked",
+            "in_house"
+          ],
+          "changeIn": [
             "booked",
             "in_house",
+            "departed",
             "cancelled",
             "no_show"
           ]
         },
         "stay_credits": {
           "via": "stay_id",
-          "parentIn": [
+          "createIn": [
+            "in_house",
+            "no_show"
+          ],
+          "changeIn": [
             "booked",
             "in_house",
+            "departed",
+            "cancelled",
             "no_show"
           ]
         }
@@ -675,6 +712,24 @@ export const MANIFEST_RULES = {
           "set": {
             "status": "cleaning"
           }
+        },
+        {
+          "on": {
+            "change": "room_id",
+            "in": [
+              "in_house"
+            ]
+          },
+          "old": {
+            "set": {
+              "status": "cleaning"
+            }
+          },
+          "new": {
+            "set": {
+              "status": "occupied"
+            }
+          }
         }
       ]
     }
@@ -706,7 +761,8 @@ export const MANIFEST_RULES = {
           "first_name",
           "last_name"
         ],
-        "stamp": "forgotten_at"
+        "stamp": "forgotten_at",
+        "links": true
       }
     },
     {
@@ -790,6 +846,10 @@ export const MANIFEST_RULES = {
       },
       "defaults": {
         "cancel_code": "self"
+      },
+      "newLink": {
+        "column": "link_token",
+        "kind": "stay-new-link"
       }
     },
     {
@@ -878,7 +938,18 @@ export const MANIFEST_RULES = {
       "writable": [
         "stay_id",
         "extra_id"
-      ]
+      ],
+      "writableWhen": {
+        "stay_id": {
+          "before": {
+            "column": "arrive",
+            "time": {
+              "table": "settings",
+              "column": "arrive_from"
+            }
+          }
+        }
+      }
     },
     {
       "table": "stay_extras",
@@ -1104,6 +1175,26 @@ export const MANIFEST_RULES = {
     },
     {
       "table": "stays",
+      "kind": "availability",
+      "methods": [
+        "GET"
+      ],
+      "showLeft": {
+        "below": 5
+      }
+    },
+    {
+      "table": "stay_extras",
+      "kind": "availability",
+      "methods": [
+        "GET"
+      ],
+      "showLeft": {
+        "below": 3
+      }
+    },
+    {
+      "table": "stays",
       "methods": [
         "POST"
       ],
@@ -1197,6 +1288,7 @@ export const MANIFEST_RULES = {
           "n": 10
         },
         "perKeyHour": 300,
+        "perIpHour": 10,
         "plainText": [
           "first_name",
           "last_name",
@@ -1341,7 +1433,18 @@ export const MANIFEST_RULES = {
       "writable": [
         "stay_id",
         "extra_id"
-      ]
+      ],
+      "writableWhen": {
+        "stay_id": {
+          "before": {
+            "column": "arrive",
+            "time": {
+              "table": "settings",
+              "column": "arrive_from"
+            }
+          }
+        }
+      }
     },
     {
       "table": "stay_extras",
@@ -1450,6 +1553,32 @@ export const MANIFEST_RULES = {
         "paid_on",
         "voided"
       ]
+    },
+    {
+      "table": "extras",
+      "methods": [
+        "GET"
+      ],
+      "select": [
+        "id",
+        "code",
+        "label",
+        "short",
+        "how",
+        "icon",
+        "amount",
+        "per",
+        "spaces",
+        "position"
+      ],
+      "filters": [
+        {
+          "column": "active",
+          "op": "eq",
+          "value": true
+        }
+      ],
+      "key": "link"
     }
   ],
   "roles": [
@@ -1561,8 +1690,7 @@ export const MANIFEST_RULES = {
           "writableValues": {
             "status": [
               "ready",
-              "cleaning",
-              "occupied"
+              "cleaning"
             ]
           }
         },
@@ -1587,6 +1715,15 @@ export const MANIFEST_RULES = {
         ],
         "room_closures": [
           "read"
+        ],
+        "extras": [
+          "read"
+        ],
+        "stays": [
+          "read"
+        ],
+        "stay_extras": [
+          "read"
         ]
       },
       "limits": {
@@ -1600,6 +1737,21 @@ export const MANIFEST_RULES = {
               "cleaning"
             ]
           }
+        },
+        "stays": {
+          "readable": [
+            "room_id",
+            "arrive",
+            "depart",
+            "status"
+          ]
+        },
+        "stay_extras": {
+          "readable": [
+            "stay_id",
+            "extra_id",
+            "state"
+          ]
         }
       }
     },
@@ -1848,6 +2000,34 @@ export const MANIFEST_RULES = {
         "column": "status",
         "to": "no_show"
       }
+    },
+    {
+      "kind": "stay-dates-changed",
+      "link": "stay_id",
+      "gate": {
+        "setting": {
+          "table": "settings",
+          "column": "guest_emails_on"
+        }
+      },
+      "onChange": {
+        "table": "stays",
+        "columns": [
+          "arrive",
+          "depart"
+        ],
+        "changed": true,
+        "where": {
+          "column": "status",
+          "eq": "booked"
+        }
+      },
+      "repeat": true,
+      "was": [
+        "arrive",
+        "depart",
+        "total"
+      ]
     }
   ],
   "kinds": {
@@ -1858,6 +2038,8 @@ export const MANIFEST_RULES = {
     "stay-cancelled-desk": "hotel-stay-cancelled-desk",
     "stay-cancelled-desk-late": "hotel-stay-cancelled-desk-late",
     "stay-cancelled-house": "hotel-stay-cancelled-house",
-    "stay-no-show": "hotel-stay-no-show"
+    "stay-no-show": "hotel-stay-no-show",
+    "stay-dates-changed": "hotel-stay-dates-changed",
+    "stay-new-link": "hotel-stay-new-link"
   }
 } as const;

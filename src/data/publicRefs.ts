@@ -44,6 +44,8 @@ export const PUBLIC_REFS = {
   linkCharges: ["charges", "_verified_2"],
   linkCredits: ["stay_credits", "_verified_2"],
   linkPayments: ["payments", "_verified_2"],
+  // The extras on offer, read on the link key so an extra added through it is known.
+  linkOffer: ["extras", "_2"],
 } as const satisfies Record<string, readonly [string, string]>;
 
 export type RefName = keyof typeof PUBLIC_REFS;

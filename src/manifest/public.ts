@@ -113,14 +113,22 @@ const SIGNED_IN = { level: "verified", claimedBy: { table: "customers", column: 
 const OWN_LINK = { claim: { by: "token", column: "link_token", stopped: "link_stopped", own: true, address: "email" } };
 
 /**
- * A stay's extras and money rows, read where the stay is. An extra is added
- * while the stay is live, and dropped or put back until the arrival afternoon.
+ * A stay's extras and money rows, read where the stay is. An extra is added,
+ * dropped or put back until the arrival afternoon.
  */
 function linesOf(key?: string) {
   const keyed = key === undefined ? {} : { key };
   const withStay = { level: "verified", visibleWith: { table: "stays", via: "stay_id" } };
   return [
-    { table: "stay_extras", ...keyed, methods: ["GET", "POST"], ...withStay, select: EXTRA_LINE_SELECT, writable: ["stay_id", "extra_id"] },
+    {
+      table: "stay_extras",
+      ...keyed,
+      methods: ["GET", "POST"],
+      ...withStay,
+      select: EXTRA_LINE_SELECT,
+      writable: ["stay_id", "extra_id"],
+      writableWhen: { stay_id: { before: { column: "arrive", time: ARRIVE_FROM } } },
+    },
     {
       table: "stay_extras",
       ...keyed,
@@ -139,6 +147,14 @@ function linesOf(key?: string) {
 
 export const PUBLIC_KEYS = { link: {} };
 
+/** The extras on offer, as a guest picks them. */
+const EXTRAS_READ = {
+  table: "extras",
+  methods: ["GET"],
+  select: ["id", "code", "label", "short", "how", "icon", "amount", "per", "spaces", "position"],
+  filters: [{ column: "active", op: "eq", value: true }],
+};
+
 export const PUBLIC_ACCESS = [
   // ── the guest who signs in with a link emailed to them ─────────────────────
   {
@@ -148,10 +164,19 @@ export const PUBLIC_ACCESS = [
     writable: ["first_name", "last_name"],
     claim: { verify: "email-link", email: "email" },
     humanCheck: true,
-    forget: { columns: ["email", "first_name", "last_name"], stamp: "forgotten_at" },
+    // "Delete my details" also stops the links of their reservations.
+    forget: { columns: ["email", "first_name", "last_name"], stamp: "forgotten_at", links: true },
   },
-  // Their own stays, and the changes they may make until the arrival afternoon.
-  { table: "stays", methods: ["GET", "PATCH"], ...SIGNED_IN, select: STAY_SELECT, ...OWN_CHANGES },
+  // Their own stays, and the changes they may make until the arrival afternoon;
+  // a stay's link forwarded by mistake is replaced by a new one, emailed to them.
+  {
+    table: "stays",
+    methods: ["GET", "PATCH"],
+    ...SIGNED_IN,
+    select: STAY_SELECT,
+    ...OWN_CHANGES,
+    newLink: { column: "link_token", kind: "stay-new-link" },
+  },
   // Moving the dates: while the stay may still be cancelled at no charge, priced again by Adminium.
   {
     table: "stays",
@@ -175,14 +200,12 @@ export const PUBLIC_ACCESS = [
   { table: "room_type_features", methods: ["GET"], select: ["id", "room_type_id", "feature", "icon", "position"] },
   // The rooms by number and floor: never their status.
   { table: "rooms", methods: ["GET"], select: ["id", "number", "floor", "room_type_id"] },
-  {
-    table: "extras",
-    methods: ["GET"],
-    select: ["id", "code", "label", "short", "how", "icon", "amount", "per", "spaces", "position"],
-    filters: [{ column: "active", op: "eq", value: true }],
-  },
+  EXTRAS_READ,
   { table: "settings", methods: ["GET"], select: SETTINGS_SELECT },
   { table: "house_notes", methods: ["GET"], select: ["id", "icon", "text", "position"] },
+  // Rooms of a type left each night, and parking spaces: a number only when few are.
+  { table: "stays", kind: "availability", methods: ["GET"], showLeft: { below: 5 } },
+  { table: "stay_extras", kind: "availability", methods: ["GET"], showLeft: { below: 3 } },
 
   // ── reserving a room ─────────────────────────────────────────────────────────
   {
@@ -215,7 +238,7 @@ export const PUBLIC_ACCESS = [
       { column: "guests", lte: { via: "room_type_id", column: "sleeps" } },
       { column: "guests", lte: { via: "room_id", column: "sleeps" } },
     ],
-    anonymous: { perValue: { columns: ["email"], n: 10 }, perKeyHour: 300, plainText: ["first_name", "last_name", "note", "mobile"] },
+    anonymous: { perValue: { columns: ["email"], n: 10 }, perKeyHour: 300, perIpHour: 10, plainText: ["first_name", "last_name", "note", "mobile"] },
     children: {
       stay_extras: { via: "stay_id", writable: ["extra_id"], select: EXTRA_LINE_SELECT.filter((c) => c !== "stay_id"), max: 8 },
     },
@@ -227,4 +250,6 @@ export const PUBLIC_ACCESS = [
   // ── one reservation, by its own link ─────────────────────────────────────────
   { table: "stays", key: "link", methods: ["GET", "PATCH"], select: STAY_SELECT, ...OWN_LINK, ...OWN_CHANGES },
   ...linesOf("link"),
+  // What an extra added through the link is: the create reads the extra on this key.
+  { ...EXTRAS_READ, key: "link" },
 ];

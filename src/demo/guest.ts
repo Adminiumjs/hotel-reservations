@@ -422,7 +422,23 @@ export class DemoGuest implements GuestPort {
     const customer = this.signedCustomer();
     const stay = this.world.get("stays", id);
     if (stay === undefined || stay["customer_id"] !== customer.id) throw notFound("public");
-    this.engine.write(() => this.world.update("stays", id, { link_token: randomCode(16) }));
+    this.engine.write(() => {
+      this.world.update("stays", id, { link_token: randomCode(16) });
+      // The new link goes to the guest as the house's own email, once for each new code.
+      this.world.insert("messages", {
+        kind: "stay-new-link",
+        status: "sent",
+        to_address: customer["email"],
+        language: stay["language"] ?? null,
+        stay_id: id,
+        customer_id: customer.id,
+        due: new Date(this.engine.now).toISOString(),
+        created_at: new Date(this.engine.now).toISOString(),
+        sent_at: new Date(this.engine.now).toISOString(),
+        error: null,
+        skip_reason: null,
+      });
+    });
     if (this.linkSession?.stayId === id) this.linkSession = null;
     return { sentTo: String(customer["email"]) };
   }

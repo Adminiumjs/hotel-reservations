@@ -191,7 +191,7 @@ export const COLUMNS: Record<string, Record<string, Fill>> = {
   charges: { stay_id: REQUIRED, charge_item_id: null, label: null, amount: REQUIRED, note: null, charged_on: null, recorded_by: null, voided: false, void_reason: null, voided_at: null, voided_by: null },
   stay_credits: { stay_id: REQUIRED, reason: "left_early", from_date: REQUIRED, to_date: REQUIRED, room_type_id: null, nights: null, room_amount: null, extras_nightly: null, amount: null, line_amount: null, recorded_by: null, created_at: null, voided: false, void_reason: null, voided_at: null, voided_by: null },
   payments: { stay_id: REQUIRED, kind: "taken", amount: REQUIRED, method: "card", reference: null, note: null, signed: null, paid_on: null, recorded_at: null, recorded_by: null, voided: false, void_reason: null, voided_at: null, voided_by: null },
-  messages: { kind: REQUIRED, status: "queued", to_address: null, language: null, stay_id: null, customer_id: null, due: null, created_at: null, sent_at: null, error: null, skip_reason: null },
+  messages: { kind: REQUIRED, status: "queued", to_address: null, language: null, stay_id: null, customer_id: null, due: null, created_at: null, sent_at: null, error: null, was: null, repeat_key: null, skip_reason: null },
 };
 
 export const RULES: Rules = {

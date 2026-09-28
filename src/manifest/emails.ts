@@ -14,8 +14,10 @@
  * the guest's language and on the house's clock; money in the connection's
  * currency.
  *
- * Only the online confirmation carries the reservation's own link: a code is
- * sent only to the person it opens the stay for.
+ * Only the online confirmation and a new link the signed-in guest asked for
+ * carry the reservation's own link: a code is sent only to the person it
+ * opens the stay for. A change of dates says the dates before (`was.*`, kept
+ * on the message) and now.
  */
 import { EMAIL_AR, EMAIL_CS, EMAIL_DA, EMAIL_DE, EMAIL_FR, EMAIL_ZH_CN, EMAIL_ZH_TW } from "./email-words.ts";
 import type { Tag } from "./labels.ts";
@@ -39,6 +41,8 @@ export type EmailWords = Record<Kind, Words> & {
   settle: string;
   cancelBy: string;
   lateOrEarly: string;
+  /** "Total, was $791.34": a changed stay's total beside the one before. */
+  totalWas: string;
   foot: string;
 };
 
@@ -52,6 +56,7 @@ export const EMAIL_EN: EmailWords = {
   settle: "Nothing is taken online. You settle at the desk.",
   cancelBy: "Cancel at no charge until {{stay.cancel_by.time}} on {{stay.cancel_by.date}}.",
   lateOrEarly: "Late or early? Write to {{practice.email}} or ring us on {{practice.phone}}.",
+  totalWas: "Total, was {{was.total}}",
   foot: "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us.",
   "stay-made": {
     name: "Reservation made",
@@ -122,6 +127,27 @@ export const EMAIL_EN: EmailWords = {
       "If you are still on your way, ring us on {{practice.phone}}.",
     ],
   },
+  "stay-dates-changed": {
+    name: "Dates changed",
+    subject: "Your dates have changed — {{stay.ref}}",
+    preheader: "{{stay.arrive.day_month}} to {{stay.depart.day_month}} · {{stay.total}}",
+    heading: "Your dates have changed, {{recipient.first_name}}.",
+    paras: [
+      "Before: {{was.arrive.day_month}} to {{was.depart.day_month}}.",
+      "Now: {{stay.arrive.day_month}} to {{stay.depart.day_month}}. Your extras follow the new dates.",
+    ],
+  },
+  "stay-new-link": {
+    name: "A new link",
+    subject: "A new link to your reservation {{stay.ref}}",
+    preheader: "The old link no longer opens it",
+    heading: "Here is your new link, {{recipient.first_name}}.",
+    paras: [
+      "You asked for a new link to your reservation. The link we sent before no longer opens it.",
+      "If you did not ask for it, ring us on {{practice.phone}}.",
+    ],
+    button: "See your reservation",
+  },
 };
 
 type Block = { block: string; id: string; data: Record<string, unknown> };
@@ -166,7 +192,14 @@ function layout(kind: Kind, all: EmailWords) {
     blocks.push({ block: "email.box", id: "settle", data: { label: all.settle } });
     blocks.push(para("cancel", all.cancelBy, all.lateOrEarly));
   }
-  if (kind === "stay-made" && w.button !== undefined) {
+  if (kind === "stay-dates-changed") {
+    blocks.push({ block: "email.tax-breakdown", id: "totals", data: { lines: [{ label: all.totalWas, amount: "{{stay.total}}" }] } });
+    blocks.push({ block: "email.box", id: "settle", data: { label: all.settle } });
+    blocks.push(para("cancel", all.cancelBy, all.lateOrEarly));
+  }
+  // The reservation's own link goes only to the person it was made for, and
+  // only in the confirmation and a new link they asked for.
+  if ((kind === "stay-made" || kind === "stay-new-link") && w.button !== undefined) {
     blocks.push({ block: "email.button", id: "see", data: { label: w.button, url: "{{manage_url}}#{{stay.link_token}}" } });
   }
   return { subject: w.subject, preheader: w.preheader, blocks, footer: all.foot };

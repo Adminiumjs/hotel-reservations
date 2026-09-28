@@ -145,19 +145,12 @@ describe("the real desk door", () => {
     ]);
   });
 
-  it("moves a guest in the house to another room: the room left is cleaned, the new one is theirs", async () => {
+  it("moves a guest in the house to another room in one write: Adminium moves both rooms with it", async () => {
     const { t, sent } = transport({
-      [`GET ${D}/hotel_stays/41`]: () => ({ data: { id: 41, status: "in_house", room_id: 7 } }),
       [`PATCH ${D}/hotel_stays/41`]: () => ({ data: { id: 41, room_id: 8 } }),
-      [`PATCH ${D}/hotel_rooms/7`]: () => ({ data: { id: 7 } }),
-      [`PATCH ${D}/hotel_rooms/8`]: () => ({ data: { id: 8 } }),
     });
     await new AdminiumDesk(t, config()).moveRoom(41, 8);
-    expect(sent.filter((s) => s.method === "PATCH").map((s) => [s.path, s.body])).toEqual([
-      [`${D}/hotel_stays/41`, { values: { room_id: 8 } }],
-      [`${D}/hotel_rooms/7`, { values: { status: "cleaning" } }],
-      [`${D}/hotel_rooms/8`, { values: { status: "occupied" } }],
-    ]);
+    expect(sent.filter((s) => s.method === "PATCH").map((s) => [s.path, s.body])).toEqual([[`${D}/hotel_stays/41`, { values: { room_id: 8 } }]]);
   });
 
   it("puts an extra on by its own row: a new line, or the old one back on", async () => {

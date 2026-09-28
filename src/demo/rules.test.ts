@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 import { demoRulesText } from "../../scripts/write-demo-rules.ts";
-import { AHEAD } from "./engine.ts";
+import { DESK_ONLY } from "./engine.ts";
 
 type Json = Record<string, unknown>;
 const read = (path: string) => readFileSync(fileURLToPath(new URL(path, import.meta.url)), "utf8");
@@ -33,39 +33,42 @@ describe("the demo's rules are the manifest's", () => {
   });
 });
 
-describe("what the demo plays ahead of the manifest is not in it yet", () => {
-  it("answers the guest site's two availability questions", () => {
-    expect(manifest.publicAccess.filter((e) => e.kind === "availability")).toEqual([]);
-    expect(AHEAD.availability).toEqual(["stays", "stay_extras"]);
+describe("what the demo plays is in the manifest now, not a copy of its own", () => {
+  it("answers the guest site's two availability questions, saying a number only when few are left", () => {
+    const found = manifest.publicAccess.filter((e) => e.kind === "availability");
+    expect(found.map((e) => e.table)).toEqual(["stays", "stay_extras"]);
+    for (const e of found) expect((e["showLeft"] as Json)["below"]).toBeGreaterThan(0);
   });
 
-  it("marks a no-show from the guest's own time (the manifest opens it at the arrival afternoon for everyone)", () => {
+  it("marks a no-show from the guest's own time, and the arrival afternoon when they gave none", () => {
     const noShow = (stays.states!.moves["booked"] as Json[]).find((m) => m["to"] === "no_show")!;
-    expect(JSON.stringify(noShow)).not.toContain("arrival_time");
+    expect(JSON.stringify(noShow)).toContain('{"column":"arrival_time"}');
+    // Only the key left out after 22:00 waits for the morning: the desk's screen keeps that.
+    expect(DESK_ONLY.lateArrival).toBe("22:30");
   });
 
   it("moves the rooms along when a guest in the house changes room", () => {
-    for (const effect of stays.states!.effects ?? []) expect(Object.keys(effect["on"] as Json)).toEqual(["to"]);
+    expect(stays.states!.effects).toContainEqual({ on: { change: "room_id", in: ["in_house"] }, old: { set: { status: "cleaning" } }, new: { set: { status: "occupied" } } });
   });
 
   it("stops the links when a guest deletes their details, and makes a guest a new one", () => {
-    expect(text).not.toContain("new-link");
     const customers = manifest.publicAccess.find((e) => e.table === "customers")!;
-    expect(JSON.stringify(customers["forget"])).not.toContain("link");
+    expect((customers["forget"] as Json)["links"]).toBe(true);
+    expect(text).toContain('"newLink":{"column":"link_token","kind":"stay-new-link"}');
   });
 
   it("judges an added extra by the arrival afternoon", () => {
     const adds = manifest.publicAccess.filter((e) => e.table === "stay_extras" && e.methods.includes("POST"));
-    for (const entry of adds) expect(entry["writableWhen"]).toBeUndefined();
+    for (const entry of adds) expect(entry["writableWhen"]).toBeDefined();
   });
 
-  it("voids on a finished stay (the manifest keeps charges to the states a stay is open in)", () => {
+  it("voids whatever state the stay is in, and adds rows only while it is live", () => {
     const children = (stays.states as Json)["children"] as Record<string, Json>;
-    expect(children["charges"]!["parentIn"]).not.toContain("departed");
+    expect(children["charges"]!["changeIn"]).toContain("departed");
+    expect(children["charges"]!["createIn"]).not.toContain("departed");
   });
 
-  it("holds the party to the room on the desk's changes, and judges a stay in the house from today", () => {
-    expect(AHEAD.staffAgrees && AHEAD.inHouseFromToday && AHEAD.datesJudgedBefore && AHEAD.extrasAddWindow).toBe(true);
-    expect(text).not.toContain("changeIn");
+  it("judges a stay in the house from tonight on", () => {
+    for (const rule of stays["capacity"] as Json[]) expect(rule["arrived"]).toEqual({ states: ["in_house"] });
   });
 });

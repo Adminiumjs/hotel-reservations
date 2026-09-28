@@ -1195,8 +1195,7 @@
               {
                 "to": "occupied",
                 "roles": [
-                  "manager",
-                  "front-desk"
+                  "manager"
                 ]
               }
             ],
@@ -1207,8 +1206,7 @@
               {
                 "to": "cleaning",
                 "roles": [
-                  "manager",
-                  "front-desk"
+                  "manager"
                 ]
               }
             ]
@@ -2238,6 +2236,11 @@
                 "table": "settings",
                 "column": "ahead_days"
               }
+            },
+            "arrived": {
+              "states": [
+                "in_house"
+              ]
             }
           },
           {
@@ -2261,6 +2264,11 @@
                 "to": "to_date",
                 "active": "active"
               }
+            },
+            "arrived": {
+              "states": [
+                "in_house"
+              ]
             }
           }
         ],
@@ -2316,9 +2324,17 @@
                     "after": {
                       "column": "arrive",
                       "time": {
-                        "table": "settings",
-                        "column": "arrive_from"
-                      }
+                        "column": "arrival_time"
+                      },
+                      "or": [
+                        {
+                          "column": "arrive",
+                          "time": {
+                            "table": "settings",
+                            "column": "arrive_from"
+                          }
+                        }
+                      ]
                     }
                   }
                 }
@@ -2346,6 +2362,7 @@
             "no_show": [
               {
                 "to": "booked",
+                "undo": true,
                 "requires": {
                   "time": {
                     "before": {
@@ -2411,18 +2428,29 @@
             },
             "charges": {
               "via": "stay_id",
-              "parentIn": [
+              "createIn": [
+                "booked",
+                "in_house"
+              ],
+              "changeIn": [
                 "booked",
                 "in_house",
+                "departed",
                 "cancelled",
                 "no_show"
               ]
             },
             "stay_credits": {
               "via": "stay_id",
-              "parentIn": [
+              "createIn": [
+                "in_house",
+                "no_show"
+              ],
+              "changeIn": [
                 "booked",
                 "in_house",
+                "departed",
+                "cancelled",
                 "no_show"
               ]
             }
@@ -2488,6 +2516,24 @@
               "via": "room_id",
               "set": {
                 "status": "cleaning"
+              }
+            },
+            {
+              "on": {
+                "change": "room_id",
+                "in": [
+                  "in_house"
+                ]
+              },
+              "old": {
+                "set": {
+                  "status": "cleaning"
+                }
+              },
+              "new": {
+                "set": {
+                  "status": "occupied"
+                }
               }
             }
           ]
@@ -3695,7 +3741,8 @@
                   "values": [
                     "no_show"
                   ]
-                }
+                },
+                "clearOnBack": true
               }
             }
           },
@@ -3830,6 +3877,12 @@
             "size": {
               "column": "spaces"
             }
+          },
+          "arrived": {
+            "states": [
+              "in_house"
+            ],
+            "via": "stay_id"
           }
         },
         "columns": [
@@ -5298,7 +5351,9 @@
               "stay-cancelled-desk",
               "stay-cancelled-desk-late",
               "stay-cancelled-house",
-              "stay-no-show"
+              "stay-no-show",
+              "stay-dates-changed",
+              "stay-new-link"
             ],
             "label": {
               "en-US": "Kind",
@@ -5392,6 +5447,26 @@
                     "ar-EG": "افتقدناك",
                     "zh-CN": "我们错过了您",
                     "zh-TW": "我們錯過了您"
+                  },
+                  "stay-dates-changed": {
+                    "en-US": "Dates changed",
+                    "de-DE": "Daten geändert",
+                    "fr-FR": "Dates modifiées",
+                    "da-DK": "Datoer ændret",
+                    "cs-CZ": "Termín změněn",
+                    "ar-EG": "تغيّرت التواريخ",
+                    "zh-CN": "日期已更改",
+                    "zh-TW": "日期已變更"
+                  },
+                  "stay-new-link": {
+                    "en-US": "A new link",
+                    "de-DE": "Ein neuer Link",
+                    "fr-FR": "Un nouveau lien",
+                    "da-DK": "Et nyt link",
+                    "cs-CZ": "Nový odkaz",
+                    "ar-EG": "رابط جديد",
+                    "zh-CN": "新链接",
+                    "zh-TW": "新連結"
                   }
                 }
               }
@@ -5599,6 +5674,38 @@
               "ar-EG": "ما الخطأ",
               "zh-CN": "出错原因",
               "zh-TW": "出錯原因"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "was",
+            "type": "text",
+            "maxLength": 1000,
+            "label": {
+              "en-US": "Before the change",
+              "de-DE": "Vor der Änderung",
+              "fr-FR": "Avant la modification",
+              "da-DK": "Før ændringen",
+              "cs-CZ": "Před změnou",
+              "ar-EG": "قبل التغيير",
+              "zh-CN": "更改前",
+              "zh-TW": "變更前"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "repeat_key",
+            "type": "text",
+            "maxLength": 64,
+            "label": {
+              "en-US": "Sent for",
+              "de-DE": "Gesendet für",
+              "fr-FR": "Envoyé pour",
+              "da-DK": "Sendt for",
+              "cs-CZ": "Odesláno pro",
+              "ar-EG": "أُرسل من أجل",
+              "zh-CN": "发送依据",
+              "zh-TW": "發送依據"
             },
             "nullable": true
           },
@@ -7516,8 +7623,7 @@
           "writableValues": {
             "status": [
               "ready",
-              "cleaning",
-              "occupied"
+              "cleaning"
             ]
           }
         },
@@ -7539,6 +7645,9 @@
         "table:@rooms:read",
         "table:@room_types:read",
         "table:@room_closures:read",
+        "table:@extras:read",
+        "table:@stays:read",
+        "table:@stay_extras:read",
         "table:@rooms:update"
       ],
       "limits": {
@@ -7552,6 +7661,21 @@
               "cleaning"
             ]
           }
+        },
+        "stays": {
+          "readable": [
+            "room_id",
+            "arrive",
+            "depart",
+            "status"
+          ]
+        },
+        "stay_extras": {
+          "readable": [
+            "stay_id",
+            "extra_id",
+            "state"
+          ]
         }
       }
     },
@@ -7689,7 +7813,8 @@
           "first_name",
           "last_name"
         ],
-        "stamp": "forgotten_at"
+        "stamp": "forgotten_at",
+        "links": true
       }
     },
     {
@@ -7773,6 +7898,10 @@
       },
       "defaults": {
         "cancel_code": "self"
+      },
+      "newLink": {
+        "column": "link_token",
+        "kind": "stay-new-link"
       }
     },
     {
@@ -7861,7 +7990,18 @@
       "writable": [
         "stay_id",
         "extra_id"
-      ]
+      ],
+      "writableWhen": {
+        "stay_id": {
+          "before": {
+            "column": "arrive",
+            "time": {
+              "table": "settings",
+              "column": "arrive_from"
+            }
+          }
+        }
+      }
     },
     {
       "table": "stay_extras",
@@ -8087,6 +8227,26 @@
     },
     {
       "table": "stays",
+      "kind": "availability",
+      "methods": [
+        "GET"
+      ],
+      "showLeft": {
+        "below": 5
+      }
+    },
+    {
+      "table": "stay_extras",
+      "kind": "availability",
+      "methods": [
+        "GET"
+      ],
+      "showLeft": {
+        "below": 3
+      }
+    },
+    {
+      "table": "stays",
       "methods": [
         "POST"
       ],
@@ -8180,6 +8340,7 @@
           "n": 10
         },
         "perKeyHour": 300,
+        "perIpHour": 10,
         "plainText": [
           "first_name",
           "last_name",
@@ -8324,7 +8485,18 @@
       "writable": [
         "stay_id",
         "extra_id"
-      ]
+      ],
+      "writableWhen": {
+        "stay_id": {
+          "before": {
+            "column": "arrive",
+            "time": {
+              "table": "settings",
+              "column": "arrive_from"
+            }
+          }
+        }
+      }
     },
     {
       "table": "stay_extras",
@@ -8433,6 +8605,32 @@
         "paid_on",
         "voided"
       ]
+    },
+    {
+      "table": "extras",
+      "methods": [
+        "GET"
+      ],
+      "select": [
+        "id",
+        "code",
+        "label",
+        "short",
+        "how",
+        "icon",
+        "amount",
+        "per",
+        "spaces",
+        "position"
+      ],
+      "filters": [
+        {
+          "column": "active",
+          "op": "eq",
+          "value": true
+        }
+      ],
+      "key": "link"
     }
   ],
   "outbox": {
@@ -8445,7 +8643,9 @@
       "due": "due",
       "sentAt": "sent_at",
       "error": "error",
-      "skipReason": "skip_reason"
+      "skipReason": "skip_reason",
+      "was": "was",
+      "repeatKey": "repeat_key"
     },
     "links": {
       "stay": "stay_id",
@@ -8456,6 +8656,9 @@
       "table": "customers",
       "email": "email",
       "name": "first_name",
+      "language": {
+        "column": "language"
+      },
       "fallback": {
         "via": "stay_id",
         "email": "email",
@@ -8466,7 +8669,8 @@
     "settings": {
       "table": "settings",
       "name": "name",
-      "phone": "phone"
+      "phone": "phone",
+      "replyTo": "email"
     },
     "pages": {
       "manage": "/r",
@@ -8480,7 +8684,9 @@
       "stay-cancelled-desk": "hotel-stay-cancelled-desk",
       "stay-cancelled-desk-late": "hotel-stay-cancelled-desk-late",
       "stay-cancelled-house": "hotel-stay-cancelled-house",
-      "stay-no-show": "hotel-stay-no-show"
+      "stay-no-show": "hotel-stay-no-show",
+      "stay-dates-changed": "hotel-stay-dates-changed",
+      "stay-new-link": "hotel-stay-new-link"
     },
     "producers": [
       {
@@ -8622,6 +8828,34 @@
           "column": "status",
           "to": "no_show"
         }
+      },
+      {
+        "kind": "stay-dates-changed",
+        "link": "stay_id",
+        "gate": {
+          "setting": {
+            "table": "settings",
+            "column": "guest_emails_on"
+          }
+        },
+        "onChange": {
+          "table": "stays",
+          "columns": [
+            "arrive",
+            "depart"
+          ],
+          "changed": true,
+          "where": {
+            "column": "status",
+            "eq": "booked"
+          }
+        },
+        "repeat": true,
+        "was": [
+          "arrive",
+          "depart",
+          "total"
+        ]
       }
     ]
   },
@@ -12263,6 +12497,932 @@
                   "我們為您保留了 {{stay.arrive.day_month}} 的房間，但您沒有到店，因此預訂 {{stay.ref}} 記為未到店。不收取任何費用。",
                   "如果您仍在路上，請來電 {{practice.phone}}。"
                 ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到這封郵件，是因為您在我們這裡預訂了房間。"
+        }
+      }
+    },
+    {
+      "key": "hotel-stay-dates-changed",
+      "name": {
+        "en-US": "Dates changed",
+        "de-DE": "Daten geändert",
+        "fr-FR": "Dates modifiées",
+        "da-DK": "Datoer ændret",
+        "cs-CZ": "Termín změněn",
+        "ar-EG": "تغيّرت التواريخ",
+        "zh-CN": "日期已更改",
+        "zh-TW": "日期已變更"
+      },
+      "vars": [
+        "practice.address",
+        "practice.email",
+        "practice.phone",
+        "recipient.first_name",
+        "stay.arrive.day_month",
+        "stay.cancel_by.date",
+        "stay.cancel_by.time",
+        "stay.depart.day_month",
+        "stay.ref",
+        "stay.total",
+        "was.arrive.day_month",
+        "was.depart.day_month",
+        "was.total"
+      ],
+      "locales": {
+        "en-US": {
+          "subject": "Your dates have changed — {{stay.ref}}",
+          "preheader": "{{stay.arrive.day_month}} to {{stay.depart.day_month}} · {{stay.total}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Your dates have changed, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Your reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Before: {{was.arrive.day_month}} to {{was.depart.day_month}}.",
+                  "Now: {{stay.arrive.day_month}} to {{stay.depart.day_month}}. Your extras follow the new dates."
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "Total, was {{was.total}}",
+                    "amount": "{{stay.total}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.box",
+              "id": "settle",
+              "data": {
+                "label": "Nothing is taken online. You settle at the desk."
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "Cancel at no charge until {{stay.cancel_by.time}} on {{stay.cancel_by.date}}.",
+                  "Late or early? Write to {{practice.email}} or ring us on {{practice.phone}}."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us."
+        },
+        "de-DE": {
+          "subject": "Ihre Reisedaten wurden geändert – {{stay.ref}}",
+          "preheader": "{{stay.arrive.day_month}} bis {{stay.depart.day_month}} · {{stay.total}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Ihre Reisedaten wurden geändert, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Ihre Referenz",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Vorher: {{was.arrive.day_month}} bis {{was.depart.day_month}}.",
+                  "Jetzt: {{stay.arrive.day_month}} bis {{stay.depart.day_month}}. Ihre Extras gelten für die neuen Daten."
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "Gesamt, vorher {{was.total}}",
+                    "amount": "{{stay.total}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.box",
+              "id": "settle",
+              "data": {
+                "label": "Online wird nichts abgebucht. Sie begleichen alles an der Rezeption."
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "Stornierung ohne Kosten bis {{stay.cancel_by.time}} am {{stay.cancel_by.date}}.",
+                  "Später oder früher? Schreiben Sie an {{practice.email}} oder rufen Sie uns an: {{practice.phone}}."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Sie erhalten diese E-Mail, weil Sie bei uns ein Zimmer reserviert haben."
+        },
+        "fr-FR": {
+          "subject": "Vos dates ont changé – {{stay.ref}}",
+          "preheader": "Du {{stay.arrive.day_month}} au {{stay.depart.day_month}} · {{stay.total}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Vos dates ont changé, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Votre référence",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Avant : du {{was.arrive.day_month}} au {{was.depart.day_month}}.",
+                  "Maintenant : du {{stay.arrive.day_month}} au {{stay.depart.day_month}}. Vos extras suivent les nouvelles dates."
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "Total, auparavant {{was.total}}",
+                    "amount": "{{stay.total}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.box",
+              "id": "settle",
+              "data": {
+                "label": "Rien n'est prélevé en ligne. Vous réglez à la réception."
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "Annulation sans frais jusqu'à {{stay.cancel_by.time}} le {{stay.cancel_by.date}}.",
+                  "En retard ou en avance ? Écrivez à {{practice.email}} ou appelez-nous au {{practice.phone}}."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Vous recevez cet e-mail parce que vous avez réservé une chambre chez nous."
+        },
+        "da-DK": {
+          "subject": "Dine datoer er ændret – {{stay.ref}}",
+          "preheader": "{{stay.arrive.day_month}} til {{stay.depart.day_month}} · {{stay.total}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Dine datoer er ændret, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Din reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Før: {{was.arrive.day_month}} til {{was.depart.day_month}}.",
+                  "Nu: {{stay.arrive.day_month}} til {{stay.depart.day_month}}. Dine tilvalg følger de nye datoer."
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "I alt, før {{was.total}}",
+                    "amount": "{{stay.total}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.box",
+              "id": "settle",
+              "data": {
+                "label": "Der trækkes intet online. Du betaler i receptionen."
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "Afbestilling uden beregning indtil kl. {{stay.cancel_by.time}} den {{stay.cancel_by.date}}.",
+                  "Sent eller tidligt? Skriv til {{practice.email}}, eller ring til os på {{practice.phone}}."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Du får denne e-mail, fordi du har reserveret et værelse hos os."
+        },
+        "cs-CZ": {
+          "subject": "Termín vašeho pobytu se změnil – {{stay.ref}}",
+          "preheader": "{{stay.arrive.day_month}} až {{stay.depart.day_month}} · {{stay.total}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Termín vašeho pobytu se změnil, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Číslo vaší rezervace",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Dříve: {{was.arrive.day_month}} až {{was.depart.day_month}}.",
+                  "Nyní: {{stay.arrive.day_month}} až {{stay.depart.day_month}}. Vaše doplňky platí pro nový termín."
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "Celkem, dříve {{was.total}}",
+                    "amount": "{{stay.total}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.box",
+              "id": "settle",
+              "data": {
+                "label": "Online se nic nestrhává. Platíte na recepci."
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "Zrušení bez poplatku do {{stay.cancel_by.time}} dne {{stay.cancel_by.date}}.",
+                  "Přijedete později nebo dříve? Napište na {{practice.email}} nebo nám zavolejte na {{practice.phone}}."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Tento e-mail dostáváte, protože jste si u nás rezervovali pokoj."
+        },
+        "ar-EG": {
+          "subject": "تغيّرت تواريخ إقامتك — {{stay.ref}}",
+          "preheader": "{{stay.arrive.day_month}} إلى {{stay.depart.day_month}} · {{stay.total}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "تغيّرت تواريخ إقامتك يا {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "رقم حجزك",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "سابقًا: {{was.arrive.day_month}} إلى {{was.depart.day_month}}.",
+                  "الآن: {{stay.arrive.day_month}} إلى {{stay.depart.day_month}}. إضافاتك تتبع التواريخ الجديدة."
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "الإجمالي، وكان {{was.total}}",
+                    "amount": "{{stay.total}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.box",
+              "id": "settle",
+              "data": {
+                "label": "لا يُقتطع أي مبلغ عبر الإنترنت. تدفع في مكتب الاستقبال."
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "يمكنك الإلغاء دون رسوم حتى {{stay.cancel_by.time}} يوم {{stay.cancel_by.date}}.",
+                  "ستتأخر أو تصل مبكرًا؟ راسلنا على {{practice.email}} أو اتصل بنا على {{practice.phone}}."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. تصلك هذه الرسالة لأنك حجزت غرفة لدينا."
+        },
+        "zh-CN": {
+          "subject": "您的入住日期已更改 — {{stay.ref}}",
+          "preheader": "{{stay.arrive.day_month}} 至 {{stay.depart.day_month}} · {{stay.total}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "{{recipient.first_name}}，您的入住日期已更改。"
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "预订参考号",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "更改前：{{was.arrive.day_month}} 至 {{was.depart.day_month}}。",
+                  "现在：{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}。您的附加项目随新日期调整。"
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "总计（原为 {{was.total}}）",
+                    "amount": "{{stay.total}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.box",
+              "id": "settle",
+              "data": {
+                "label": "网上不收取任何费用，请在前台结清。"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "{{stay.cancel_by.date}} {{stay.cancel_by.time}} 前取消不收费。",
+                  "会晚到或早到？请发邮件至 {{practice.email}} 或致电 {{practice.phone}}。"
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到此邮件，是因为您在我们这里预订了房间。"
+        },
+        "zh-TW": {
+          "subject": "您的入住日期已變更 — {{stay.ref}}",
+          "preheader": "{{stay.arrive.day_month}} 至 {{stay.depart.day_month}} · {{stay.total}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "{{recipient.first_name}}，您的入住日期已變更。"
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "預訂參考號",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "變更前：{{was.arrive.day_month}} 至 {{was.depart.day_month}}。",
+                  "現在：{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}。您的附加項目隨新日期調整。"
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "總計（原為 {{was.total}}）",
+                    "amount": "{{stay.total}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.box",
+              "id": "settle",
+              "data": {
+                "label": "線上不收取任何費用，請在櫃檯結清。"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "{{stay.cancel_by.date}} {{stay.cancel_by.time}} 前取消不收費。",
+                  "會晚到或早到？請寄信至 {{practice.email}} 或來電 {{practice.phone}}。"
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到這封郵件，是因為您在我們這裡預訂了房間。"
+        }
+      }
+    },
+    {
+      "key": "hotel-stay-new-link",
+      "name": {
+        "en-US": "A new link",
+        "de-DE": "Ein neuer Link",
+        "fr-FR": "Un nouveau lien",
+        "da-DK": "Et nyt link",
+        "cs-CZ": "Nový odkaz",
+        "ar-EG": "رابط جديد",
+        "zh-CN": "新链接",
+        "zh-TW": "新連結"
+      },
+      "vars": [
+        "manage_url",
+        "practice.address",
+        "practice.email",
+        "practice.phone",
+        "recipient.first_name",
+        "stay.link_token",
+        "stay.ref"
+      ],
+      "locales": {
+        "en-US": {
+          "subject": "A new link to your reservation {{stay.ref}}",
+          "preheader": "The old link no longer opens it",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Here is your new link, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Your reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "You asked for a new link to your reservation. The link we sent before no longer opens it.",
+                  "If you did not ask for it, ring us on {{practice.phone}}."
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "See your reservation",
+                "url": "{{manage_url}}#{{stay.link_token}}"
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us."
+        },
+        "de-DE": {
+          "subject": "Ein neuer Link zu Ihrer Reservierung {{stay.ref}}",
+          "preheader": "Der alte Link öffnet sie nicht mehr",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Hier ist Ihr neuer Link, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Ihre Referenz",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Sie haben einen neuen Link zu Ihrer Reservierung angefordert. Der Link, den wir Ihnen vorher geschickt haben, öffnet sie nicht mehr.",
+                  "Wenn Sie ihn nicht angefordert haben, rufen Sie uns an: {{practice.phone}}."
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "Ihre Reservierung ansehen",
+                "url": "{{manage_url}}#{{stay.link_token}}"
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Sie erhalten diese E-Mail, weil Sie bei uns ein Zimmer reserviert haben."
+        },
+        "fr-FR": {
+          "subject": "Un nouveau lien vers votre réservation {{stay.ref}}",
+          "preheader": "L'ancien lien ne l'ouvre plus",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Voici votre nouveau lien, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Votre référence",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Vous avez demandé un nouveau lien vers votre réservation. Le lien que nous vous avions envoyé ne l'ouvre plus.",
+                  "Si vous ne l'avez pas demandé, appelez-nous au {{practice.phone}}."
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "Voir votre réservation",
+                "url": "{{manage_url}}#{{stay.link_token}}"
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Vous recevez cet e-mail parce que vous avez réservé une chambre chez nous."
+        },
+        "da-DK": {
+          "subject": "Et nyt link til din reservation {{stay.ref}}",
+          "preheader": "Det gamle link åbner den ikke længere",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Her er dit nye link, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Din reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Du har bedt om et nyt link til din reservation. Det link, vi sendte før, åbner den ikke længere.",
+                  "Hvis du ikke har bedt om det, så ring til os på {{practice.phone}}."
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "Se din reservation",
+                "url": "{{manage_url}}#{{stay.link_token}}"
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Du får denne e-mail, fordi du har reserveret et værelse hos os."
+        },
+        "cs-CZ": {
+          "subject": "Nový odkaz na vaši rezervaci {{stay.ref}}",
+          "preheader": "Starý odkaz ji už neotevře",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Tady je váš nový odkaz, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Číslo vaší rezervace",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Požádali jste o nový odkaz na svou rezervaci. Odkaz, který jsme vám poslali dříve, ji už neotevře.",
+                  "Pokud jste o něj nežádali, zavolejte nám na {{practice.phone}}."
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "Zobrazit rezervaci",
+                "url": "{{manage_url}}#{{stay.link_token}}"
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Tento e-mail dostáváte, protože jste si u nás rezervovali pokoj."
+        },
+        "ar-EG": {
+          "subject": "رابط جديد لحجزك {{stay.ref}}",
+          "preheader": "لم يعد الرابط القديم يفتحه",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "إليك رابطك الجديد يا {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "رقم حجزك",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "طلبت رابطًا جديدًا لحجزك. الرابط الذي أرسلناه سابقًا لم يعد يفتحه.",
+                  "إن لم تطلبه، اتصل بنا على {{practice.phone}}."
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "عرض حجزك",
+                "url": "{{manage_url}}#{{stay.link_token}}"
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. تصلك هذه الرسالة لأنك حجزت غرفة لدينا."
+        },
+        "zh-CN": {
+          "subject": "您的预订 {{stay.ref}} 的新链接",
+          "preheader": "旧链接已无法打开",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "{{recipient.first_name}}，这是您的新链接。"
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "预订参考号",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "您申请了预订的新链接。我们之前发送的链接已无法打开该预订。",
+                  "如果不是您本人申请，请致电 {{practice.phone}}。"
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "查看您的预订",
+                "url": "{{manage_url}}#{{stay.link_token}}"
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到此邮件，是因为您在我们这里预订了房间。"
+        },
+        "zh-TW": {
+          "subject": "您的預訂 {{stay.ref}} 的新連結",
+          "preheader": "舊連結已無法開啟",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "{{recipient.first_name}}，這是您的新連結。"
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "預訂參考號",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "您申請了預訂的新連結。我們先前寄出的連結已無法開啟該預訂。",
+                  "如果不是您本人申請，請致電 {{practice.phone}}。"
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "查看您的預訂",
+                "url": "{{manage_url}}#{{stay.link_token}}"
               }
             }
           ],

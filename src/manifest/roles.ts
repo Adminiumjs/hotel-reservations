@@ -10,8 +10,10 @@
  *                  stayed; moves a room between ready and being cleaned, and
  *                  takes one out of service. Never voids: that is a manager's;
  *   housekeeping   the room rack only: the rooms, their types and what is out
- *                  of service; marks a room ready or being cleaned. Reads no
- *                  guest and no reservation;
+ *                  of service; marks a room ready or being cleaned. Of the
+ *                  reservations it reads only which room, the dates, the
+ *                  status and a late leaving — never a name, an email or a
+ *                  figure;
  *   manager        everything: the dashboard section, the room types, rooms,
  *                  rates, extras, charge items, settings and house notes; voids
  *                  a charge, a payment or a credit; the guests, the emails.
@@ -31,6 +33,9 @@ const pii = (table: string) => `table:@${table}:read_pii`;
 
 /** What the desk reads to run the day. */
 const DESK_READS = TABLE_REFS.filter((table) => table !== "messages");
+
+/** What housekeeping reads of a reservation: which room, when, and whether it is still to come or in the house. */
+export const HOUSEKEEPING_STAY_COLUMNS = ["room_id", "arrive", "depart", "status"];
 
 /** What the desk may change of a reservation: never its money, its reference or its stamps. */
 const DESK_STAY_COLUMNS = [
@@ -80,7 +85,7 @@ export const ROLES = [
         },
       },
       stay_extras: { writable: ["state"] },
-      rooms: { writable: ["status", "note"], writableValues: { status: ["ready", "cleaning", "occupied"] } },
+      rooms: { writable: ["status", "note"], writableValues: { status: ["ready", "cleaning"] } },
       room_closures: { writable: ["to_date", "reason", "active"] },
     },
   },
@@ -88,8 +93,17 @@ export const ROLES = [
     key: "housekeeping",
     name: "Housekeeping",
     screensOnly: true,
-    permissions: ["app:@:staff", ...["rooms", "room_types", "room_closures"].flatMap((table) => grant(table, "read")), ...grant("rooms", "update")],
-    limits: { rooms: { writable: ["status"], writableValues: { status: ["ready", "cleaning"] } } },
+    permissions: [
+      "app:@:staff",
+      ...["rooms", "room_types", "room_closures", "extras", "stays", "stay_extras"].flatMap((table) => grant(table, "read")),
+      ...grant("rooms", "update"),
+    ],
+    limits: {
+      rooms: { writable: ["status"], writableValues: { status: ["ready", "cleaning"] } },
+      // "Leaving today", "Late leaving · until 14:00", "Arriving today" on a room's tile: no names.
+      stays: { readable: HOUSEKEEPING_STAY_COLUMNS },
+      stay_extras: { readable: ["stay_id", "extra_id", "state"] },
+    },
   },
   {
     key: "manager",

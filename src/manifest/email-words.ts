@@ -11,7 +11,7 @@ import type { EmailWords } from "./emails.ts";
 
 /** One language's words, from the sentences each email shares. */
 function words(
-  shared: Pick<EmailWords, "reference" | "theRoom" | "total" | "settle" | "cancelBy" | "lateOrEarly" | "foot">,
+  shared: Pick<EmailWords, "reference" | "theRoom" | "total" | "settle" | "cancelBy" | "lateOrEarly" | "totalWas" | "foot">,
   s: {
     madeName: string;
     madeDeskName: string;
@@ -38,6 +38,18 @@ function words(
     noShowHeading: string;
     noShowPara: string;
     noShowRing: string;
+    datesName: string;
+    datesSubject: string;
+    datesPre: string;
+    datesHeading: string;
+    datesBefore: string;
+    datesNow: string;
+    linkName: string;
+    linkSubject: string;
+    linkPre: string;
+    linkHeading: string;
+    linkPara: string;
+    linkRing: string;
   },
 ): EmailWords {
   const cancelled = (name: string, paras: string[]) => ({ name, subject: s.cancelledSubject, preheader: s.nothing.replace(/[.。]$/, ""), heading: s.cancelledHeading, paras });
@@ -51,6 +63,8 @@ function words(
     "stay-cancelled-desk-late": cancelled(s.names.deskLate, [s.deskLate, s.stillOpen]),
     "stay-cancelled-house": { name: s.names.house, subject: s.houseSubject, preheader: s.housePre, heading: s.houseHeading, paras: [s.housePara, s.houseRing] },
     "stay-no-show": { name: s.names.noShow, subject: s.noShowSubject, preheader: s.nothing.replace(/[.。]$/, ""), heading: s.noShowHeading, paras: [s.noShowPara, s.noShowRing] },
+    "stay-dates-changed": { name: s.datesName, subject: s.datesSubject, preheader: s.datesPre, heading: s.datesHeading, paras: [s.datesBefore, s.datesNow] },
+    "stay-new-link": { name: s.linkName, subject: s.linkSubject, preheader: s.linkPre, heading: s.linkHeading, paras: [s.linkPara, s.linkRing], button: s.button },
   };
 }
 
@@ -64,6 +78,7 @@ export const EMAIL_DE = words(
     settle: "Online wird nichts abgebucht. Sie begleichen alles an der Rezeption.",
     cancelBy: "Stornierung ohne Kosten bis {{stay.cancel_by.time}} am {{stay.cancel_by.date}}.",
     lateOrEarly: "Später oder früher? Schreiben Sie an {{practice.email}} oder rufen Sie uns an: {{practice.phone}}.",
+    totalWas: "Gesamt, vorher {{was.total}}",
     foot: `${FOOT} Sie erhalten diese E-Mail, weil Sie bei uns ein Zimmer reserviert haben.`,
   },
   {
@@ -99,6 +114,18 @@ export const EMAIL_DE = words(
     noShowHeading: "Wir haben Sie vermisst, {{recipient.first_name}}.",
     noShowPara: "Wir haben Ihr Zimmer für den {{stay.arrive.day_month}} gehalten, aber Sie sind nicht angekommen. Daher ist die Reservierung {{stay.ref}} als nicht erschienen markiert. Es wird nichts berechnet.",
     noShowRing: "Wenn Sie noch unterwegs sind, rufen Sie uns an: {{practice.phone}}.",
+    datesName: "Daten geändert",
+    datesSubject: "Ihre Reisedaten wurden geändert – {{stay.ref}}",
+    datesPre: "{{stay.arrive.day_month}} bis {{stay.depart.day_month}} · {{stay.total}}",
+    datesHeading: "Ihre Reisedaten wurden geändert, {{recipient.first_name}}.",
+    datesBefore: "Vorher: {{was.arrive.day_month}} bis {{was.depart.day_month}}.",
+    datesNow: "Jetzt: {{stay.arrive.day_month}} bis {{stay.depart.day_month}}. Ihre Extras gelten für die neuen Daten.",
+    linkName: "Ein neuer Link",
+    linkSubject: "Ein neuer Link zu Ihrer Reservierung {{stay.ref}}",
+    linkPre: "Der alte Link öffnet sie nicht mehr",
+    linkHeading: "Hier ist Ihr neuer Link, {{recipient.first_name}}.",
+    linkPara: "Sie haben einen neuen Link zu Ihrer Reservierung angefordert. Der Link, den wir Ihnen vorher geschickt haben, öffnet sie nicht mehr.",
+    linkRing: "Wenn Sie ihn nicht angefordert haben, rufen Sie uns an: {{practice.phone}}.",
   },
 );
 
@@ -110,6 +137,7 @@ export const EMAIL_FR = words(
     settle: "Rien n'est prélevé en ligne. Vous réglez à la réception.",
     cancelBy: "Annulation sans frais jusqu'à {{stay.cancel_by.time}} le {{stay.cancel_by.date}}.",
     lateOrEarly: "En retard ou en avance ? Écrivez à {{practice.email}} ou appelez-nous au {{practice.phone}}.",
+    totalWas: "Total, auparavant {{was.total}}",
     foot: `${FOOT} Vous recevez cet e-mail parce que vous avez réservé une chambre chez nous.`,
   },
   {
@@ -145,6 +173,18 @@ export const EMAIL_FR = words(
     noShowHeading: "Nous vous attendions, {{recipient.first_name}}.",
     noShowPara: "Nous avons gardé votre chambre pour le {{stay.arrive.day_month}}, mais vous n'êtes pas arrivé : la réservation {{stay.ref}} est donc marquée comme non présentée. Vous ne payez rien.",
     noShowRing: "Si vous êtes encore en route, appelez-nous au {{practice.phone}}.",
+    datesName: "Dates modifiées",
+    datesSubject: "Vos dates ont changé – {{stay.ref}}",
+    datesPre: "Du {{stay.arrive.day_month}} au {{stay.depart.day_month}} · {{stay.total}}",
+    datesHeading: "Vos dates ont changé, {{recipient.first_name}}.",
+    datesBefore: "Avant : du {{was.arrive.day_month}} au {{was.depart.day_month}}.",
+    datesNow: "Maintenant : du {{stay.arrive.day_month}} au {{stay.depart.day_month}}. Vos extras suivent les nouvelles dates.",
+    linkName: "Un nouveau lien",
+    linkSubject: "Un nouveau lien vers votre réservation {{stay.ref}}",
+    linkPre: "L'ancien lien ne l'ouvre plus",
+    linkHeading: "Voici votre nouveau lien, {{recipient.first_name}}.",
+    linkPara: "Vous avez demandé un nouveau lien vers votre réservation. Le lien que nous vous avions envoyé ne l'ouvre plus.",
+    linkRing: "Si vous ne l'avez pas demandé, appelez-nous au {{practice.phone}}.",
   },
 );
 
@@ -156,6 +196,7 @@ export const EMAIL_DA = words(
     settle: "Der trækkes intet online. Du betaler i receptionen.",
     cancelBy: "Afbestilling uden beregning indtil kl. {{stay.cancel_by.time}} den {{stay.cancel_by.date}}.",
     lateOrEarly: "Sent eller tidligt? Skriv til {{practice.email}}, eller ring til os på {{practice.phone}}.",
+    totalWas: "I alt, før {{was.total}}",
     foot: `${FOOT} Du får denne e-mail, fordi du har reserveret et værelse hos os.`,
   },
   {
@@ -191,6 +232,18 @@ export const EMAIL_DA = words(
     noShowHeading: "Vi savnede dig, {{recipient.first_name}}.",
     noShowPara: "Vi holdt dit værelse til den {{stay.arrive.day_month}}, men du kom ikke, så reservation {{stay.ref}} er markeret som udeblevet. Der opkræves intet.",
     noShowRing: "Hvis du stadig er på vej, så ring til os på {{practice.phone}}.",
+    datesName: "Datoer ændret",
+    datesSubject: "Dine datoer er ændret – {{stay.ref}}",
+    datesPre: "{{stay.arrive.day_month}} til {{stay.depart.day_month}} · {{stay.total}}",
+    datesHeading: "Dine datoer er ændret, {{recipient.first_name}}.",
+    datesBefore: "Før: {{was.arrive.day_month}} til {{was.depart.day_month}}.",
+    datesNow: "Nu: {{stay.arrive.day_month}} til {{stay.depart.day_month}}. Dine tilvalg følger de nye datoer.",
+    linkName: "Et nyt link",
+    linkSubject: "Et nyt link til din reservation {{stay.ref}}",
+    linkPre: "Det gamle link åbner den ikke længere",
+    linkHeading: "Her er dit nye link, {{recipient.first_name}}.",
+    linkPara: "Du har bedt om et nyt link til din reservation. Det link, vi sendte før, åbner den ikke længere.",
+    linkRing: "Hvis du ikke har bedt om det, så ring til os på {{practice.phone}}.",
   },
 );
 
@@ -202,6 +255,7 @@ export const EMAIL_CS = words(
     settle: "Online se nic nestrhává. Platíte na recepci.",
     cancelBy: "Zrušení bez poplatku do {{stay.cancel_by.time}} dne {{stay.cancel_by.date}}.",
     lateOrEarly: "Přijedete později nebo dříve? Napište na {{practice.email}} nebo nám zavolejte na {{practice.phone}}.",
+    totalWas: "Celkem, dříve {{was.total}}",
     foot: `${FOOT} Tento e-mail dostáváte, protože jste si u nás rezervovali pokoj.`,
   },
   {
@@ -237,6 +291,18 @@ export const EMAIL_CS = words(
     noShowHeading: "Chyběli jste nám, {{recipient.first_name}}.",
     noShowPara: "Drželi jsme vám pokoj na {{stay.arrive.day_month}}, ale nedorazili jste, proto je rezervace {{stay.ref}} označena jako nedostavení. Nic se neúčtuje.",
     noShowRing: "Pokud jste ještě na cestě, zavolejte nám na {{practice.phone}}.",
+    datesName: "Termín změněn",
+    datesSubject: "Termín vašeho pobytu se změnil – {{stay.ref}}",
+    datesPre: "{{stay.arrive.day_month}} až {{stay.depart.day_month}} · {{stay.total}}",
+    datesHeading: "Termín vašeho pobytu se změnil, {{recipient.first_name}}.",
+    datesBefore: "Dříve: {{was.arrive.day_month}} až {{was.depart.day_month}}.",
+    datesNow: "Nyní: {{stay.arrive.day_month}} až {{stay.depart.day_month}}. Vaše doplňky platí pro nový termín.",
+    linkName: "Nový odkaz",
+    linkSubject: "Nový odkaz na vaši rezervaci {{stay.ref}}",
+    linkPre: "Starý odkaz ji už neotevře",
+    linkHeading: "Tady je váš nový odkaz, {{recipient.first_name}}.",
+    linkPara: "Požádali jste o nový odkaz na svou rezervaci. Odkaz, který jsme vám poslali dříve, ji už neotevře.",
+    linkRing: "Pokud jste o něj nežádali, zavolejte nám na {{practice.phone}}.",
   },
 );
 
@@ -248,6 +314,7 @@ export const EMAIL_AR = words(
     settle: "لا يُقتطع أي مبلغ عبر الإنترنت. تدفع في مكتب الاستقبال.",
     cancelBy: "يمكنك الإلغاء دون رسوم حتى {{stay.cancel_by.time}} يوم {{stay.cancel_by.date}}.",
     lateOrEarly: "ستتأخر أو تصل مبكرًا؟ راسلنا على {{practice.email}} أو اتصل بنا على {{practice.phone}}.",
+    totalWas: "الإجمالي، وكان {{was.total}}",
     foot: `${FOOT} تصلك هذه الرسالة لأنك حجزت غرفة لدينا.`,
   },
   {
@@ -283,6 +350,18 @@ export const EMAIL_AR = words(
     noShowHeading: "افتقدناك يا {{recipient.first_name}}.",
     noShowPara: "احتفظنا بغرفتك ليوم {{stay.arrive.day_month}} لكنك لم تصل، لذا سُجّل الحجز {{stay.ref}} على أنه عدم حضور. لا يُحتسب أي مبلغ.",
     noShowRing: "إن كنت لا تزال في الطريق، فاتصل بنا على {{practice.phone}}.",
+    datesName: "تغيّرت التواريخ",
+    datesSubject: "تغيّرت تواريخ إقامتك — {{stay.ref}}",
+    datesPre: "{{stay.arrive.day_month}} إلى {{stay.depart.day_month}} · {{stay.total}}",
+    datesHeading: "تغيّرت تواريخ إقامتك يا {{recipient.first_name}}.",
+    datesBefore: "سابقًا: {{was.arrive.day_month}} إلى {{was.depart.day_month}}.",
+    datesNow: "الآن: {{stay.arrive.day_month}} إلى {{stay.depart.day_month}}. إضافاتك تتبع التواريخ الجديدة.",
+    linkName: "رابط جديد",
+    linkSubject: "رابط جديد لحجزك {{stay.ref}}",
+    linkPre: "لم يعد الرابط القديم يفتحه",
+    linkHeading: "إليك رابطك الجديد يا {{recipient.first_name}}.",
+    linkPara: "طلبت رابطًا جديدًا لحجزك. الرابط الذي أرسلناه سابقًا لم يعد يفتحه.",
+    linkRing: "إن لم تطلبه، اتصل بنا على {{practice.phone}}.",
   },
 );
 
@@ -294,6 +373,7 @@ export const EMAIL_ZH_CN = words(
     settle: "网上不收取任何费用，请在前台结清。",
     cancelBy: "{{stay.cancel_by.date}} {{stay.cancel_by.time}} 前取消不收费。",
     lateOrEarly: "会晚到或早到？请发邮件至 {{practice.email}} 或致电 {{practice.phone}}。",
+    totalWas: "总计（原为 {{was.total}}）",
     foot: "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到此邮件，是因为您在我们这里预订了房间。",
   },
   {
@@ -322,6 +402,18 @@ export const EMAIL_ZH_CN = words(
     noShowHeading: "{{recipient.first_name}}，我们错过了您。",
     noShowPara: "我们为您保留了 {{stay.arrive.day_month}} 的房间，但您没有到店，因此预订 {{stay.ref}} 记为未到店。不收取任何费用。",
     noShowRing: "如果您仍在路上，请致电 {{practice.phone}}。",
+    datesName: "日期已更改",
+    datesSubject: "您的入住日期已更改 — {{stay.ref}}",
+    datesPre: "{{stay.arrive.day_month}} 至 {{stay.depart.day_month}} · {{stay.total}}",
+    datesHeading: "{{recipient.first_name}}，您的入住日期已更改。",
+    datesBefore: "更改前：{{was.arrive.day_month}} 至 {{was.depart.day_month}}。",
+    datesNow: "现在：{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}。您的附加项目随新日期调整。",
+    linkName: "新链接",
+    linkSubject: "您的预订 {{stay.ref}} 的新链接",
+    linkPre: "旧链接已无法打开",
+    linkHeading: "{{recipient.first_name}}，这是您的新链接。",
+    linkPara: "您申请了预订的新链接。我们之前发送的链接已无法打开该预订。",
+    linkRing: "如果不是您本人申请，请致电 {{practice.phone}}。",
   },
 );
 
@@ -333,6 +425,7 @@ export const EMAIL_ZH_TW = words(
     settle: "線上不收取任何費用，請在櫃檯結清。",
     cancelBy: "{{stay.cancel_by.date}} {{stay.cancel_by.time}} 前取消不收費。",
     lateOrEarly: "會晚到或早到？請寄信至 {{practice.email}} 或來電 {{practice.phone}}。",
+    totalWas: "總計（原為 {{was.total}}）",
     foot: "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到這封郵件，是因為您在我們這裡預訂了房間。",
   },
   {
@@ -361,5 +454,17 @@ export const EMAIL_ZH_TW = words(
     noShowHeading: "{{recipient.first_name}}，我們錯過了您。",
     noShowPara: "我們為您保留了 {{stay.arrive.day_month}} 的房間，但您沒有到店，因此預訂 {{stay.ref}} 記為未到店。不收取任何費用。",
     noShowRing: "如果您仍在路上，請來電 {{practice.phone}}。",
+    datesName: "日期已變更",
+    datesSubject: "您的入住日期已變更 — {{stay.ref}}",
+    datesPre: "{{stay.arrive.day_month}} 至 {{stay.depart.day_month}} · {{stay.total}}",
+    datesHeading: "{{recipient.first_name}}，您的入住日期已變更。",
+    datesBefore: "變更前：{{was.arrive.day_month}} 至 {{was.depart.day_month}}。",
+    datesNow: "現在：{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}。您的附加項目隨新日期調整。",
+    linkName: "新連結",
+    linkSubject: "您的預訂 {{stay.ref}} 的新連結",
+    linkPre: "舊連結已無法開啟",
+    linkHeading: "{{recipient.first_name}}，這是您的新連結。",
+    linkPara: "您申請了預訂的新連結。我們先前寄出的連結已無法開啟該預訂。",
+    linkRing: "如果不是您本人申請，請致電 {{practice.phone}}。",
   },
 );

@@ -53,33 +53,21 @@ export interface Writer {
 export const CLOCK: Writer = { origin: "automation", name: "Timed move", roles: [] };
 
 /**
- * What the demo plays ahead of the manifest: the rules the release carries
- * that the Adminium the manifest is checked against cannot read yet. Each goes
- * into the manifest the day its Adminium reads it, and leaves here.
+ * What the demo plays that the manifest cannot say, because the desk's screen
+ * keeps it: a guest who said "after 22:00" (the key left out) is not marked a
+ * no-show before the next morning's no-show time, although Adminium would
+ * allow it from 22:30.
  */
-export const AHEAD = {
-  /** The guest site's two availability questions: the room types, and parking. */
-  availability: ["stays", "stay_extras"],
-  /** "N left" below this many. */
-  showLeft: 5,
-  /** A no-show is marked from the time the guest said (15:00 when they said none); a key left out waits for the next morning. */
-  noShowFromTheirTime: { lateArrival: "22:30" },
-  /** A room change moves the rooms too: the old one to be cleaned, the new one occupied (and it must be ready). */
-  roomChangeEffects: true,
-  /** A change to a stay in the house judges its nights from today on. */
-  inHouseFromToday: true,
-  /** The party held to what the room sleeps on the desk's changes too. */
-  staffAgrees: true,
-  /** An extra added to a stay only until the arrival afternoon, as a drop is. */
-  extrasAddWindow: true,
-  /** A date change judged against the stay's cancel-by moment before the change. */
-  datesJudgedBefore: true,
-  /** A guest's "Make a new link"; and "Delete my details" stops the stays' links. */
-  newLink: true,
-  forgetStopsLinks: true,
-  /** A manager voids a charge, a payment or a credit whatever state the stay is in. */
-  voidsInAnyState: true,
+export const DESK_ONLY = {
+  lateArrival: "22:30",
 } as const;
+
+/** "N left" is said below this many, as the guest site's availability entries answer. */
+const SHOW_LEFT = Object.fromEntries(
+  (MANIFEST_RULES.publicAccess as unknown as readonly Json[])
+    .filter((e) => e["kind"] === "availability")
+    .map((e) => [String(e["table"]), Number((e["showLeft"] as Json | undefined)?.["below"] ?? 0)]),
+) as Record<string, number>;
 
 const COUNTED = ["booked", "in_house"];
 const iso = (ms: number) => new Date(ms).toISOString();
@@ -93,17 +81,25 @@ type StatesRule = {
   initial: string;
   moves: Record<string, readonly Move[]>;
   lock?: { when: readonly string[]; except?: readonly string[] };
-  children?: Record<string, { via: string; parentIn?: readonly string[] }>;
+  children?: Record<string, { via: string; parentIn?: readonly string[]; createIn?: readonly string[]; changeIn?: readonly string[] }>;
   late?: readonly { to: string; from?: readonly string[]; moment: Json; within: Json; mode: string; flag?: string }[];
   timed?: readonly { from: string; to: string; at: Json }[];
-  effects?: readonly { on: { to: string }; via: string; set: Record<string, string> }[];
+  effects?: readonly ({ on: { to: string }; via: string; set: Record<string, string> } | { on: { change: string; in?: readonly string[] }; old?: { set: Record<string, string> }; new?: { set: Record<string, string> } })[];
   strict?: unknown;
 };
 const STATES = MANIFEST_RULES.states as unknown as Record<string, StatesRule>;
 const STAMPS = MANIFEST_RULES.stamps as unknown as Record<string, Record<string, { set: unknown; on: unknown }>>;
 type RoleRule = { key: string; grants: Record<string, readonly string[]>; limits: Record<string, { writable: readonly string[]; writableValues?: Record<string, readonly unknown[]> }> | null };
 const ROLES = MANIFEST_RULES.roles as unknown as readonly RoleRule[];
-type Producer = { kind: string; link: string; gate?: unknown; onCreate?: { table: string; where?: Json }; onChange?: { table: string; column: string; to: unknown; where?: Json } };
+type Producer = {
+  kind: string;
+  link: string;
+  gate?: unknown;
+  onCreate?: { table: string; where?: Json };
+  onChange?: { table: string; column?: string; to?: unknown; columns?: readonly string[]; changed?: true; where?: Json };
+  repeat?: true;
+  was?: readonly string[];
+};
 const PRODUCERS = MANIFEST_RULES.producers as unknown as readonly Producer[];
 
 const STAY_PRICE = RULES.perNights.find((rule) => rule.table === "stays") as PerNight;
@@ -241,7 +237,7 @@ export class Engine {
     const answer = types.map((type) => {
       const left = this.typeLeft(type.id, this.nightsOf(q.from, q.to), q.exclude);
       const state: TypeAvailability["state"] = !ruleOk ? "closed" : left < 1 ? "full" : "open";
-      const row: TypeAvailability = { pool: String(type.id), state, ...(state !== "closed" && left < AHEAD.showLeft ? { left: Math.max(0, left) } : {}) };
+      const row: TypeAvailability = { pool: String(type.id), state, ...(state !== "closed" && left < (SHOW_LEFT["stays"] ?? 0) ? { left: Math.max(0, left) } : {}) };
       if ((q.earliest ?? 0) > 0 && length >= 1) {
         row.earliest = null;
         for (let k = 1; k <= q.earliest!; k += 1) {
@@ -447,11 +443,12 @@ export class Engine {
     return this.world.insert("stay_extras", { stay_id: stay.id, extra_id: extraId, state: "on", ...this.stampsFor("stay_extras", null, { stay_id: stay.id }, writer) });
   }
 
-  /** The states a child table may be written in, by its parent's state. */
-  judgeChildState(stay: Row, table: string): void {
+  /** The states a child table may be added (`create`) or changed (`change`) in, by its parent's state. */
+  judgeChildState(stay: Row, table: string, on: "create" | "change" = "create"): void {
     const rule = STATES["stays"]!.children?.[table];
-    if (rule?.parentIn !== undefined && !rule.parentIn.includes(String(stay["status"]))) {
-      throw new ApiError(409, "RECORD_LOCKED", "The stay is not open for that now.", { parentIn: rule.parentIn, state: stay["status"] });
+    const allowed = on === "create" ? (rule?.createIn ?? rule?.parentIn) : (rule?.changeIn ?? rule?.parentIn);
+    if (allowed !== undefined && !allowed.includes(String(stay["status"]))) {
+      throw new ApiError(409, "RECORD_LOCKED", "The stay is not open for that now.", { on, state: stay["status"] });
     }
   }
 
@@ -546,7 +543,7 @@ export class Engine {
     if (from === "booked" && to === "no_show" && writer.origin === "staff") {
       const said = String(after["arrival_time"] ?? this.setting("arrive_from"));
       const opens =
-        said === AHEAD.noShowFromTheirTime.lateArrival
+        said === DESK_ONLY.lateArrival
           ? this.at(addDays(String(after["arrive"]), 1), String(this.setting("no_show_at")))
           : this.at(String(after["arrive"]), /^\d\d:\d\d$/.test(said) ? said : String(this.setting("arrive_from")));
       if (this.now < opens) refuse({ requires: "time", bound: "after", at: iso(opens) });
@@ -556,7 +553,7 @@ export class Engine {
   /** The rooms a move takes along: occupied at check-in, to be cleaned at check-out. */
   private effects(before: Row, after: Row, writer: Writer): void {
     for (const effect of STATES["stays"]!.effects ?? []) {
-      if (effect.on.to !== after["status"]) continue;
+      if (!("via" in effect) || effect.on.to !== after["status"]) continue;
       const roomId = after[effect.via];
       if (empty(roomId)) continue;
       for (const [column, state] of Object.entries(effect.set)) this.moveRoomState(roomId as Id, column, state, { ...writer, roles: ["manager"] });
@@ -617,7 +614,10 @@ export class Engine {
     for (const m of tries) {
       const value = row[String(m["column"])];
       if (empty(value)) continue;
-      const time = m["time"] === undefined ? null : typeof m["time"] === "string" ? m["time"] : this.setting(String((m["time"] as Json)["column"]));
+      // A wall time: as written, a setting's, or one kept on the row itself (the guest's arrival time).
+      const spec = m["time"] as string | Json | undefined;
+      const time = spec === undefined ? null : typeof spec === "string" ? spec : "table" in spec ? this.setting(String(spec["column"])) : row[String(spec["column"])];
+      if (spec !== undefined && (empty(time) || !/^\d\d:\d\d$/.test(String(time)))) continue;
       let at: number;
       if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
         let day = String(value);
@@ -699,12 +699,21 @@ export class Engine {
       if (producer.onCreate !== undefined && before !== null) continue;
       if (producer.onChange !== undefined) {
         const change = producer.onChange;
-        if (before === null || before[change.column] === after[change.column]) continue;
-        const targets = Array.isArray(change.to) ? change.to : [change.to];
-        if (!targets.includes(after[change.column])) continue;
+        if (before === null) continue;
+        if (change.changed === true) {
+          // Any change of these columns, whatever they became.
+          if ((change.columns ?? []).every((column) => before[column] === after[column])) continue;
+        } else {
+          const column = String(change.column);
+          if (before[column] === after[column]) continue;
+          const targets = Array.isArray(change.to) ? change.to : [change.to];
+          if (!targets.includes(after[column])) continue;
+        }
       }
       if (on.where !== undefined && !holds(after, on.where)) continue;
-      if (this.world.where("messages", (m) => m["kind"] === producer.kind && m["stay_id"] === after.id).length > 0) continue;
+      // One of a kind per stay — or, with `repeat`, one for each change.
+      if (producer.repeat !== true && this.world.where("messages", (m) => m["kind"] === producer.kind && m["stay_id"] === after.id).length > 0) continue;
+      const was = producer.was === undefined || before === null ? null : JSON.stringify(Object.fromEntries(producer.was.map((column) => [column, before[column] ?? null])));
       const customer = empty(after["customer_id"]) ? undefined : this.world.get("customers", after["customer_id"] as Id);
       const address = customer !== undefined ? customer["email"] : after["email"];
       const gated = producer.gate !== undefined && this.setting("guest_emails_on") !== true;
@@ -720,6 +729,7 @@ export class Engine {
         sent_at: null,
         error: empty(address) ? "No email on file" : null,
         skip_reason: null,
+        was,
       });
     }
   }

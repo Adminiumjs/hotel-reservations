@@ -23,6 +23,7 @@ const w = (de: string, fr: string, da: string, cs: string, ar: string, zhCN: str
 
 export const WORDS: Record<string, Translation> = {
   "A later email took its place": w("Eine spätere E-Mail hat sie ersetzt", "Un e-mail plus récent l'a remplacé", "En senere e-mail erstattede den", "Nahradil ho pozdější e-mail", "حلّ محلها بريد لاحق", "已被之后的邮件取代", "已被之後的郵件取代"),
+  "A new link": w("Ein neuer Link", "Un nouveau lien", "Et nyt link", "Nový odkaz", "رابط جديد", "新链接", "新連結"),
   "A night": w("Pro Nacht", "Par nuit", "Pr. nat", "Za noc", "لليلة", "每晚", "每晚"),
   "A night they missed": w("Eine versäumte Nacht", "Une nuit manquée", "En nat de ikke kom", "Zmeškaná noc", "ليلة لم يحضروها", "未入住的一晚", "未入住的一晚"),
   "About line": w("Kurzbeschreibung", "Phrase d'accueil", "Kort om huset", "Úvodní věta", "سطر تعريفي", "简介", "簡介"),
@@ -36,6 +37,7 @@ export const WORDS: Record<string, Translation> = {
   "Arriving today": w("Anreise heute", "Arrivées du jour", "Ankommer i dag", "Přijíždějí dnes", "الواصلون اليوم", "今日入住", "今日入住"),
   "At the desk": w("An der Rezeption", "À la réception", "I receptionen", "Na recepci", "في الاستقبال", "前台", "櫃檯"),
   "Before tax": w("Vor Steuern", "Hors taxes", "Før skat", "Před zdaněním", "قبل الضريبة", "税前", "稅前"),
+  "Before the change": w("Vor der Änderung", "Avant la modification", "Før ændringen", "Před změnou", "قبل التغيير", "更改前", "變更前"),
   "Being cleaned": w("Wird gereinigt", "En nettoyage", "Bliver gjort rent", "Uklízí se", "قيد التنظيف", "清洁中", "清潔中"),
   Booked: w("Gebucht", "Réservé", "Booket", "Rezervováno", "محجوز", "已预订", "已預訂"),
   "Breakfast hours": w("Frühstückszeiten", "Horaires du petit-déjeuner", "Morgenmadstider", "Doba snídaně", "مواعيد الإفطار", "早餐时间", "早餐時間"),
@@ -65,6 +67,7 @@ export const WORDS: Record<string, Translation> = {
   Colour: w("Farbe", "Couleur", "Farve", "Barva", "اللون", "颜色", "顏色"),
   Counted: w("Angerechnet", "Compté", "Medregnet", "Započteno", "المحتسب", "计入", "計入"),
   Created: w("Erstellt", "Créé", "Oprettet", "Vytvořeno", "أُنشئ", "创建时间", "建立時間"),
+  "Dates changed": w("Daten geändert", "Dates modifiées", "Datoer ændret", "Termín změněn", "تغيّرت التواريخ", "日期已更改", "日期已變更"),
   "Days ahead a guest may reserve": w("Tage im Voraus buchbar", "Jours de réservation à l'avance", "Dage frem en gæst kan reservere", "Kolik dní předem lze rezervovat", "عدد الأيام المتاحة للحجز مسبقًا", "可提前预订天数", "可提前預訂天數"),
   "Days' notice to cancel": w("Tage Frist zum Stornieren", "Délai d'annulation (jours)", "Dages varsel for afbestilling", "Dní předem na zrušení", "أيام الإشعار للإلغاء", "取消需提前天数", "取消需提前天數"),
   Description: w("Beschreibung", "Description", "Beskrivelse", "Popis", "الوصف", "描述", "描述"),
@@ -192,6 +195,7 @@ export const WORDS: Record<string, Translation> = {
   Rooms: w("Zimmer", "Chambres", "Værelser", "Pokoje", "الغرف", "房间", "房間"),
   "Same as the extra": w("Entspricht dem Extra", "Correspond à l'extra", "Samme som tilvalget", "Odpovídá doplňku", "مطابق للإضافة", "对应附加项目", "對應附加項目"),
   Sent: w("Gesendet", "Envoyé", "Sendt", "Odesláno", "أُرسل", "已发送", "已寄出"),
+  "Sent for": w("Gesendet für", "Envoyé pour", "Sendt for", "Odesláno pro", "أُرسل من أجل", "发送依据", "發送依據"),
   "Set by": w("Eingetragen von", "Saisi par", "Sat af", "Zadal", "حدّده", "设置人", "設定人"),
   "Set on": w("Eingetragen am", "Saisi le", "Sat den", "Zadáno", "حُدّد في", "设置时间", "設定時間"),
   Settings: w("Einstellungen", "Réglages", "Indstillinger", "Nastavení", "الإعدادات", "设置", "設定"),

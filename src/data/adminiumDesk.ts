@@ -343,16 +343,9 @@ export class AdminiumDesk implements DeskPort {
   }
 
   moveRoom(id: Id, roomId: Id): Promise<Row> {
-    return answer(async () => {
-      const before = await this.one("stays", id);
-      const moved = await this.change("stays", id, { room_id: roomId });
-      // A guest moved while in the house: the room left is cleaned, the room taken is theirs.
-      if (before["status"] === "in_house" && before["room_id"] !== null && before["room_id"] !== roomId) {
-        await this.change("rooms", before["room_id"] as Id, { status: "cleaning" });
-        await this.change("rooms", roomId, { status: "occupied" });
-      }
-      return moved;
-    });
+    // A guest moved while in the house: Adminium sends the room left to be
+    // cleaned and makes the ready room given theirs, in the same write.
+    return answer(() => this.change("stays", id, { room_id: roomId }));
   }
 
   // ── the folio's money ─────────────────────────────────────────────────────

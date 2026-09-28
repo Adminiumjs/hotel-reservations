@@ -17,11 +17,18 @@
  *   stay-cancelled-house       the house had to cancel: never late, and said
  *                              in the house's voice;
  *   stay-no-show               "we missed you": the room was kept and the
- *                              nights are released, with the house's phone.
+ *                              nights are released, with the house's phone;
+ *   stay-dates-changed         the dates moved, by the guest or the desk: the
+ *                              dates before and now, and the new total beside
+ *                              the old one — one email for each change;
+ *   stay-new-link              a signed-in guest asked for a new link to a
+ *                              reservation: the new one, the old one stopped.
  *
  * The log is the dedupe: a kind already queued or sent for the same stay is
- * not queued again. A reservation linked to a signed-in guest is addressed to
- * them; any other to the address typed on it, in the language it was made in.
+ * not queued again (a change of dates is told each time). A reservation linked
+ * to a signed-in guest is addressed to them, any other to the address typed on
+ * it; always in the language the reservation is kept in. A reply goes to the
+ * house's own address.
  * A cancellation email is picked by who cancelled and whether it was late,
  * both written in the same write as the move.
  */
@@ -35,6 +42,8 @@ export const KINDS = [
   "stay-cancelled-desk-late",
   "stay-cancelled-house",
   "stay-no-show",
+  "stay-dates-changed",
+  "stay-new-link",
 ] as const;
 export type Kind = (typeof KINDS)[number];
 
@@ -60,6 +69,8 @@ export const OUTBOX = {
     sentAt: "sent_at",
     error: "error",
     skipReason: "skip_reason",
+    was: "was",
+    repeatKey: "repeat_key",
   },
   links: { stay: "stay_id", customer: "customer_id" },
   recipient: {
@@ -67,10 +78,12 @@ export const OUTBOX = {
     table: "customers",
     email: "email",
     name: "first_name",
+    // The reservation's own language, whatever the guest's account says.
+    language: { column: "language" },
     // A reservation nobody signed in for — and every desk booking — carries its own details.
     fallback: { via: "stay_id", email: "email", name: "first_name", language: "language" },
   },
-  settings: { table: "settings", name: "name", phone: "phone" },
+  settings: { table: "settings", name: "name", phone: "phone", replyTo: "email" },
   // A reservation's own link opens it on the guest site; its code rides the fragment.
   pages: { manage: "/r", booking: "/" },
   kinds: Object.fromEntries(KINDS.map((kind) => [kind, `hotel-${kind}`])),
@@ -83,5 +96,15 @@ export const OUTBOX = {
     { kind: "stay-cancelled-desk-late", link: "stay_id", ...GATE, ...cancelled("guest_asked", true) },
     { kind: "stay-cancelled-house", link: "stay_id", ...GATE, ...cancelled("house") },
     { kind: "stay-no-show", link: "stay_id", ...GATE, ...onStay("status", "no_show") },
+    // Dates moved on a stay still to come: the old ones and the old total kept on the message.
+    {
+      kind: "stay-dates-changed",
+      link: "stay_id",
+      ...GATE,
+      onChange: { table: "stays", columns: ["arrive", "depart"], changed: true, where: { column: "status", eq: "booked" } },
+      repeat: true,
+      was: ["arrive", "depart", "total"],
+    },
+    // "stay-new-link" is sent by Adminium when a signed-in guest makes a new link (no producer).
   ],
 };

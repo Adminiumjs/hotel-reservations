@@ -178,9 +178,28 @@ describe("the guest's own stay", () => {
     await h.a.guest.verifyCode("nadia.brightwell@example.com", DEMO_SIGN_IN.code);
     const quote = await h.a.guest.quoteDates(nadia.id, "2026-07-30", "2026-08-02");
     expect(quote.nights.map((n) => n.rate)).toEqual([180, 205, 225]);
+    const stored = h.stay("WH-S3305");
+    const before = { arrive: stored["arrive"], depart: stored["depart"], total: stored["total"] };
     await h.a.guest.moveDates(nadia.id, "2026-07-30", "2026-08-02", money(quote.data["total"]));
     expect([h.stay("WH-S3305")["arrive"], h.room("309").id === h.stay("WH-S3305")["room_id"]]).toEqual(["2026-07-30", true]);
     expect(h.stay("WH-S3305")["cancel_by"]).toBe(new Date(EDT("2026-07-28", "15:00")).toISOString());
+    // The guest is told, with the dates and the total before the change; a second change is told again.
+    const told = () => h.a.world.where("messages", (m) => m["kind"] === "stay-dates-changed" && m["stay_id"] === nadia.id);
+    expect(told().map((m) => JSON.parse(String(m["was"])))).toEqual([before]);
+    const again = await h.a.guest.quoteDates(nadia.id, "2026-07-30", "2026-08-01");
+    await h.a.guest.moveDates(nadia.id, "2026-07-30", "2026-08-01", money(again.data["total"]));
+    expect(told().length).toBe(2);
+  });
+
+  it("makes a signed-in guest a new link: the old one opens nothing, and the new one is emailed to them", async () => {
+    const h = house();
+    const reply = await h.a.guest.reserve(garden(h), "h".repeat(43));
+    await h.a.guest.requestSignIn("elin.marsh@example.com");
+    await h.a.guest.verifyCode("elin.marsh@example.com", DEMO_SIGN_IN.code);
+    expect(await h.a.guest.newLink(h.stay("WH-1001").id)).toEqual({ sentTo: "elin.marsh@example.com" });
+    const sent = h.a.world.where("messages", (m) => m["kind"] === "stay-new-link");
+    expect(sent.map((m) => m["to_address"])).toEqual(["elin.marsh@example.com"]);
+    expect(await outcome(() => h.a.guest.openLink(reply.link!.token))).toBe("LINK_EXPIRED");
   });
 
   it("refuses a date change once the cancel-by moment has passed, however late the new dates", async () => {
