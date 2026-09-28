@@ -1,291 +1,143 @@
 # Hotel Reservations
 
-A complete, production-shaped reservations site and front desk — built with
-Vite + React + TypeScript, no CSS framework, no backend required. It's an
-example app that ships with [Adminium](https://adminium.dev): search dates and
-reserve a room as a guest, then switch to the desk and work the day — check
-people in, give them a room, add to the folio, take a payment, send them on
-their way.
+A small hotel's guest site and front desk, installed into
+[Adminium](https://adminium.dev). Guests search dates, reserve a room type and
+look after their stay online; the desk checks them in and out, gives each a
+room, keeps the folio and records what they pay. Adminium decides every price,
+total, reference, room and status — the pages only ask.
 
-The demo is dressed as **Wren House**, a fictional 34-room independent hotel in
-a coastal town, so the morning reads like a real Tuesday rather than lorem
-ipsum: twenty-one rooms in the building, five arrivals of whom one is already
-in and one has left a note, four departures — and one of those four cannot check
-out, because there is still $1,291.60 on the folio.
+**One hotel, one building, nothing taken online.** Nobody pays on the site and
+nothing is sent by text message: the folio is settled at the desk. Stays run
+one night to fourteen, and housekeeping is a room's status (ready, being
+cleaned, out of service), never a list of jobs.
+
+The demo is dressed as **Wren House**, a fictional 34-room hotel above a
+harbour, at 09:05 on a Tuesday in July: twenty-one rooms in use, five arrivals
+(one already late), four departures — and one of those four cannot leave yet,
+because $1,099.03 is still on the folio.
 
 **Live demo → [adminium.dev/demo/hotel-reservations](https://adminium.dev/demo/hotel-reservations)**
 
-## What it is, and what it deliberately is not
+## What it needs
 
-Wren House is **one hotel in one building**, and this app covers the guest's
-stay and the desk that runs it: search, rates, availability, reserve, arrive,
-assign a room, the folio, depart.
-
-It contains **nothing** that resembles managing property as an asset. No owners
-or owner statements, no unit ownership or revenue shares, no leases or
-tenancies, no long-stay or monthly rentals, no building maintenance work orders
-or job dispatch, no listings syndicated to other sites, and no portfolio or
-multi-property view.
-
-Two rules make that line visible in the product rather than only in this
-paragraph:
-
-- **Stays cap at fourteen nights**, enforced with a plain message a guest
-  actually reads — and again by a `CHECK` constraint in
-  [`db/schema.sql`](db/schema.sql), so a row that would make this a letting
-  cannot be inserted at all.
-- **Housekeeping is a room-status flag** — Ready, Being cleaned, Out of service
-  — never a work queue, a job list or an assignment screen. The rack says so on
-  the screen itself.
+- Adminium **0.3.4** or later, on SQLite, Postgres or MySQL.
+- Nothing else. **Invoices & Receipts** is offered at install: with it, the
+  desk prints a guest's folio and emails it at check-out, and each payment has
+  a receipt.
 
 ## What it does
 
-- **Two personas in one build.** The demo dock switches between the public site
-  and the desk. The loop closes across it: reserve a room as a guest, switch to
-  **Front desk**, and the new reservation is in the Arriving column waiting to
-  be checked in.
+**For guests** (the app's customer side):
+- Search dates and a party size and see only the room types open on every
+  night of the stay, each priced night by night — a weekend or a summer week
+  costs what the house's rates say — with the nights adding up to the total
+  beside them. A type that is full says when it is next open.
+- Reserve a room type, with extras (breakfast, parking, a late leaving) and an
+  arrival time. The price is Adminium's, asked again as the reservation is
+  made: a price that moved in between is shown, never taken unseen.
+- A confirmation email in the guest's language, with the stay's own link.
+- Their stay, by that link or by signing in with a link emailed to them:
+  change the arrival time, add or drop an extra, move the dates (re-priced by
+  Adminium) or cancel — no charge for cancelling; after the house's notice it
+  is marked as late. A new link, signing out on every device, and deleting
+  their details.
 
-- **A real availability engine.** [`src/lib/stay.ts`](src/lib/stay.ts) is a
-  pure module with no hooks and no store in it. A stay occupies the nights `[arrive, departure)`, so
-  a room given up on the 26th is sellable to somebody arriving on the 26th and
-  the calendar shows it as available — getting that wrong loses a hotel a night
-  per turnover. Availability across a range is the **minimum** over its nights,
-  not the average. **75 assertions** in [`stay.test.ts`](src/lib/stay.test.ts)
-  run against the shipped seed, and four of them come at the half-open interval
-  from four different directions.
+**For the desk** (the app's staff side):
+- Today: who is arriving, who is in the house and who is leaving, each with
+  what they owe. Checking in gives a room only from those ready and of the
+  type booked; checking out is refused while money is owed, and names the
+  amount.
+- The folio: the nights, the extras, charges (from the house's list or
+  "something else"), the nights not stayed when a guest leaves early, and
+  payments — part payments too, never more than is owed. Voids are a manager's.
+- Taking a booking and changing one, priced by Adminium before it is saved.
+- The room rack and a fortnight's calendar; moving a guest to another room;
+  closing a room for repair; a no-show and "they came after all".
+- Changes made at another desk appear without a reload.
 
-- **Rates that add up.** Friday and Saturday carry a weekend delta and August
-  carries a high-season one, and both apply together. The "see the nightly
-  rates" disclosure on a results card expands to a per-night list that
-  **visibly sums to the total** beside it, because a flat rate times nights
-  would simply be wrong.
+**Roles.** Front desk runs the day; housekeeping sees the rooms and marks them
+ready or being cleaned, and reads no names or money; the manager does
+everything, including voids and the dashboard.
 
-- **Rules the guest can see.** A Saturday arrival needs two nights and a stay
-  runs one to fourteen; both surface as friendly inline messages naming the
-  rule, not as a disabled button that says nothing. A room type with nothing
-  open shows the earliest date that would work, as a button.
+**In the dashboard** (the Hotel section): the Overview (occupancy and room
+income tonight, arrivals, who is leaving with money owing, rooms out of
+service), the reservations, guests, charges, nights not stayed, payments and
+the emails sent; and the room types, rooms, closures, rate rules, extras,
+charge items, house notes and settings — the hotel's name and words, its tax,
+its arrival and leaving times, its cancellation notice and the longest stay.
 
-- **A room type, never a room number.** The confirmation names the type and says
-  in as many words that the room itself is picked when you arrive. The check-in
-  sheet then offers **only rooms that are Ready and of the booked type** — and
-  when none is, it says so, names how many are being cleaned, and offers the
-  rack.
+## Installing it
 
-- **A folio that refuses to lie.** One line per night, then extras with their
-  dates, then payments starting with the one-night deposit, each carrying a
-  running balance down the right. The settle popover takes partial amounts and
-  **refuses** an overpayment, naming the excess. **Checking out with a balance
-  outstanding is blocked**, with a plain reason and the amount named — not a
-  silently disabled button, because the guest is standing there.
+Install Hotel Reservations from Adminium's app catalog and pick the database it
+should use. Adminium creates the app's tables, the dashboard pages, the
+`front-desk`, `housekeeping` and `manager` roles, the guests' browser keys and
+the emails. Tick sample data at the install step to start with Wren House's
+Tuesday, or add it later from the app's settings.
 
-- **A clock with exactly two positions.** Nothing user-visible reads
-  `Date.now()`. "Now" is Tuesday 28 July 2026, 09:05 — mid-departure — and the
-  dock's **Advance to check-out time** chip is the only thing that moves it.
+Once installed, the desk is served at `/apps/hotel/staff/` and the guest site
+at `/apps/hotel/customer/`. A hotel can also give the guest site a domain of
+its own.
 
-- **Eight languages, including a right-to-left one.** English, German, French,
-  Czech, Danish, Simplified and Traditional Chinese, and Egyptian Arabic.
-  Plurals go through `Intl.PluralRules` in each locale's own CLDR order — Czech
-  gets its three forms, Arabic its six. Room types, features and the note a
-  guest left are stored as translation keys, so they move with the chrome.
-
-- **RTL by construction.** Every positional rule is a CSS logical property, so
-  stamping `dir="rtl"` on `<html>` mirrors both shells, the board, the rack and
-  the demo dock with no second stylesheet. Dates, rates and references are
-  isolated so the bidi algorithm cannot reorder them.
-
-- **Light / dark themes** via CSS custom properties, following your OS on first
-  load. One deliberate constraint: in dark the navy accent lands near `--info`,
-  so `--info` is used on status pills only and **never on a button** — a guest
-  should never have to work out which blue is the one to press.
-
-- **No bitmaps, no external requests.** Room types are layered gradients with an
-  oversized icon and a mono code chip, one tint per type reused everywhere.
-  Fonts are self-hosted woff2. The app works offline and behind a firewall.
+**Coming from 0.1.x?** 0.2.0 is a different app on new tables, and it cannot
+update a 0.1.x install in place. Uninstall 0.1.x first (its tables stay unless
+you choose to drop them), then install 0.2.0. Nothing is carried over from the
+old tables.
 
 ## Local development
 
 ```bash
 npm install
-```
-
-```bash
 npm run dev
 ```
 
-Then open the URL Vite prints (default http://localhost:5173).
-
-### Driving the demo
-
-The dock in the corner is the demo. Everything else is the product.
-
-| Control | What it does |
-| --- | --- |
-| **Guest / Front desk** | Switches persona. The loop closes across it — this is the thing to show. |
-| **Advance to check-out time** | Moves the pinned clock past 11:00. Departures become due and the board re-sorts. |
-| **Language** | Eight locales, including Arabic, which flips the whole layout to RTL. |
-| **Theme** | Latches light or dark over the OS preference. |
-| **Reset** | Puts the seeded Tuesday back the way it started, clock included. |
-
-A ninety-second tour: pick dates on the home page → **See what is open** → expand
-*see the nightly rates* and watch the per-night list add up to the total →
-**Reserve** → the confirmation gives you a room *type* and a reference →
-**Your reservation**, tap the hint chip and look it up → switch to **Front
-desk** → **Today**: Ottoline Grey has left a note, so check her in and pick a
-room → the folio opens → back to **Today**, try to check Teodor Blank out and
-read why you cannot → take the payment, then check him out and watch room 301
-turn amber on the **Room rack** → **Calendar**: Saturday 1 August is fully
-committed on the loft suites.
-
-## Deploy
-
-- **Vercel** — import the repo. Build command `npm run build`, output `dist`.
-- **DigitalOcean App Platform** — import the repo; same command.
-- **Host anywhere** — `npm run build` produces a fully static `dist/`. Or build
-  the container:
-
-  ```bash
-  docker build -t hotel-reservations .
-  ```
-
-### Build scripts
+Then open the URL Vite prints (default http://localhost:5173): the demo, with
+the house's guest site and desk on a browser-only Adminium of their own.
 
 | Script | What it does |
 | --- | --- |
-| `npm run dev` | Start the Vite dev server. |
-| `npm run build` | Type-check + build to `dist/` at base `/` (root deploys). |
-| `npm run build:demo` | Build to `dist/` at base `/demo/hotel-reservations/`. |
-| `npm run preview` | Preview a production build locally. |
-| `npm test` | Run the stay-engine suite. |
+| `npm run dev` | Start the Vite dev server (the demo). |
+| `npm run build` | Type-check and build to `dist/`. |
+| `npm run build:demo` | Build the website's demo, at base `/demo/hotel-reservations/app/`. |
+| `npm run build:surface` | Build the two sides Adminium serves (`dist-surface/`). |
+| `npm run manifest` | Write `manifest.json` from `src/manifest/`. |
+| `npm run sample` | Write the sample (`seeds/hotel.sample.json`) from `src/sample/wren-house.ts`. |
+| `npm run strings` | Collect the screens' sentences and sort each language's words by side. |
+| `npm test` | Run the suite. |
+| `npm run e2e` | Walk the demo in a browser: every screen in light, dark, Arabic and on a phone, swept by axe. |
 
-## Full implementation (self-host)
+`manifest.json` and the sample are written from the typed modules in
+`src/manifest/` and `src/sample/`; edit those and run the script. A test fails
+when the two disagree.
 
-There are two ways to run this hotel.
+### The three-engine contract
 
-**One click — the frontend on its own.** The deploy routes above put the site
-and the desk up by themselves, running on the bundled demo Tuesday. No
-database, no dashboard — a fully static preview.
-
-**One command — the whole stack.**
-[`docker-compose.yml`](docker-compose.yml) stands up Postgres (seeded by default
-with the *same* rooms, reservations, extras and payments), an auto-generated
-Adminium dashboard that runs that real database, and the desk:
-
-```bash
-cp .env.example .env      # then set ADMINIUM_SECRET — e.g. openssl rand -hex 32
-```
+With a built Adminium checkout beside this one, the suite also installs the app
+on SQLite, Postgres and MySQL and drives every write through the app's own
+doors — the guest's and the desk's — including the races (one room to one of
+two desks, one check-in of two, the last room sold once):
 
 ```bash
-docker compose up
+ADMINIUM_CONTRACT=1 ADMINIUM_REPO=../adminium npx vitest run src/contract
 ```
-
-- **Reservations desk** → http://localhost:8080
-- **Adminium dashboard** → http://localhost:4600
-
-On first boot, `house-db` applies [`db/schema.sql`](db/schema.sql), installs the
-demo bookkeeping, and then loads [`db/seed.sql`](db/seed.sql) unless you set
-`DEMO_DATA=0` — see [Demo data](#demo-data) below. Adminium imports the hotel
-database (`wrenhouse`) as its first source connection, introspects the schema,
-and generates the back office. The install spec Adminium reads is
-[`manifest.json`](manifest.json).
-
-The seed is the app's own Tuesday, not a second fiction: the same 34 rooms, the
-same two out of service and three being cleaned, the same 21 occupied, the same
-27 references `WH-3280…WH-3306`. Open the dashboard and Teodor Blank is the row
-you were just refusing to check out.
-
-`db/seed.sql` is **generated** from `src/data/demo.ts` so the two cannot drift.
-To regenerate after changing the fiction:
-
-```bash
-npx esbuild src/data/demo.ts --bundle --format=esm --outfile=/tmp/demo.mjs
-```
-
-…then run the small emitter documented at the top of `db/seed.sql`.
-
-### Demo data
-
-Wren House comes seeded: bring the stack up and the Tuesday above is already in
-the database. To start empty instead — the same full schema, no rows — set
-`DEMO_DATA=0` in `.env` before the first `docker compose up`. Neither choice is
-permanent; the demo rows can be loaded and removed again at any time.
-
-| Command | What it does |
-| --- | --- |
-| `npm run demo:status` | What is loaded right now, table by table. |
-| `npm run demo:import` | Load `db/seed.sql`. |
-| `npm run demo:wipe` | Remove the demo rows — the schema and your own rows stay. |
-| `npm run demo:reset` | Wipe, then import a fresh copy. |
-
-A wipe deletes only the rows the seed added, tracked in a ledger the toolkit
-keeps in its own `adminium_demo` schema, out of `public`. A reservation you took
-yourself survives it, and a demo row your own data depends on is kept rather
-than force-deleted — the wipe reports it under `kept`. `ON DELETE CASCADE` still
-applies, though: removing a demo stay takes its charges and payments with it,
-including one you added at the desk, and those rows are counted separately as
-`cascaded`. `wipe` and `reset` ask before they act; `npm run demo:wipe -- --yes`
-skips the question, which is what a script needs, where there is nobody to ask.
-Set `DATABASE_URL` and the commands run against any Postgres — Neon, Supabase or
-RDS — instead of the container. The details are in [db/README.md](db/README.md).
-
-## The split: the desk and the back office
-
-The app you deploy is **the stay and the desk**. The dashboard Adminium
-generates from your schema is **the back office**:
-
-| In this app | In the generated dashboard |
-| --- | --- |
-| Searching, reserving, arriving, departing | Every table as records, with full CRUD |
-| Tonight's board and this fortnight's calendar | The whole book, across years |
-| A folio while the guest is in the building | Rate administration and reporting |
-| A room's status | Imports, exports and bulk edits |
-
-The manifest scaffolds 8 tables into your connected database. The scope
-boundary holds on both sides of the split: there is no owner, lease, long-stay
-or work-order table anywhere in `db/schema.sql`, and nothing in the manifest
-that would show one.
-
-## Connecting to Adminium
-
-All data access goes through a thin `DataSource` interface
-([`src/data/source.ts`](src/data/source.ts)) with a single `demoSource`
-implementation backed by the bundled seed. **Today the deployed demo is demo
-data only — nothing is persisted, no card is charged and no message is sent.**
-Once Adminium's browser-safe publishable key (`adm_pub_…`) ships, the frontend
-will read and write live data through the Adminium records API via a second
-`DataSource` implementation, without touching any of the screens or the store.
-
-### What is deliberately out of scope
-
-- **Anything that treats the building as an asset.** Owners, leases, long stays,
-  maintenance queues, syndication, a second property. See the boundary above.
-- **Rate administration.** Rates and their weekend and season deltas are
-  reference data the hotel maintains in the generated dashboard.
-- **Group bookings** and **guest history across stays**.
-- **Taking a real payment.** The card sheet says so in as many words before you
-  type a digit.
 
 ## Project structure
 
 ```
+manifest.json  what Adminium installs (written from src/manifest/)
+seeds/         the sample, written from src/sample/
 src/
-  app/         App shell + the exhaustive 14-view switch
-  state/       Zustand store (persona, the two-position clock, rooms, stays,
-               the search draft, the reservation form, drafts, toasts)
-  data/        demo.ts (the seeded house), types.ts, source.ts (DataSource seam)
-  i18n/        8-locale runtime, locale registry, ambient bridge,
-               strings/ (chrome, screens, seeded nouns)
-  lib/         stay.ts (the engine) + tests, format.ts (locale-aware output)
-  screens/     Guest.tsx (home, results, room type, reserve, confirm,
-                          your reservation, rooms, find us)
-               Desk.tsx  (today, rack, calendar, reservations, folio)
-               NotFound.tsx
-  components/  two shells, demo dock, overlays, primitives
-  styles/      tokens.css (canonical design tokens), base.css, components.css,
-               screens.css
-db/            schema.sql + generated seed.sql for the full self-host stack,
-               and the demo-data toolkit behind npm run demo:*
-public/fonts/  self-hosted Manrope + JetBrains Mono (woff2)
-manifest.json  the Adminium install spec (8 tables)
+  manifest/    the tables and their rules, the pages, the roles, the guests'
+               doors, the emails, the folio and receipt, the Overview
+  sample/      Wren House's Tuesday, as one checked source
+  app/         the controller, the values each screen draws, the desk's actions
+  view/        the guest site, the desk, and the sheets over them
+  data/        the doors into Adminium: the guest's (public API) and the desk's
+  demo/        the browser-only Adminium the demo runs on, and its moments
+  i18n/        the 8-language words, sorted by the side that draws them
+  contract/    the three-engine contract
+  testing/     the product's manifest validator, vendored for the tests
+e2e/           the browser walk (Playwright + axe)
+public/fonts/  self-hosted fonts (woff2)
 ```
 
 ## License
