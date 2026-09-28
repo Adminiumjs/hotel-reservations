@@ -4675,8 +4675,7 @@
               "copy": {
                 "via": "stay_id",
                 "from": "extras_nightly",
-                "mode": "always",
-                "follow": true
+                "mode": "always"
               }
             }
           },

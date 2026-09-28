@@ -115,8 +115,11 @@ export type Condition =
   | { or: Condition[] };
 
 export interface Rules {
-  /** `column.copy`: the value of `from` on the row `via` links to (a `parent` row); `always`, or only when the row names none. */
-  copies: { table: string; column: string; via: string; parent: string; from: string; always: boolean }[];
+  /**
+   * `column.copy`: the value of `from` on the row `via` links to (a `parent` row); `always`, or only when the row names none.
+   * `follow`: kept in step when the parent changes later; a copy that does not follow keeps what it copied when the row was added.
+   */
+  copies: { table: string; column: string; via: string; parent: string; from: string; always: boolean; follow: boolean }[];
   /** `column.default.from`: a setting the column falls back to when the row and its copy leave it empty. */
   defaults: { table: string; column: string; from: string }[];
   /** `column.formula`, worked out over the row's own columns. */
@@ -193,16 +196,16 @@ export const COLUMNS: Record<string, Record<string, Fill>> = {
 
 export const RULES: Rules = {
   copies: [
-    { table: "rooms", column: "sleeps", via: "room_type_id", parent: "room_types", from: "sleeps", always: true },
-    { table: "stay_extras", column: "label", via: "extra_id", parent: "extras", from: "label", always: true },
-    { table: "stay_extras", column: "each", via: "extra_id", parent: "extras", from: "amount", always: true },
-    { table: "stay_extras", column: "per", via: "extra_id", parent: "extras", from: "per", always: true },
-    { table: "stay_extras", column: "nights", via: "stay_id", parent: "stays", from: "nights", always: true },
-    { table: "stay_extras", column: "guests", via: "stay_id", parent: "stays", from: "guests", always: true },
-    { table: "charges", column: "label", via: "charge_item_id", parent: "charge_items", from: "label", always: true },
-    { table: "charges", column: "amount", via: "charge_item_id", parent: "charge_items", from: "amount", always: true },
-    { table: "stay_credits", column: "room_type_id", via: "stay_id", parent: "stays", from: "room_type_id", always: true },
-    { table: "stay_credits", column: "extras_nightly", via: "stay_id", parent: "stays", from: "extras_nightly", always: true },
+    { table: "rooms", column: "sleeps", via: "room_type_id", parent: "room_types", from: "sleeps", always: true, follow: true },
+    { table: "stay_extras", column: "label", via: "extra_id", parent: "extras", from: "label", always: true, follow: false },
+    { table: "stay_extras", column: "each", via: "extra_id", parent: "extras", from: "amount", always: true, follow: false },
+    { table: "stay_extras", column: "per", via: "extra_id", parent: "extras", from: "per", always: true, follow: false },
+    { table: "stay_extras", column: "nights", via: "stay_id", parent: "stays", from: "nights", always: true, follow: true },
+    { table: "stay_extras", column: "guests", via: "stay_id", parent: "stays", from: "guests", always: true, follow: true },
+    { table: "charges", column: "label", via: "charge_item_id", parent: "charge_items", from: "label", always: true, follow: false },
+    { table: "charges", column: "amount", via: "charge_item_id", parent: "charge_items", from: "amount", always: true, follow: false },
+    { table: "stay_credits", column: "room_type_id", via: "stay_id", parent: "stays", from: "room_type_id", always: true, follow: true },
+    { table: "stay_credits", column: "extras_nightly", via: "stay_id", parent: "stays", from: "extras_nightly", always: true, follow: false },
   ],
   defaults: [
     { table: "stays", column: "tax_rate", from: "app:settings.tax_rate" },
@@ -755,6 +758,8 @@ export function settle(out: ResolvedSample, options: Pick<ResolveOptions, "curre
       for (const row of rows) {
         for (const copy of RULES.copies) {
           if (copy.table !== table || !copy.always || row[copy.via] === null || row[copy.via] === undefined) continue;
+          // Copied once, when the row was added: only a copy that follows its row moves with it.
+          if (!copy.follow && row[copy.column] !== undefined) continue;
           const source = out[copy.parent]?.find((candidate) => candidate["id"] === row[copy.via]);
           if (source !== undefined) put(row, copy.column, source[copy.from]);
         }

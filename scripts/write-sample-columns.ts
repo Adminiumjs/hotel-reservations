@@ -77,10 +77,10 @@ export function writtenPart(manifest: ManifestForSample): string {
       const rules = column.rules ?? {};
       const scale = JSON.stringify(column.scale ?? 2);
       if (rules["copy"] !== undefined) {
-        const copy = rules["copy"] as { via: string; from: string; mode?: string };
+        const copy = rules["copy"] as { via: string; from: string; mode?: string; follow?: boolean };
         const parent = columnOf(table.ref, copy.via)?.references ?? "";
         copies.push(
-          `    { table: "${table.ref}", column: "${column.ref}", via: "${copy.via}", parent: "${parent}", from: "${copy.from}", always: ${String(copy.mode === "always")} },`,
+          `    { table: "${table.ref}", column: "${column.ref}", via: "${copy.via}", parent: "${parent}", from: "${copy.from}", always: ${String(copy.mode === "always")}, follow: ${String(copy.follow === true)} },`,
         );
       }
       const fill = rules["default"] as { from?: Json } | undefined;

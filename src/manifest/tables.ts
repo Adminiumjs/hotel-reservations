@@ -689,7 +689,8 @@ export const TABLES: Table[] = [
           },
         },
       }),
-      money("extras_nightly", "Extras a night", { copy: { via: "stay_id", from: "extras_nightly", mode: "always", follow: true } }),
+      // What the extras came to a night when the credit was recorded; a total cannot be followed.
+      money("extras_nightly", "Extras a night", { copy: { via: "stay_id", from: "extras_nightly", mode: "always" } }),
       money("amount", "Amount", { formula: { add: ["room_amount", { mul: [{ coalesce: ["extras_nightly", 0] }, { coalesce: ["nights", 0] }] }] } }),
       // As a folio prints it: taken off.
       money("line_amount", "On the folio", { formula: { sub: [0, "amount"] } }),
