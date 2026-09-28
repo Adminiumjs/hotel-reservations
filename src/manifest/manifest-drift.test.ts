@@ -311,6 +311,10 @@ describe("the stay's life is Adminium's", () => {
     });
   });
 
+  it("takes money given back only with a note saying why", () => {
+    expect(rules("payments", "note")["requiredWhen"]).toEqual({ column: "kind", in: ["given_back"] });
+  });
+
   it("keeps a name joined from the guest's own names as personal as they are (the install drops the join otherwise)", () => {
     expect(rules("stays", "guest_name")).toMatchObject({ personal: true, formula: { join: ["first_name", " ", "last_name"] } });
   });

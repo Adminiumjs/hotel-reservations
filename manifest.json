@@ -5125,7 +5125,15 @@
               "zh-CN": "备注",
               "zh-TW": "備註"
             },
-            "nullable": true
+            "nullable": true,
+            "rules": {
+              "requiredWhen": {
+                "column": "kind",
+                "in": [
+                  "given_back"
+                ]
+              }
+            }
           },
           {
             "ref": "signed",
