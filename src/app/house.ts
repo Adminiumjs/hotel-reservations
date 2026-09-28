@@ -770,7 +770,7 @@ export class HouseApp {
     const s = this.state;
     const st = this.stay(s.cancelId);
     if (st === null) return;
-    const run = () => (s.cancelVoice === "desk" ? this.ports.desk!.cancel(st.id, s.cancelWho) : this.ports.guest!.changeStay(st.id, { status: "cancelled" }));
+    const run = () => (s.cancelVoice === "desk" ? this.ports.desk!.cancel(st.id, s.cancelWho) : this.ports.guest!.changeStay(st.id, { status: "cancelled", cancel_code: "self" }));
     await this.write(run, () => {
       this.setState({ cancelId: null });
       this.toast(tr("{ref} is cancelled.", { ref: st.ref }));
@@ -780,7 +780,7 @@ export class HouseApp {
     });
   }
   async relink(st: StV): Promise<void> {
-    await this.write(() => this.ports.guest!.newLink(st.id), (r) => this.toast(tr("A new link is on its way to {email}.", { email: r.sentTo }), "info"));
+    await this.write(() => this.ports.guest!.newLink(st.id), (r) => this.toast(tr("A new link is on its way to {email}.", { email: r.sentTo || (this.state.signedIn ?? "") }), "info"));
   }
 
   // ── the desk ───────────────────────────────────────────────────────────

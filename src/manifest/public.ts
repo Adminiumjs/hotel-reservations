@@ -98,13 +98,14 @@ const ARRIVE_FROM = { table: "settings", column: "arrive_from" };
 
 /**
  * The changes a guest makes to a booked stay until the arrival afternoon: the
- * time they will come, and cancelling it (the reason is theirs).
+ * time they will come, and cancelling it — saying it is theirs (`self`, the
+ * only reason a guest may give). Not a default: a default is written on every
+ * change through the entry, and a new arrival time is not a cancellation.
  */
 const OWN_CHANGES = {
-  writable: ["arrival_time", "status"],
-  writableValues: { status: ["cancelled"], arrival_time: ARRIVAL_TIMES },
+  writable: ["arrival_time", "status", "cancel_code"],
+  writableValues: { status: ["cancelled"], arrival_time: ARRIVAL_TIMES, cancel_code: ["self"] },
   writableWhen: { status: ["booked"], arrive: { before: { time: ARRIVE_FROM } } },
-  defaults: { cancel_code: "self" },
 };
 
 /** A signed-in guest's own stays. */

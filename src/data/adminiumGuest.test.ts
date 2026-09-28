@@ -208,7 +208,7 @@ describe("the real guest door", () => {
     });
     const guest = new AdminiumGuest(CONFIG, { fetch: s.fetch, storage });
     expect(guest.offers).toEqual({ newLink: true, signOutEverywhere: true, forget: true });
-    expect(await guest.newLink(41)).toEqual({ sentTo: "ines@example.com" });
+    expect(await guest.newLink(41)).toEqual({ sentTo: "" });
     await guest.forget();
     expect([storage.getItem("wh.session.customer"), storage.getItem("wh.session.link")]).toEqual([null, null]);
     const sent = s.calls.filter((c) => c.method !== "GET").map((c) => [c.method, c.path, c.session]);

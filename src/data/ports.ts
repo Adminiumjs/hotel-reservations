@@ -89,7 +89,7 @@ export interface GuestPort {
    * time they will come, or cancelling it. Through the link when the stay was
    * opened by its link, else as the signed-in guest.
    */
-  changeStay(id: Id, values: { arrival_time?: string; status?: "cancelled" }): Promise<Row>;
+  changeStay(id: Id, values: { arrival_time?: string; status?: "cancelled"; cancel_code?: "self" }): Promise<Row>;
   /** An extra added to the stay, or dropped and put back. */
   addExtra(stayId: Id, extraId: Id): Promise<Row>;
   setExtra(lineId: Id, state: "on" | "off"): Promise<Row>;

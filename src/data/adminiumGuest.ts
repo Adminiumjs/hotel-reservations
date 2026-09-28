@@ -342,7 +342,7 @@ export class AdminiumGuest implements GuestPort {
     return this.link !== null && this.linkedId === id && !this.customer.isClaimed() && this.customerSession.kept() === null;
   }
 
-  changeStay(id: Id, values: { arrival_time?: string; status?: "cancelled" }): Promise<Row> {
+  changeStay(id: Id, values: { arrival_time?: string; status?: "cancelled"; cancel_code?: "self" }): Promise<Row> {
     return answer(() => (this.byLink(id) ? this.link!.update<Row>(this.refs.linkStay, String(id), values) : this.customer.update<Row>(this.refs.myStays, String(id), values)));
   }
 
@@ -365,8 +365,9 @@ export class AdminiumGuest implements GuestPort {
   quoteDates(id: Id, arrive: string, depart: string): Promise<QuoteReply> {
     return answer(async () => {
       const got = await this.customer.quoteChange<Row>(this.refs.myDates, String(id), { arrive, depart });
-      const raw = got as unknown as { nights?: unknown };
-      return { data: got.data, nights: nightsOf(raw.nights), capacity: [], exact: got.exact };
+      // The extras that follow the stay's nights, as the change would leave them (keyed by the ref they are read through).
+      const lines = Object.entries(got.children ?? {}).find(([ref]) => ref.startsWith(this.refs.myExtras.replace(/_verified.*$/, "")))?.[1] ?? [];
+      return { data: got.data, nights: nightsOf(got.nights), children: { stay_extras: lines.map((c) => ({ data: c.data })) }, capacity: [], exact: got.exact };
     });
   }
 
@@ -374,12 +375,15 @@ export class AdminiumGuest implements GuestPort {
     return answer(() => this.customer.update<Row>(this.refs.myDates, String(id), { arrive, depart }, { expect: { total: expectTotal } }));
   }
 
-  /** A signed-in guest's new link for one of their stays: the old one stops, the new one is emailed to them. */
+  /**
+   * A signed-in guest's new link for one of their stays: the old one stops,
+   * the new one is emailed to them — to the address they signed in with,
+   * which the screen already knows (`sentTo` is left empty here).
+   */
   newLink(id: Id): Promise<{ sentTo: string }> {
     return answer(async () => {
       await this.customer.newLink(this.refs.myStays, String(id));
-      const who = await this.signedIn();
-      return { sentTo: who?.email ?? "" };
+      return { sentTo: "" };
     });
   }
 

@@ -150,16 +150,24 @@ describe("the guest's own stay", () => {
     const nadia = h.stay("WH-S3305");
     await h.a.guest.requestSignIn("nadia.brightwell@example.com");
     await h.a.guest.verifyCode("nadia.brightwell@example.com", DEMO_SIGN_IN.code);
-    await h.a.guest.changeStay(nadia.id, { status: "cancelled" });
+    await h.a.guest.changeStay(nadia.id, { status: "cancelled", cancel_code: "self" });
     expect([h.stay("WH-S3305")["late_cancel"], h.stay("WH-S3305")["cancel_code"], h.stay("WH-S3305")["cancelled_by"]]).toEqual([false, "self", "guest"]);
 
     const late = house(new Date(EDT("2026-07-30", "18:00")).toISOString());
     const hugo = late.stay("WH-S3306");
     await late.a.guest.requestSignIn("hugo.marlowe@example.com");
     await late.a.guest.verifyCode("hugo.marlowe@example.com", DEMO_SIGN_IN.code);
-    await late.a.guest.changeStay(hugo.id, { status: "cancelled" });
+    await late.a.guest.changeStay(hugo.id, { status: "cancelled", cancel_code: "self" });
     expect(late.stay("WH-S3306")["late_cancel"]).toBe(true);
     expect(late.a.world.all("messages").filter((m) => m["stay_id"] === hugo.id).map((m) => m["kind"])).toEqual(["stay-cancelled-self-late"]);
+  });
+
+  it("changes the arrival time without a word about cancelling", async () => {
+    const h = house();
+    const reply = await h.a.guest.reserve(garden(h), "t".repeat(43));
+    await h.a.guest.changeStay(reply.data.id, { arrival_time: "19:00" });
+    const stay = h.a.world.get("stays", reply.data.id)!;
+    expect([stay["cancel_code"] ?? null, h.a.world.where("messages", (m) => String(m["kind"]).startsWith("stay-cancelled")).length]).toEqual([null, 0]);
   });
 
   it("stops the guest's own changes at 15:00 on the arrival day", async () => {

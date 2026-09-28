@@ -173,9 +173,10 @@ describe("the guest's writes are the few the site needs", () => {
     const cancelling = patches().filter((e) => (e["writable"] as string[]).includes("status"));
     expect(cancelling.length).toBe(2);
     for (const entry of cancelling) {
-      expect(entry["writableValues"]).toEqual({ status: ["cancelled"], arrival_time: ARRIVAL_TIMES });
+      expect(entry["writableValues"]).toEqual({ status: ["cancelled"], arrival_time: ARRIVAL_TIMES, cancel_code: ["self"] });
       expect(entry["writableWhen"]).toEqual({ status: ["booked"], arrive: { before: { time: { table: "settings", column: "arrive_from" } } } });
-      expect(entry["defaults"]).toEqual({ cancel_code: "self" });
+      // No default: it would be written on a new arrival time too, and tell the guest they had cancelled.
+      expect(entry["defaults"]).toBeUndefined();
     }
   });
 
@@ -388,6 +389,13 @@ describe("the emails wait for the house's switch and name who cancelled", () => 
 
   it("never tells a guest the house's own cancellation was their late one", () => {
     const house = manifest.outbox.producers.find((p) => p["kind"] === "stay-cancelled-house")!;
-    expect(house["onChange"]).toEqual({ table: "stays", column: "cancel_code", to: "house" });
+    expect(house["onChange"]).toEqual({ table: "stays", column: "status", to: "cancelled", where: { column: "cancel_code", eq: "house" } });
+  });
+
+  it("hears a cancellation on the move itself, late ones on the late flag, so no other change reads as one", () => {
+    for (const p of manifest.outbox.producers.filter((x) => String(x["kind"]).startsWith("stay-cancelled"))) {
+      const on = p["onChange"] as Json;
+      expect([on["column"], on["to"]], String(p["kind"])).toEqual(String(p["kind"]).endsWith("-late") ? ["late_cancel", true] : ["status", "cancelled"]);
+    }
   });
 });

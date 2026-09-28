@@ -331,7 +331,7 @@ export class DemoGuest implements GuestPort {
 
   // ── the guest's changes ─────────────────────────────────────────────────────
 
-  async changeStay(id: Id, values: { arrival_time?: string; status?: "cancelled" }): Promise<Row> {
+  async changeStay(id: Id, values: { arrival_time?: string; status?: "cancelled"; cancel_code?: "self" }): Promise<Row> {
     await this.wait(this.latency.write);
     const stay = this.ownStay(id)!;
     const e = entry("stays", "PATCH", this.linkSession?.stayId === id && stay["customer_id"] !== this.signIn?.customerId ? "link" : undefined, "status");
@@ -343,8 +343,7 @@ export class DemoGuest implements GuestPort {
     if (stay["status"] !== "booked") throw notFound("public");
     const until = this.arrivalAfternoon(stay);
     if (this.engine.now >= until) throw new ApiError(409, "PUBLIC_TOO_LATE", "Changes are made at the desk now.", { at: new Date(until).toISOString() });
-    const write = values.status === "cancelled" ? { ...values, ...(e["defaults"] as Record<string, unknown>) } : values;
-    const row = this.engine.write(() => this.engine.updateStay(id, write, GUEST));
+    const row = this.engine.write(() => this.engine.updateStay(id, values, GUEST));
     return project(row, selectOf(e));
   }
 

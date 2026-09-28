@@ -813,7 +813,8 @@ export const MANIFEST_RULES = {
       ],
       "writable": [
         "arrival_time",
-        "status"
+        "status",
+        "cancel_code"
       ],
       "writableValues": {
         "status": [
@@ -829,6 +830,9 @@ export const MANIFEST_RULES = {
           "21:00",
           "22:00",
           "22:30"
+        ],
+        "cancel_code": [
+          "self"
         ]
       },
       "writableWhen": {
@@ -843,9 +847,6 @@ export const MANIFEST_RULES = {
             }
           }
         }
-      },
-      "defaults": {
-        "cancel_code": "self"
       },
       "newLink": {
         "column": "link_token",
@@ -1371,7 +1372,8 @@ export const MANIFEST_RULES = {
       },
       "writable": [
         "arrival_time",
-        "status"
+        "status",
+        "cancel_code"
       ],
       "writableValues": {
         "status": [
@@ -1387,6 +1389,9 @@ export const MANIFEST_RULES = {
           "21:00",
           "22:00",
           "22:30"
+        ],
+        "cancel_code": [
+          "self"
         ]
       },
       "writableWhen": {
@@ -1401,9 +1406,6 @@ export const MANIFEST_RULES = {
             }
           }
         }
-      },
-      "defaults": {
-        "cancel_code": "self"
       }
     },
     {
@@ -1906,13 +1908,21 @@ export const MANIFEST_RULES = {
       },
       "onChange": {
         "table": "stays",
-        "column": "cancel_code",
-        "to": "self",
+        "column": "status",
+        "to": "cancelled",
         "where": {
-          "column": "late_cancel",
-          "eq": false
+          "column": "cancel_code",
+          "eq": "self"
         }
-      }
+      },
+      "holdSeconds": 30,
+      "dropWhen": [
+        {
+          "column": "late_cancel",
+          "eq": true,
+          "reason": "no-longer-needed"
+        }
+      ]
     },
     {
       "kind": "stay-cancelled-self-late",
@@ -1925,11 +1935,11 @@ export const MANIFEST_RULES = {
       },
       "onChange": {
         "table": "stays",
-        "column": "cancel_code",
-        "to": "self",
+        "column": "late_cancel",
+        "to": true,
         "where": {
-          "column": "late_cancel",
-          "eq": true
+          "column": "cancel_code",
+          "eq": "self"
         }
       }
     },
@@ -1944,13 +1954,21 @@ export const MANIFEST_RULES = {
       },
       "onChange": {
         "table": "stays",
-        "column": "cancel_code",
-        "to": "guest_asked",
+        "column": "status",
+        "to": "cancelled",
         "where": {
-          "column": "late_cancel",
-          "eq": false
+          "column": "cancel_code",
+          "eq": "guest_asked"
         }
-      }
+      },
+      "holdSeconds": 30,
+      "dropWhen": [
+        {
+          "column": "late_cancel",
+          "eq": true,
+          "reason": "no-longer-needed"
+        }
+      ]
     },
     {
       "kind": "stay-cancelled-desk-late",
@@ -1963,11 +1981,11 @@ export const MANIFEST_RULES = {
       },
       "onChange": {
         "table": "stays",
-        "column": "cancel_code",
-        "to": "guest_asked",
+        "column": "late_cancel",
+        "to": true,
         "where": {
-          "column": "late_cancel",
-          "eq": true
+          "column": "cancel_code",
+          "eq": "guest_asked"
         }
       }
     },
@@ -1982,8 +2000,12 @@ export const MANIFEST_RULES = {
       },
       "onChange": {
         "table": "stays",
-        "column": "cancel_code",
-        "to": "house"
+        "column": "status",
+        "to": "cancelled",
+        "where": {
+          "column": "cancel_code",
+          "eq": "house"
+        }
       }
     },
     {

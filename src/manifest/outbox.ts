@@ -30,7 +30,7 @@
  * it; always in the language the reservation is kept in. A reply goes to the
  * house's own address.
  * A cancellation email is picked by who cancelled and whether it was late,
- * both written in the same write as the move.
+ * both written in the same write as the move to `cancelled`.
  */
 
 export const KINDS = [
@@ -52,11 +52,14 @@ const onStay = (column: string, to: unknown, where?: Record<string, unknown>) =>
   onChange: { table: "stays", column, to, ...(where === undefined ? {} : { where }) },
 });
 /**
- * A cancellation, by who made it: the reason is written in the same write as
- * the move, and so is the late flag, which picks the on-time or the late words.
+ * A cancellation, by who made it — heard on the move to `cancelled` (never on
+ * the reason alone). The late flag is set in the same write: a late one is
+ * heard on the flag, and the on-time words wait a few seconds and are dropped
+ * when that write was late.
  */
-const cancelled = (code: string, late?: boolean) =>
-  onStay("cancel_code", code, late === undefined ? undefined : { column: "late_cancel", eq: late });
+const cancelled = (code: string) => onStay("status", "cancelled", { column: "cancel_code", eq: code });
+const cancelledLate = (code: string) => onStay("late_cancel", true, { column: "cancel_code", eq: code });
+const unlessLate = { holdSeconds: 30, dropWhen: [{ column: "late_cancel", eq: true, reason: "no-longer-needed" }] };
 
 export const OUTBOX = {
   table: "messages",
@@ -90,10 +93,10 @@ export const OUTBOX = {
   producers: [
     { kind: "stay-made", link: "stay_id", ...GATE, onCreate: { table: "stays", where: { column: "channel", eq: "online" } } },
     { kind: "stay-made-desk", link: "stay_id", ...GATE, onCreate: { table: "stays", where: { column: "channel", eq: "desk" } } },
-    { kind: "stay-cancelled-self", link: "stay_id", ...GATE, ...cancelled("self", false) },
-    { kind: "stay-cancelled-self-late", link: "stay_id", ...GATE, ...cancelled("self", true) },
-    { kind: "stay-cancelled-desk", link: "stay_id", ...GATE, ...cancelled("guest_asked", false) },
-    { kind: "stay-cancelled-desk-late", link: "stay_id", ...GATE, ...cancelled("guest_asked", true) },
+    { kind: "stay-cancelled-self", link: "stay_id", ...GATE, ...cancelled("self"), ...unlessLate },
+    { kind: "stay-cancelled-self-late", link: "stay_id", ...GATE, ...cancelledLate("self") },
+    { kind: "stay-cancelled-desk", link: "stay_id", ...GATE, ...cancelled("guest_asked"), ...unlessLate },
+    { kind: "stay-cancelled-desk-late", link: "stay_id", ...GATE, ...cancelledLate("guest_asked") },
     { kind: "stay-cancelled-house", link: "stay_id", ...GATE, ...cancelled("house") },
     { kind: "stay-no-show", link: "stay_id", ...GATE, ...onStay("status", "no_show") },
     // Dates moved on a stay still to come: the old ones and the old total kept on the message.

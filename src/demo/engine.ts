@@ -99,6 +99,7 @@ type Producer = {
   onChange?: { table: string; column?: string; to?: unknown; columns?: readonly string[]; changed?: true; where?: Json };
   repeat?: true;
   was?: readonly string[];
+  dropWhen?: readonly Json[];
 };
 const PRODUCERS = MANIFEST_RULES.producers as unknown as readonly Producer[];
 
@@ -711,6 +712,8 @@ export class Engine {
         }
       }
       if (on.where !== undefined && !holds(after, on.where)) continue;
+      // A message that waits a few seconds is dropped by the sender when its row already says it is not needed.
+      if ((producer.dropWhen ?? []).some((c) => holds(after, c))) continue;
       // One of a kind per stay — or, with `repeat`, one for each change.
       if (producer.repeat !== true && this.world.where("messages", (m) => m["kind"] === producer.kind && m["stay_id"] === after.id).length > 0) continue;
       const was = producer.was === undefined || before === null ? null : JSON.stringify(Object.fromEntries(producer.was.map((column) => [column, before[column] ?? null])));
