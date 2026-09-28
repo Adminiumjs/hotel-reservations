@@ -2832,6 +2832,7 @@
             "nullable": true,
             "semantic": "name",
             "rules": {
+              "personal": true,
               "formula": {
                 "join": [
                   "first_name",

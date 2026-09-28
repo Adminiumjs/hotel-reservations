@@ -533,7 +533,8 @@ export const TABLES: Table[] = [
       int("nights", "Nights", { ...opt, rules: { formula: { daysBetween: ["arrive", "depart"] } } }),
       text("first_name", 60, "First name"),
       text("last_name", 60, "Surname", opt),
-      text("guest_name", 130, "Guest", { ...opt, semantic: "name", rules: { formula: { join: ["first_name", " ", "last_name"] } } }),
+      // Joined from the guest's own names, so personal as they are.
+      text("guest_name", 130, "Guest", { ...opt, semantic: "name", rules: { personal: true, formula: { join: ["first_name", " ", "last_name"] } } }),
       // A desk booking may have none; the guest's own reservation always has one.
       text("email", 254, "Email", { ...opt, semantic: "email", rules: { normalize: "email", validation: { format: "email" } } }),
       text("mobile", 32, "Mobile", { ...opt, rules: { validation: { format: "phone" } } }),

@@ -311,6 +311,10 @@ describe("the stay's life is Adminium's", () => {
     });
   });
 
+  it("keeps a name joined from the guest's own names as personal as they are (the install drops the join otherwise)", () => {
+    expect(rules("stays", "guest_name")).toMatchObject({ personal: true, formula: { join: ["first_name", " ", "last_name"] } });
+  });
+
   it("never lets a charge take money off: the nights not stayed are Adminium's own row", () => {
     expect(rules("charges", "amount")["validation"]).toEqual({ min: 0 });
     expect(rules("stays", "credits_total")["rollup"]).toMatchObject({ from: "stay_credits", sum: "amount" });
