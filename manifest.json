@@ -8890,6 +8890,7 @@
         "stay.room_total",
         "stay.tax",
         "stay.tax_label",
+        "stay.tax_rate.percent",
         "stay.total"
       ],
       "locales": {
@@ -8966,7 +8967,7 @@
               "data": {
                 "lines": [
                   {
-                    "label": "{{stay.tax_label}}",
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
                     "amount": "{{stay.tax}}"
                   },
                   {
@@ -9077,7 +9078,7 @@
               "data": {
                 "lines": [
                   {
-                    "label": "{{stay.tax_label}}",
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
                     "amount": "{{stay.tax}}"
                   },
                   {
@@ -9188,7 +9189,7 @@
               "data": {
                 "lines": [
                   {
-                    "label": "{{stay.tax_label}}",
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
                     "amount": "{{stay.tax}}"
                   },
                   {
@@ -9299,7 +9300,7 @@
               "data": {
                 "lines": [
                   {
-                    "label": "{{stay.tax_label}}",
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
                     "amount": "{{stay.tax}}"
                   },
                   {
@@ -9410,7 +9411,7 @@
               "data": {
                 "lines": [
                   {
-                    "label": "{{stay.tax_label}}",
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
                     "amount": "{{stay.tax}}"
                   },
                   {
@@ -9521,7 +9522,7 @@
               "data": {
                 "lines": [
                   {
-                    "label": "{{stay.tax_label}}",
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
                     "amount": "{{stay.tax}}"
                   },
                   {
@@ -9632,7 +9633,7 @@
               "data": {
                 "lines": [
                   {
-                    "label": "{{stay.tax_label}}",
+                    "label": "{{stay.tax_label}}（{{stay.tax_rate.percent}}）",
                     "amount": "{{stay.tax}}"
                   },
                   {
@@ -9743,7 +9744,7 @@
               "data": {
                 "lines": [
                   {
-                    "label": "{{stay.tax_label}}",
+                    "label": "{{stay.tax_label}}（{{stay.tax_rate.percent}}）",
                     "amount": "{{stay.tax}}"
                   },
                   {
@@ -9811,6 +9812,7 @@
         "stay.room_total",
         "stay.tax",
         "stay.tax_label",
+        "stay.tax_rate.percent",
         "stay.total"
       ],
       "locales": {
@@ -9887,7 +9889,7 @@
               "data": {
                 "lines": [
                   {
-                    "label": "{{stay.tax_label}}",
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
                     "amount": "{{stay.tax}}"
                   },
                   {
@@ -9990,7 +9992,7 @@
               "data": {
                 "lines": [
                   {
-                    "label": "{{stay.tax_label}}",
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
                     "amount": "{{stay.tax}}"
                   },
                   {
@@ -10093,7 +10095,7 @@
               "data": {
                 "lines": [
                   {
-                    "label": "{{stay.tax_label}}",
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
                     "amount": "{{stay.tax}}"
                   },
                   {
@@ -10196,7 +10198,7 @@
               "data": {
                 "lines": [
                   {
-                    "label": "{{stay.tax_label}}",
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
                     "amount": "{{stay.tax}}"
                   },
                   {
@@ -10299,7 +10301,7 @@
               "data": {
                 "lines": [
                   {
-                    "label": "{{stay.tax_label}}",
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
                     "amount": "{{stay.tax}}"
                   },
                   {
@@ -10402,7 +10404,7 @@
               "data": {
                 "lines": [
                   {
-                    "label": "{{stay.tax_label}}",
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
                     "amount": "{{stay.tax}}"
                   },
                   {
@@ -10505,7 +10507,7 @@
               "data": {
                 "lines": [
                   {
-                    "label": "{{stay.tax_label}}",
+                    "label": "{{stay.tax_label}}（{{stay.tax_rate.percent}}）",
                     "amount": "{{stay.tax}}"
                   },
                   {
@@ -10608,7 +10610,7 @@
               "data": {
                 "lines": [
                   {
-                    "label": "{{stay.tax_label}}",
+                    "label": "{{stay.tax_label}}（{{stay.tax_rate.percent}}）",
                     "amount": "{{stay.tax}}"
                   },
                   {

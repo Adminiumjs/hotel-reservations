@@ -11,7 +11,7 @@ import type { EmailWords } from "./emails.ts";
 
 /** One language's words, from the sentences each email shares. */
 function words(
-  shared: Pick<EmailWords, "reference" | "theRoom" | "total" | "settle" | "cancelBy" | "lateOrEarly" | "totalWas" | "foot">,
+  shared: Pick<EmailWords, "reference" | "theRoom" | "total" | "settle" | "cancelBy" | "lateOrEarly" | "totalWas" | "taxLine" | "foot">,
   s: {
     madeName: string;
     madeDeskName: string;
@@ -79,6 +79,7 @@ export const EMAIL_DE = words(
     cancelBy: "Stornierung ohne Kosten bis {{stay.cancel_by.time}} am {{stay.cancel_by.date}}.",
     lateOrEarly: "Später oder früher? Schreiben Sie an {{practice.email}} oder rufen Sie uns an: {{practice.phone}}.",
     totalWas: "Gesamt, vorher {{was.total}}",
+    taxLine: "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
     foot: `${FOOT} Sie erhalten diese E-Mail, weil Sie bei uns ein Zimmer reserviert haben.`,
   },
   {
@@ -138,6 +139,7 @@ export const EMAIL_FR = words(
     cancelBy: "Annulation sans frais jusqu'à {{stay.cancel_by.time}} le {{stay.cancel_by.date}}.",
     lateOrEarly: "En retard ou en avance ? Écrivez à {{practice.email}} ou appelez-nous au {{practice.phone}}.",
     totalWas: "Total, auparavant {{was.total}}",
+    taxLine: "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
     foot: `${FOOT} Vous recevez cet e-mail parce que vous avez réservé une chambre chez nous.`,
   },
   {
@@ -197,6 +199,7 @@ export const EMAIL_DA = words(
     cancelBy: "Afbestilling uden beregning indtil kl. {{stay.cancel_by.time}} den {{stay.cancel_by.date}}.",
     lateOrEarly: "Sent eller tidligt? Skriv til {{practice.email}}, eller ring til os på {{practice.phone}}.",
     totalWas: "I alt, før {{was.total}}",
+    taxLine: "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
     foot: `${FOOT} Du får denne e-mail, fordi du har reserveret et værelse hos os.`,
   },
   {
@@ -256,6 +259,7 @@ export const EMAIL_CS = words(
     cancelBy: "Zrušení bez poplatku do {{stay.cancel_by.time}} dne {{stay.cancel_by.date}}.",
     lateOrEarly: "Přijedete později nebo dříve? Napište na {{practice.email}} nebo nám zavolejte na {{practice.phone}}.",
     totalWas: "Celkem, dříve {{was.total}}",
+    taxLine: "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
     foot: `${FOOT} Tento e-mail dostáváte, protože jste si u nás rezervovali pokoj.`,
   },
   {
@@ -315,6 +319,7 @@ export const EMAIL_AR = words(
     cancelBy: "يمكنك الإلغاء دون رسوم حتى {{stay.cancel_by.time}} يوم {{stay.cancel_by.date}}.",
     lateOrEarly: "ستتأخر أو تصل مبكرًا؟ راسلنا على {{practice.email}} أو اتصل بنا على {{practice.phone}}.",
     totalWas: "الإجمالي، وكان {{was.total}}",
+    taxLine: "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
     foot: `${FOOT} تصلك هذه الرسالة لأنك حجزت غرفة لدينا.`,
   },
   {
@@ -374,6 +379,7 @@ export const EMAIL_ZH_CN = words(
     cancelBy: "{{stay.cancel_by.date}} {{stay.cancel_by.time}} 前取消不收费。",
     lateOrEarly: "会晚到或早到？请发邮件至 {{practice.email}} 或致电 {{practice.phone}}。",
     totalWas: "总计（原为 {{was.total}}）",
+    taxLine: "{{stay.tax_label}}（{{stay.tax_rate.percent}}）",
     foot: "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到此邮件，是因为您在我们这里预订了房间。",
   },
   {
@@ -426,6 +432,7 @@ export const EMAIL_ZH_TW = words(
     cancelBy: "{{stay.cancel_by.date}} {{stay.cancel_by.time}} 前取消不收費。",
     lateOrEarly: "會晚到或早到？請寄信至 {{practice.email}} 或來電 {{practice.phone}}。",
     totalWas: "總計（原為 {{was.total}}）",
+    taxLine: "{{stay.tax_label}}（{{stay.tax_rate.percent}}）",
     foot: "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到這封郵件，是因為您在我們這裡預訂了房間。",
   },
   {

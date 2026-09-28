@@ -19,11 +19,14 @@
  * morning, one who arrived at 08:40), four arriving this afternoon, and
  * nineteen still to come.
  *
- * Dates are days from the adding moment, so the house is mid-week in the
- * summer whenever the sample is added: the stays keep their shape around
- * "today". On a Tuesday the prices and every figure are the design's; on
- * another day a weekend night may fall elsewhere, and Adminium prices each
- * stay by the nights it really has. The August rule is dated in August 2026.
+ * Dates are days from the Tuesday nearest the adding moment (`@week`), so
+ * every night keeps its weekday — a weekend night stays a weekend night and
+ * every price is the design's, whatever day the sample is added. The August
+ * rule is dated from that Tuesday too (its Saturday 1 August on, 31 nights).
+ * What the clock decides follows the adding moment (`@byStay`, `@byClock`): a
+ * stay not yet begun is booked, one under way is in the house in its room,
+ * one over has checked out and settled; money and charges are there only once
+ * their time has come. At 09:05 on the Tuesday it is the design's book.
  *
  * References carry an `S` (`WH-S3283`) and no running number, so a house's
  * own first reservation (`WH-1001`) is never one of them. Addresses end in
@@ -400,12 +403,31 @@ function toMinutes(time: string): number {
 function hhmm(minutes: number): string {
   return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 }
-const day = (n: number) => ({ "@day": n });
-const wall = (n: number, time: string) => ({ "@day": n, "@time": time });
+/** A date, or a wall time, so many days from the sample's Tuesday — the weekday kept, whatever day it is added. */
+const day = (n: number) => ({ "@day": n, "@week": true });
+const wall = (n: number, time: string) => ({ "@day": n, "@time": time, "@week": true });
+/** Days from the demo's Tuesday to an ISO date on its calendar. */
+const offsetOf = (iso: string) => Math.round((Date.parse(`${iso}T00:00:00Z`) - Date.parse(`${isoDay(0)}T00:00:00Z`)) / 86_400_000);
+
+/** The time a stay's guest came in: this morning's, or the time they gave (a key left out: 22:40). */
+const checkInTime = (s: Stay) => s.checkedIn ?? (s.time === "22:30" ? "22:40" : s.time);
+/** When a stay's guest leaves on the last morning, and when they settle before it. */
+const LEAVING = "10:30";
+const SETTLING = "10:15";
+/** A stay given a room: booked, in the house or checked out by where the adding moment falls against its nights. */
+const holdsRoom = (s: Stay) => s.room !== null && s.status !== "cancelled" && s.status !== "no_show";
+/** When a stay given a room began and ended, as `@byStay` reads its dates. */
+const stayTimes = (s: Stay) => ({ from: checkInTime(s), to: s.checkedOut?.[1] ?? LEAVING });
+/** Where the design's own moment falls against a stay given a room. */
+const onTheTuesday = (s: Stay): "before" | "during" | "after" => (s.status === "booked" ? "before" : s.status === "in_house" ? "during" : "after");
+/** Kept only once its time has come. */
+const once = (at: unknown) => ({ at, after: { "@skip": true } });
 
 export interface SampleBundle {
   format: "adminium.sample/1";
   app: string;
+  weekAnchor: "tue";
+
   assets: Record<string, never>;
   tables: { ref: string; rows: Row[] }[];
 }
@@ -429,6 +451,24 @@ export function sampleBundle(): SampleBundle {
     const money = stayMoney(s);
     const row: Row = {
       "@label": label,
+      ...(holdsRoom(s)
+        ? {
+            "@byStay": {
+              from: "arrive",
+              to: "depart",
+              times: stayTimes(s),
+              before: { status: "booked", checked_in_at: null, checked_in_by: null, checked_out_at: null, checked_out_by: null },
+              during: { status: "in_house", checked_in_at: wall(s.arrive, checkInTime(s)), checked_in_by: STAFF.desk, checked_out_at: null, checked_out_by: null },
+              after: {
+                status: "departed",
+                checked_in_at: wall(s.arrive, checkInTime(s)),
+                checked_in_by: STAFF.desk,
+                checked_out_at: wall(...(s.checkedOut ?? [s.depart, LEAVING])),
+                checked_out_by: STAFF.desk,
+              },
+            },
+          }
+        : {}),
       ref_seq: null,
       ref: `WH-S${String(s.ref)}`,
       status: s.status,
@@ -452,14 +492,6 @@ export function sampleBundle(): SampleBundle {
       created_at: wall(madeDay, madeTime),
       customer_id: email === null ? null : { "@ref": `guest:${String(s.ref)}` },
     };
-    if (s.status === "in_house" || s.status === "departed") {
-      row["checked_in_at"] = s.checkedIn !== undefined ? wall(0, s.checkedIn) : wall(s.arrive, s.time === "22:30" ? "22:40" : s.time);
-      row["checked_in_by"] = STAFF.desk;
-    }
-    if (s.checkedOut !== undefined) {
-      row["checked_out_at"] = wall(...s.checkedOut);
-      row["checked_out_by"] = STAFF.desk;
-    }
     if (s.cancelled !== undefined) {
       const [d, t, late] = s.cancelled;
       Object.assign(row, { cancelled_at: wall(d, t), cancelled_by: "guest", cancel_code: "self", late_cancel: late });
@@ -469,17 +501,20 @@ export function sampleBundle(): SampleBundle {
       stayExtras.push({ stay_id: { "@ref": label }, extra_id: { "@ref": `extra:${key}` }, state: "on", added_at: wall(madeDay, madeTime) });
     }
     for (const [item, d, note] of s.charges ?? []) {
-      charges.push({ stay_id: { "@ref": label }, charge_item_id: { "@ref": `item:${item}` }, note, charged_on: day(d), recorded_by: STAFF.desk });
+      charges.push({ "@byClock": once(wall(d, "20:00")), stay_id: { "@ref": label }, charge_item_id: { "@ref": `item:${item}` }, note, charged_on: day(d), recorded_by: STAFF.desk });
     }
-    const paid: [number, string, string, number][] = s.settled !== undefined ? [[s.settled[0], s.settled[1], "card", money.total]] : (s.payments ?? []);
+    const paid: [number, string, string, number][] = s.settled !== undefined ? [[s.settled[0], s.settled[1], "card", money.total]] : [...(s.payments ?? [])];
+    // A stay given a room and not settled settles on its last morning: there once that morning has come.
+    if (holdsRoom(s) && s.settled === undefined && money.balance > 0) paid.push([s.depart, SETTLING, "card", money.balance]);
     for (const [d, t, method, amount] of paid) {
-      payments.push({ stay_id: { "@ref": label }, kind: "taken", amount, method, paid_on: day(d), recorded_at: wall(d, t), recorded_by: STAFF.desk });
+      payments.push({ "@byClock": once("recorded_at"), stay_id: { "@ref": label }, kind: "taken", amount, method, paid_on: day(d), recorded_at: wall(d, t), recorded_by: STAFF.desk });
     }
   }
 
   return {
     format: "adminium.sample/1",
     app: "hotel",
+    weekAnchor: "tue",
     assets: {},
     tables: [
       { ref: "settings", rows: [{ "@label": "settings", "@onlyIfEmpty": true, ...SETTINGS }] },
@@ -497,14 +532,35 @@ export function sampleBundle(): SampleBundle {
       },
       {
         ref: "rooms",
-        rows: ROOMS.map((room) => ({
-          "@label": `room:${String(room.number)}`,
-          number: String(room.number),
-          floor: Math.floor(room.number / 100),
-          room_type_id: { "@ref": `type:${room.type}` },
-          status: inHouseRooms.has(room.number) ? "occupied" : CLEANING.includes(room.number) ? "cleaning" : "ready",
-          note: room.note ?? null,
-        })),
+        rows: ROOMS.map((room) => {
+          // A room given to a stay is occupied while the stay is under way, and being cleaned once it is over.
+          const holders = STAYS.filter((s) => holdsRoom(s) && s.room === room.number);
+          if (holders.length > 1) throw new Error(`Room ${String(room.number)} is given to more than one stay.`);
+          const holder = holders[0];
+          const status = inHouseRooms.has(room.number) ? "occupied" : CLEANING.includes(room.number) ? "cleaning" : "ready";
+          const byStay =
+            holder === undefined
+              ? {}
+              : {
+                  "@byStay": {
+                    from: day(holder.arrive),
+                    to: day(holder.depart),
+                    times: stayTimes(holder),
+                    before: onTheTuesday(holder) === "before" ? {} : { status: "ready" },
+                    during: { status: "occupied" },
+                    after: onTheTuesday(holder) === "after" ? {} : { status: "cleaning" },
+                  },
+                };
+          return {
+            "@label": `room:${String(room.number)}`,
+            ...byStay,
+            number: String(room.number),
+            floor: Math.floor(room.number / 100),
+            room_type_id: { "@ref": `type:${room.type}` },
+            status,
+            note: room.note ?? null,
+          };
+        }),
       },
       {
         ref: "room_closures",
@@ -520,7 +576,15 @@ export function sampleBundle(): SampleBundle {
       },
       {
         ref: "rate_rules",
-        rows: RATE_RULES.map((rule) => ({ room_type_id: null, name: rule.name, weekdays: rule.weekdays, from_date: rule.from, to_date: rule.to, amount: rule.amount, active: true })),
+        rows: RATE_RULES.map((rule) => ({
+          room_type_id: null,
+          name: rule.name,
+          weekdays: rule.weekdays,
+          from_date: rule.from === null ? null : day(offsetOf(rule.from)),
+          to_date: rule.to === null ? null : day(offsetOf(rule.to)),
+          amount: rule.amount,
+          active: true,
+        })),
       },
       {
         ref: "extras",

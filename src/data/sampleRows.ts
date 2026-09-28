@@ -14,7 +14,9 @@
  *     rounded up with `@grid` to the next step of that many minutes on the
  *     house's clock, counted from its midnight and never past the next;
  *   - `@day`/`@time` is a wall time on the house's clock, `@day` alone a
- *     date there; with `@workdays` the days count Monday to Friday, and day 0
+ *     date there; with `@week` the days count from the bundle's `weekAnchor`
+ *     weekday nearest today (at most three days either side), so every date
+ *     keeps the weekday it was written for; with `@workdays` the days count Monday to Friday, and day 0
  *     on a weekend is the Monday after;
  *   - `@month`/`@dom` is that day of the month so many months back, the
  *     month's last day when it has fewer, and never later than today (with
@@ -22,6 +24,10 @@
  *     whatever day it is added;
  *   - `@onlyIfEmpty` is a row for a table that holds one: the demo's tables
  *     start empty, so the row is always added;
+ *   - `@byStay` merges its `before`, `during` or `after` set by where `now`
+ *     falls against the row's arrival and departure (a date read at
+ *     `times.from` / `times.to` on its day), and `"@skip": true` leaves the
+ *     row out;
  *   - `@byClock` merges its `before`, `around` or `after` set by where the
  *     row's time falls against `now` — more than half an hour before, within
  *     half an hour, or later — and `"@skip": true` leaves the row out;
@@ -59,6 +65,8 @@
 export interface SampleBundleRows {
   format: string;
   app: string;
+  /** The weekday `@week` days count from. */
+  weekAnchor?: string;
   tables: { ref: string; rows: Record<string, unknown>[] }[];
 }
 
@@ -287,6 +295,20 @@ function zonedDay(now: number, zone: string, days: number): Ymd {
   const get = (type: string) => Number(parts.find((part) => part.type === type)?.value ?? 0);
   const shifted = new Date(Date.UTC(get("year"), get("month") - 1, get("day") + days));
   return { y: shifted.getUTCFullYear(), m: shifted.getUTCMonth() + 1, d: shifted.getUTCDate() };
+}
+
+const WEEKDAY_INDEX: Readonly<Record<string, number>> = { mon: 0, tue: 1, wed: 2, thu: 3, fri: 4, sat: 5, sun: 6 };
+
+/** The day with the anchor weekday nearest today in `zone` (at most three days either side), moved by `days`. */
+function zonedWeekDay(now: number, zone: string, anchor: string, days: number): Ymd {
+  const today = zonedDay(now, zone, 0);
+  const at = new Date(Date.UTC(today.y, today.m - 1, today.d));
+  const weekday = (at.getUTCDay() + 6) % 7;
+  let shift = (WEEKDAY_INDEX[anchor] ?? weekday) - weekday;
+  if (shift > 3) shift -= 7;
+  if (shift < -3) shift += 7;
+  at.setUTCDate(at.getUTCDate() + shift + days);
+  return { y: at.getUTCFullYear(), m: at.getUTCMonth() + 1, d: at.getUTCDate() };
 }
 
 /** `n` working days from today in `zone`; day 0 on a weekend is the Monday after. */
@@ -607,6 +629,7 @@ type Resolved = unknown;
 
 interface Context extends ResolveOptions {
   labels: Map<string, number>;
+  weekAnchor?: string | undefined;
 }
 
 function resolveValue(value: unknown, ctx: Context): Resolved {
@@ -623,7 +646,12 @@ function resolveValue(value: unknown, ctx: Context): Resolved {
     return typeof record["@grid"] === "number" ? new Date(onVenueGrid(at, record["@grid"], ctx.zone)) : new Date(at);
   }
   if (typeof record["@day"] === "number") {
-    const day = record["@workdays"] === true ? zonedWorkday(ctx.now, ctx.zone, record["@day"]) : zonedDay(ctx.now, ctx.zone, record["@day"]);
+    const day =
+      record["@week"] === true && ctx.weekAnchor !== undefined
+        ? zonedWeekDay(ctx.now, ctx.zone, ctx.weekAnchor, record["@day"])
+        : record["@workdays"] === true
+          ? zonedWorkday(ctx.now, ctx.zone, record["@day"])
+          : zonedDay(ctx.now, ctx.zone, record["@day"]);
     if (typeof record["@time"] === "string") return new Date(zonedWallTime(day, record["@time"], ctx.zone));
     return spellDay(day);
   }
@@ -639,11 +667,28 @@ function resolveValue(value: unknown, ctx: Context): Resolved {
   return value;
 }
 
-/** One row with its directives resolved, or null when its `@byClock` set leaves it out. */
+/** One row with its directives resolved, or null when its `@byClock` or `@byStay` set leaves it out. */
 function resolveRow(row: Readonly<Record<string, unknown>>, ctx: Context): Record<string, Resolved> | null {
   let values: Readonly<Record<string, unknown>> = row;
   const clock = row["@byClock"] as { at: unknown; before?: Record<string, unknown>; around?: Record<string, unknown>; after?: Record<string, unknown> } | undefined;
-  if (clock !== undefined) {
+  type Branch = Record<string, unknown>;
+  const stay = row["@byStay"] as { from: unknown; to: unknown; times?: { from?: string; to?: string }; before?: Branch; during?: Branch; after?: Branch } | undefined;
+  if (stay !== undefined) {
+    // The row's arrival and departure, against the adding moment: before its stay, during it, or after it.
+    const edge = (end: "from" | "to"): number => {
+      const when = resolveValue(typeof stay[end] === "string" ? row[stay[end] as string] : stay[end], ctx);
+      if (when instanceof Date) return when.getTime();
+      const day = typeof when === "string" ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(when.trim()) : null;
+      if (day === null) return Number.NaN;
+      return zonedWallTime({ y: Number(day[1]), m: Number(day[2]), d: Number(day[3]) }, stay.times?.[end] ?? "00:00", ctx.zone);
+    };
+    const from = edge("from");
+    const to = edge("to");
+    const branch = Number.isNaN(from) || Number.isNaN(to) ? undefined : ctx.now < from ? stay.before : ctx.now < to ? stay.during : stay.after;
+    if (branch?.["@skip"] === true) return null;
+    const { ["@skip"]: _skip, ...columns } = branch ?? {};
+    values = { ...row, ...columns };
+  } else if (clock !== undefined) {
     const when = resolveValue(typeof clock.at === "string" ? row[clock.at] : clock.at, ctx);
     const instant = when instanceof Date ? when.getTime() : Number.NaN;
     const branch = Number.isNaN(instant)
@@ -659,7 +704,7 @@ function resolveRow(row: Readonly<Record<string, unknown>>, ctx: Context): Recor
   }
   const out: Record<string, Resolved> = {};
   for (const [column, value] of Object.entries(values)) {
-    if (column === "@label" || column === "@byClock" || column === "@onlyIfEmpty") continue;
+    if (column === "@label" || column === "@byClock" || column === "@byStay" || column === "@onlyIfEmpty") continue;
     out[column] = resolveValue(value, ctx);
   }
   return out;
@@ -683,7 +728,7 @@ function settingValue(name: string, options: ResolveOptions, out?: ResolvedSampl
 
 /** Every table of the bundle, as Adminium would have written it at `now`. */
 export function resolveSample(bundle: SampleBundleRows, options: ResolveOptions): ResolvedSample {
-  const ctx: Context = { ...options, labels: new Map() };
+  const ctx: Context = { ...options, labels: new Map(), weekAnchor: bundle.weekAnchor };
   const out: ResolvedSample = {};
   const rowById = (table: string, id: unknown) => out[table]?.find((candidate) => candidate["id"] === id);
   for (const table of bundle.tables) {

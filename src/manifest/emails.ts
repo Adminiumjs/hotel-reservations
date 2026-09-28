@@ -43,6 +43,8 @@ export type EmailWords = Record<Kind, Words> & {
   lateOrEarly: string;
   /** "Total, was $791.34": a changed stay's total beside the one before. */
   totalWas: string;
+  /** "Taxes and city levy (9%)": the stay's own tax name and rate. */
+  taxLine: string;
   foot: string;
 };
 
@@ -57,6 +59,7 @@ export const EMAIL_EN: EmailWords = {
   cancelBy: "Cancel at no charge until {{stay.cancel_by.time}} on {{stay.cancel_by.date}}.",
   lateOrEarly: "Late or early? Write to {{practice.email}} or ring us on {{practice.phone}}.",
   totalWas: "Total, was {{was.total}}",
+  taxLine: "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
   foot: "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us.",
   "stay-made": {
     name: "Reservation made",
@@ -184,7 +187,7 @@ function layout(kind: Kind, all: EmailWords) {
       id: "totals",
       data: {
         lines: [
-          { label: "{{stay.tax_label}}", amount: "{{stay.tax}}" },
+          { label: all.taxLine, amount: "{{stay.tax}}" },
           { label: all.total, amount: "{{stay.total}}" },
         ],
       },

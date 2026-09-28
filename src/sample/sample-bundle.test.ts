@@ -59,6 +59,37 @@ describe("Adminium would add it", () => {
   });
 });
 
+describe("added on any day, it is the same house at another point of its week", () => {
+  const at = (iso: string) => resolveSample(bundle, { now: Date.parse(iso), zone: DEMO_ZONE, locale: "en-US", currency: "USD" });
+  const tuesday = at("2026-07-28T13:05:00Z");
+  const byRef = (world: ReturnType<typeof at>) => new Map(world["stays"]!.map((s) => [String(s["ref"]), s]));
+  const weekday = (date: unknown) => new Date(`${String(date)}T00:00:00Z`).getUTCDay();
+
+  for (const iso of ["2026-07-31T18:00:00Z", "2026-08-01T14:00:00Z", "2026-10-12T20:00:00Z", "2027-03-18T13:00:00Z"]) {
+    it(`keeps every weekday and every price, and puts each guest where the clock says (${iso})`, () => {
+      const world = at(iso);
+      const then = byRef(tuesday);
+      for (const s of world["stays"]!) {
+        const t = then.get(String(s["ref"]))!;
+        expect(weekday(s["arrive"]), String(s["ref"])).toBe(weekday(t["arrive"]));
+        // The nights and extras cost what they cost on the Tuesday; a charge comes only once its evening has.
+        for (const c of ["room_total", "extras_total"]) expect(s[c], `${String(s["ref"])} ${c}`).toBe(t[c]);
+        // Checked out means settled; in the house means in a room that is theirs.
+        if (s["status"] === "departed") expect(Number(s["balance"]), String(s["ref"])).toBe(0);
+        if (s["status"] === "in_house") {
+          const room = world["rooms"]!.find((r) => r["id"] === s["room_id"])!;
+          expect(room["status"], String(s["ref"])).toBe("occupied");
+        }
+      }
+      const inHouseRooms = new Set(world["stays"]!.filter((s) => s["status"] === "in_house").map((s) => s["room_id"]));
+      for (const room of world["rooms"]!.filter((r) => r["status"] === "occupied")) expect(inHouseRooms.has(room["id"]), String(room["number"])).toBe(true);
+      // Nothing is paid or charged before its time.
+      const now = Date.parse(iso);
+      for (const p of world["payments"]!) expect(Date.parse(String(p["recorded_at"]))).toBeLessThanOrEqual(now + 30 * 60_000);
+    });
+  }
+});
+
 describe("every row is one the product could have made", () => {
   it("mails nobody real: every address is on a reserved example domain, which Adminium never mails", () => {
     const addresses = [...JSON.stringify(bundle).matchAll(/"(?:email|to_address)":\s*"([^"]+)"/g)].map((m) => m[1]!);
