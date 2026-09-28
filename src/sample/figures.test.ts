@@ -167,13 +167,13 @@ describe("the folios the design opens", () => {
     expect(paid).toEqual([["card", "500.00", "2026-07-23"]]);
   });
 
-  it("WH-S3303 Priya Raman: the Friday a weekend night, the Saturday a weekend and an August night", () => {
+  it("WH-S3303 Priya Raman: the Friday a weekend night, the Saturday a weekend and a summer-weeks night", () => {
     expect(nightsOf(3303)).toEqual([
       ["2026-07-28", "150.00", ""],
       ["2026-07-29", "150.00", ""],
       ["2026-07-30", "150.00", ""],
       ["2026-07-31", "175.00", "Weekend"],
-      ["2026-08-01", "195.00", "Weekend · August"],
+      ["2026-08-01", "195.00", "Weekend · Summer weeks"],
     ]);
   });
 

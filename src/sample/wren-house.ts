@@ -9,8 +9,8 @@
  *
  * The house: 34 rooms of four types over three floors, Snug singles to Loft
  * suites; room 108 out of service for a week while its shower is replaced,
- * room 210 until a window is repaired; weekend nights $25 dearer and August
- * nights $20 dearer; breakfast, a parking space (six of them) and a late
+ * room 210 until a window is repaired; weekend nights $25 dearer and the
+ * summer weeks $20 dearer; breakfast, a parking space (six of them) and a late
  * leaving as extras; seven charge items at the desk.
  *
  * The book (as the design draws it at 09:05 on Tuesday 28 July 2026): 48
@@ -21,8 +21,9 @@
  *
  * Dates are days from the Tuesday nearest the adding moment (`@week`), so
  * every night keeps its weekday — a weekend night stays a weekend night and
- * every price is the design's, whatever day the sample is added. The August
- * rule is dated from that Tuesday too (its Saturday 1 August on, 31 nights).
+ * every price is the design's, whatever day the sample is added. The summer
+ * rule is dated from that Tuesday too (its Saturday on, 31 nights), and named
+ * for what it is, since the sample lands in any month.
  * What the clock decides follows the adding moment (`@byStay`, `@byClock`): a
  * stay not yet begun is booked, one under way is in the house in its room,
  * one over has checked out and settled; money and charges are there only once
@@ -178,10 +179,10 @@ export const CLOSURES: [room: number, from: number, to: number | null, reason: s
   [210, -8, null, "Waiting on the window repair"],
 ];
 
-/** The rate rules: a weekend and August. */
+/** The rate rules: a weekend, and the summer weeks. */
 export const RATE_RULES = [
   { name: "Weekend", weekdays: "fri,sat", from: null, to: null, amount: 25 },
-  { name: "August", weekdays: null, from: "2026-08-01", to: "2026-08-31", amount: 20 },
+  { name: "Summer weeks", weekdays: null, from: "2026-08-01", to: "2026-08-31", amount: 20 },
 ];
 
 export type ExtraKey = "breakfast" | "parking" | "late";

@@ -88,8 +88,8 @@ describe("reserving", () => {
     const h = house();
     const quote = await h.a.guest.quote(garden(h, [h.extra("BRK").id]));
     expect(quote.nights.map((n) => [n.date, n.rate, n.tags])).toEqual([
-      ["2026-08-03", 170, ["August"]],
-      ["2026-08-04", 170, ["August"]],
+      ["2026-08-03", 170, ["Summer weeks"]],
+      ["2026-08-04", 170, ["Summer weeks"]],
     ]);
     expect([money(quote.data["room_total"]), money(quote.data["extras_total"]), money(quote.data["tax"]), money(quote.data["total"])]).toEqual(["340.00", "64.00", "36.36", "440.36"]);
     expect(h.a.world.all("stays").length).toBe(48);
