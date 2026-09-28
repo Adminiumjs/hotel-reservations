@@ -362,9 +362,9 @@ export function GuestView({ v }: { v: any }) {
                     <span data-icon="map-pin" style={st("position:absolute;inset-block-start:-14px;inset-inline-end:8px;inline-size:150px;block-size:150px;color:rgba(255,255,255,.18);display:inline-flex")}><Icon name={"map-pin"} /></span>
                     {" "}
                     <div style={st("position:relative")}>
-                      <div style={st("font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.72)")}>
+                      <h1 style={st("margin:0;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.72)")}>
                         {tr("Find us")}
-                      </div>
+                      </h1>
                       {" "}
                       <div style={st("font-size:26px;font-weight:800;letter-spacing:-.02em;color:#fff;margin-block-start:6px")}>
                         {v.address}
@@ -1905,9 +1905,9 @@ export function GuestView({ v }: { v: any }) {
                           </span>
                         </div>
                         {" "}
-                        <div style={st("font-size:15.5px;font-weight:800;margin-block-start:4px")}>
+                        <h1 style={st("margin:4px 0 0;font-size:15.5px;font-weight:800")}>
                           {v.on.name}
-                        </div>
+                        </h1>
                         {" "}
                         <div style={st("font-size:13px;color:var(--fg-muted);margin-block-start:3px")}>
                           {v.on.typeName}{" · "}
