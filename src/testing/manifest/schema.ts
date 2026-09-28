@@ -10,7 +10,9 @@
  * the shipped bundle's import graph may reach it, which sources.test.ts gates.
  *
  * The only edits are import specifiers: `.js` becomes `.ts`, and the
- * `@adminium/add-on-contracts` package import becomes relative ones.
+ * `@adminium/add-on-contracts` package import becomes relative ones — and a
+ * constructor's parameter properties are written as plain fields, so the copy
+ * passes an app's `erasableSyntaxOnly`.
  */
 /**
  * Manifest spec v1, frozen at `manifestVersion: 1` for all of Adminium 1.x.
