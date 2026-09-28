@@ -14,8 +14,9 @@
  * stay's total from the row after the write, a night's rate from its nightly
  * lines. A move is a change of `status`, judged by the table's states; the
  * status the screen saw goes with it, so a stay that moved on since is refused
- * rather than moved twice. What this Adminium has no route for is said, not
- * worked out here: a quote of a change or of a void answers `NOT_OFFERED`.
+ * rather than moved twice. A change, the nights stayed and a void are priced
+ * by Adminium's own change quote, never here; a booking's save carries the
+ * price the desk showed and a retry key, and a change the price it showed.
  */
 import type { DeskHouse, DeskPerson, DeskPort, Folio, StayWithLines } from "./ports.ts";
 import { SessionPortError, type SessionTransport } from "./sessionSource.ts";
@@ -51,10 +52,8 @@ async function answer<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
-/** The columns of a stay its price is made of. */
-const PRICED = new Set(["arrive", "depart", "room_type_id", "guests"]);
-
-const notOffered = (what: string) => new ApiError(501, "NOT_OFFERED", `${what} is not offered by this Adminium.`);
+/** Whether the transport's refusal is this code. */
+const refusedAs = (error: unknown, code: string) => error instanceof SessionPortError && error.code === code;
 const byPosition = (a: Row, b: Row) => Number(a["position"] ?? 0) - Number(b["position"] ?? 0) || Number(a.id) - Number(b.id);
 const where = (column: string, value: unknown) => encodeURIComponent(JSON.stringify({ column, op: "eq", value }));
 const whereAll = (...clauses: [string, unknown][]) => encodeURIComponent(JSON.stringify({ and: clauses.map(([column, value]) => ({ column, op: "eq", value })) }));
@@ -86,10 +85,15 @@ export class AdminiumDesk implements DeskPort {
   /** The room types' base rates, for a night Adminium priced without one. */
   private baseRates = new Map<string, number>();
 
+  /** Adminium's clock less the browser's, from the config's `now`: "today" is the house's, never the browser's. */
+  private readonly skew: number;
+
   constructor(transport: SessionTransport, config: StaffConfig, options: DeskOptions = {}) {
     this.t = transport;
     this.cfg = config;
     this.opts = options;
+    const said = typeof config.now === "string" ? Date.parse(config.now) : Number.NaN;
+    this.skew = Number.isNaN(said) ? 0 : said - Date.now();
   }
 
   // ── the wire ──────────────────────────────────────────────────────────────
@@ -127,7 +131,7 @@ export class AdminiumDesk implements DeskPort {
     return (await this.t.mutate<{ data: Row }>(await this.path(table, `/${encodeURIComponent(String(id))}`), "PATCH", body)).data;
   }
   private today(): string {
-    return venueDay(this.opts.clock?.() ?? Date.now(), this.cfg.timezone ?? this.cfg.serverTimezone ?? "UTC");
+    return venueDay(this.opts.clock?.() ?? Date.now() + this.skew, this.cfg.timezone ?? this.cfg.serverTimezone ?? "UTC");
   }
 
   // ── who, and the house ────────────────────────────────────────────────────
@@ -139,7 +143,7 @@ export class AdminiumDesk implements DeskPort {
   }
 
   async config() {
-    return { timezone: this.cfg.timezone ?? this.cfg.serverTimezone, currency: this.cfg.currency };
+    return { timezone: this.cfg.timezone ?? this.cfg.serverTimezone, currency: this.cfg.currency, ...(typeof this.cfg.now === "string" ? { now: this.cfg.now } : {}) };
   }
 
   house(): Promise<DeskHouse> {
@@ -261,27 +265,62 @@ export class AdminiumDesk implements DeskPort {
   book(body: StayBody): Promise<StayReply> {
     return answer(async () => {
       const write = await this.withExtras(body);
-      const stay = await this.create("stays", write.values, write.children);
-      const lines = await this.list("stay_extras", where("stay_id", stay.id));
-      return { data: stay, children: { stay_extras: lines.map((data) => ({ data })) } };
+      const sent = { ...write, ...(body.expect === undefined ? {} : { expect: body.expect }), ...(body.clientKey === undefined ? {} : { clientKey: body.clientKey }) };
+      const reply = await this.t.mutate<{ data: Row; replayed?: boolean }>(await this.path("stays"), "POST", sent);
+      const lines = await this.list("stay_extras", where("stay_id", reply.data.id));
+      return { data: reply.data, children: { stay_extras: lines.map((data) => ({ data })) }, ...(reply.replayed === true ? { replayed: true as const } : {}) };
     });
   }
 
   /**
-   * A change that touches nothing a price is made of (a name, a note, the arrival time) leaves the stay's
-   * figures as Adminium has them. A change of dates, room type, party or extras needs Adminium's own quote
-   * of a change, which this Adminium has no route for.
+   * A stay's extras as a change sends them: every line it has (a list a
+   * change sends is the whole list — a line left out would be deleted), each
+   * ticked on or off as asked, and a new line for an extra it never had.
+   */
+  private async extrasList(id: Id, toggles: { extraId: Id; on: boolean }[]): Promise<{ key?: Record<string, unknown>; values: Record<string, unknown> }[]> {
+    const lines = await this.list("stay_extras", where("stay_id", id));
+    const wanted = new Map(toggles.map((t) => [String(t.extraId), t.on]));
+    const rows: { key?: Record<string, unknown>; values: Record<string, unknown> }[] = lines.map((line) => {
+      const on = wanted.get(String(line["extra_id"]));
+      return { key: { id: line.id }, values: { state: on === undefined ? line["state"] : on ? "on" : "off" } };
+    });
+    for (const { extraId, on } of toggles) {
+      if (on && !lines.some((line) => String(line["extra_id"]) === String(extraId))) rows.push({ values: { extra_id: extraId } });
+    }
+    return rows;
+  }
+
+  /** A change of a stay as a save sends it: its values, its extras when any are asked about, and the price the desk showed. */
+  private async changeBody(id: Id, values: Record<string, unknown>, extras: { extraId: Id; on: boolean }[] | undefined, withLines: boolean) {
+    const children = extras !== undefined && (extras.length > 0 || withLines) ? { [await this.t.relation(this.real("stay_extras"), "stay_id")]: await this.extrasList(id, extras) } : undefined;
+    return { values, ...(children === undefined ? {} : { children }) };
+  }
+
+  /**
+   * Adminium's own quote of a change: the stay as the change would leave it,
+   * its extras as ticked (their nights and guests following the stay), the
+   * nights it would be made of. Nothing is kept.
    */
   quoteEdit(id: Id, values: Record<string, unknown>, extras: { extraId: Id; on: boolean }[] = []): Promise<QuoteReply> {
     return answer(async () => {
-      if (extras.length > 0 || Object.keys(values).some((column) => PRICED.has(column))) throw notOffered("A quote of a change");
-      const [stay, lines] = await Promise.all([this.one("stays", id), this.list("stay_extras", where("stay_id", id))]);
-      return { data: { ...stay, ...values }, nights: [], children: { stay_extras: lines.map((data) => ({ data })) }, capacity: [], exact: true };
+      const body = await this.changeBody(id, values, extras, true);
+      const got = await this.t.mutate<{ data: Row; children?: Record<string, { data: Row }[]>; nights?: Record<string, unknown>[] }>(await this.path("stays", `/${encodeURIComponent(String(id))}/dry-run`), "POST", body);
+      const lines = Object.values(got.children ?? {})[0] ?? [];
+      return {
+        data: got.data,
+        nights: (got.nights ?? []).map((n) => this.night(n, got.data["room_type_id"])),
+        children: { stay_extras: lines.map((c) => ({ data: c.data })) },
+        capacity: [],
+        exact: true,
+      };
     });
   }
 
-  edit(id: Id, values: Record<string, unknown>): Promise<Row> {
-    return answer(() => this.change("stays", id, values));
+  edit(id: Id, values: Record<string, unknown>, expectTotal?: string, extras?: { extraId: Id; on: boolean }[]): Promise<Row> {
+    return answer(async () => {
+      const body = await this.changeBody(id, values, extras, false);
+      return (await this.t.mutate<{ data: Row }>(await this.path("stays", `/${encodeURIComponent(String(id))}`), "PATCH", { ...body, ...(expectTotal === undefined ? {} : { expect: { total: expectTotal } }) })).data;
+    });
   }
 
   setExtra(stayId: Id, extraId: Id, on: boolean): Promise<Row> {
@@ -311,8 +350,25 @@ export class AdminiumDesk implements DeskPort {
     });
   }
 
-  quoteTakeOff(_id: Id, _from: string): Promise<{ total: number; refused: boolean; data: Record<string, unknown>; credit: number }> {
-    return Promise.reject(notOffered("A quote of the nights stayed"));
+  /**
+   * What the stay would come to with the nights from `from` taken off: the
+   * credit row tried with the stay's change quote (every credit it has, and
+   * the new one), priced by Adminium; refused when it would leave more paid
+   * than the stay costs.
+   */
+  quoteTakeOff(id: Id, from: string): Promise<{ total: number; refused: boolean; data: Record<string, unknown>; credit: number }> {
+    return answer(async () => {
+      const [stay, credits, rel] = await Promise.all([this.one("stays", id), this.list("stay_credits", where("stay_id", id)), this.t.relation(this.real("stay_credits"), "stay_id")]);
+      const rows = [...credits.map((c) => ({ key: { id: c.id }, values: { voided: c["voided"] } })), { values: { reason: "left_early", from_date: from, to_date: stay["depart"] } }];
+      try {
+        const got = await this.t.mutate<{ data: Row; children?: Record<string, { data: Row }[]> }>(await this.path("stays", `/${encodeURIComponent(String(id))}/dry-run`), "POST", { values: {}, children: { [rel]: rows } });
+        const made = (got.children?.[rel] ?? []).find((c) => !credits.some((old) => old.id === c.data["id"]));
+        return { total: Number(got.data["total"]), refused: false, data: got.data, credit: Number(made?.data["amount"] ?? 0) };
+      } catch (error) {
+        if (refusedAs(error, "BALANCE_EXCEEDED")) return { total: Number(stay["total"]), refused: true, data: stay, credit: 0 };
+        throw error;
+      }
+    });
   }
 
   cancel(id: Id, code: "guest_asked" | "house"): Promise<Row> {
@@ -375,8 +431,21 @@ export class AdminiumDesk implements DeskPort {
     return answer(() => this.change(table, id, { voided: true, void_reason: reason.trim() }));
   }
 
-  quoteVoid(_table: "charges" | "payments" | "stay_credits", _id: Id): Promise<{ refused: boolean; paid: number; total: number }> {
-    return Promise.reject(notOffered("A quote of a void"));
+  /** Whether a void would go through: the row voided in the stay's change quote, its other rows as they are. */
+  quoteVoid(table: "charges" | "payments" | "stay_credits", id: Id): Promise<{ refused: boolean; paid: number; total: number }> {
+    return answer(async () => {
+      const row = await this.one(table, id);
+      const stayId = row["stay_id"] as Id;
+      const [stay, rows, rel] = await Promise.all([this.one("stays", stayId), this.list(table, where("stay_id", stayId)), this.t.relation(this.real(table), "stay_id")]);
+      const sent = rows.map((r) => ({ key: { id: r.id }, values: { voided: r.id === row.id ? true : r["voided"] } }));
+      try {
+        const got = await this.t.mutate<{ data: Row }>(await this.path("stays", `/${encodeURIComponent(String(stayId))}/dry-run`), "POST", { values: {}, children: { [rel]: sent } });
+        return { refused: false, paid: Number(got.data["paid"]), total: Number(got.data["total"]) };
+      } catch (error) {
+        if (refusedAs(error, "BALANCE_EXCEEDED")) return { refused: true, paid: Number(stay["paid"]), total: Number(stay["total"]) };
+        throw error;
+      }
+    });
   }
 
   // ── rooms ─────────────────────────────────────────────────────────────────

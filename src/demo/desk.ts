@@ -162,9 +162,19 @@ export class DemoDesk implements DeskPort {
     });
   }
 
-  async edit(id: Id, values: Record<string, unknown>, expectTotal?: string): Promise<Row> {
+  async edit(id: Id, values: Record<string, unknown>, expectTotal?: string, extras: { extraId: Id; on: boolean }[] = []): Promise<Row> {
     return this.engine.write(() => {
-      const row = this.engine.updateStay(id, values, this.writer);
+      const row = Object.keys(values).length > 0 ? this.engine.updateStay(id, values, this.writer) : this.world.get("stays", id);
+      if (row === undefined) throw notFound("staff");
+      // The extras ticked on or off, in the same write.
+      for (const { extraId, on } of extras) {
+        const line = this.world.where("stay_extras", (l) => l["stay_id"] === id && l["extra_id"] === extraId)[0];
+        if (on) {
+          if (line !== undefined && line["state"] === "off") this.world.update("stay_extras", line.id, { state: "on" });
+          else if (line === undefined) this.engine.addLine(this.world.get("stays", id)!, extraId, this.writer);
+        } else if (line !== undefined && line["state"] !== "off") this.world.update("stay_extras", line.id, { state: "off" });
+      }
+      if (extras.length > 0) this.engine.judgeExtras(id, "staff");
       this.world.settle();
       if (expectTotal !== undefined && Math.round(Number(expectTotal) * 100) !== Math.round(Number(row["total"]) * 100)) {
         throw new ApiError(409, "PRICE_CHANGED", "The price has changed.", { total: Number(row["total"]).toFixed(2) });

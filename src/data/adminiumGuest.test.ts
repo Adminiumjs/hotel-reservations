@@ -196,11 +196,30 @@ describe("the real guest door", () => {
     expect(storage.getItem("wh.session.customer")).toBeNull();
   });
 
-  it("offers none of the account actions this Adminium has no route for, and refuses them if asked", async () => {
-    const guest = new AdminiumGuest(CONFIG, { fetch: server({}).fetch, storage: new Memory() });
-    expect(guest.offers).toEqual({ newLink: false, signOutEverywhere: false, forget: false });
-    for (const run of [() => guest.newLink(1), () => guest.signOutEverywhere(), () => guest.forget()]) {
-      await expect(run()).rejects.toMatchObject({ code: "NOT_OFFERED" });
-    }
+  it("makes a new link, signs out everywhere and deletes the details through the kept session, then forgets it", async () => {
+    const storage = new Memory();
+    storage.setItem("wh.session.customer", JSON.stringify({ token: "guest-session", at: 1 }));
+    storage.setItem("wh.session.link", JSON.stringify({ token: "link-session", at: 1 }));
+    const s = server({
+      [`POST ${R}/hotel_stays_verified/41/new-link`]: () => json({ data: {} }),
+      [`GET ${R}/hotel_customers_claimed`]: () => json({ data: [{ id: 3, email: "ines@example.com", first_name: "Ines" }] }),
+      "POST /api/v1/public/session/revoke-all": () => json({ data: {} }),
+      "DELETE /api/v1/public/account": () => json({ data: {} }),
+    });
+    const guest = new AdminiumGuest(CONFIG, { fetch: s.fetch, storage });
+    expect(guest.offers).toEqual({ newLink: true, signOutEverywhere: true, forget: true });
+    expect(await guest.newLink(41)).toEqual({ sentTo: "ines@example.com" });
+    await guest.forget();
+    expect([storage.getItem("wh.session.customer"), storage.getItem("wh.session.link")]).toEqual([null, null]);
+    const sent = s.calls.filter((c) => c.method !== "GET").map((c) => [c.method, c.path, c.session]);
+    expect(sent).toEqual([
+      ["POST", `${R}/hotel_stays_verified/41/new-link`, "guest-session"],
+      ["DELETE", "/api/v1/public/account", "guest-session"],
+    ]);
+    storage.setItem("wh.session.customer", JSON.stringify({ token: "again", at: 2 }));
+    const second = new AdminiumGuest(CONFIG, { fetch: s.fetch, storage });
+    await second.signOutEverywhere();
+    expect(s.calls.at(-1)).toMatchObject({ method: "POST", path: "/api/v1/public/session/revoke-all", session: "again" });
+    expect(storage.getItem("wh.session.customer")).toBeNull();
   });
 });

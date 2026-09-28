@@ -27,6 +27,9 @@ export interface Form {
   note: string;
   extras: Record<string, boolean>;
 }
+/** A retry key a form mints once: 48 random characters. */
+const mintKey = () => crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+
 export interface Nb extends Form {
   arrive: string;
   depart: string;
@@ -495,11 +498,13 @@ export class HouseApp {
     void this.reserve(false);
   }
   private clientKey = "";
+  /** The desk's booking form's retry key, kept until the booking is made or refused. */
+  private deskKey = "";
   async reserve(accepted: boolean): Promise<void> {
     const s = this.state;
     const t = s.pickedType;
     if (t === null) return;
-    if (!this.clientKey) this.clientKey = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+    if (!this.clientKey) this.clientKey = mintKey();
     const f = s.form;
     const shown = accepted ? s.rvAnswer?.total ?? s.rvShown : s.rvShown;
     this.setState({ rvBusy: true, rvAnswer: null, formErr: false });
@@ -953,15 +958,13 @@ export class HouseApp {
     if (s.editId !== null) {
       const old = this.stay(s.editId)!;
       const changed = this.nbChanged(old, nb);
+      // The stay and its extras, each put on or dropped as the form says, in one write.
+      const toggles = this.world()!
+        .extras.filter((e) => !!nb.extras[e.id] !== old.extras.includes(e.id))
+        .map((e) => ({ extraId: Number(e.id), on: !!nb.extras[e.id] }));
       await this.write(
         async () => {
-          if (Object.keys(changed).length > 0) await desk.edit(old.id, changed, expectTotal);
-          // Extras: each one put on or dropped, as the form says.
-          for (const e of this.world()!.extras) {
-            const want = !!nb.extras[e.id];
-            const on = old.extras.includes(e.id);
-            if (want !== on) await desk.setExtra(old.id, Number(e.id), want);
-          }
+          if (Object.keys(changed).length > 0 || toggles.length > 0) await desk.edit(old.id, changed, expectTotal, toggles);
           return old;
         },
         () => {
@@ -973,14 +976,18 @@ export class HouseApp {
       );
       return;
     }
+    // One key per booking form: a save sent again after a reply that never came lands on the same stay.
+    if (!this.deskKey) this.deskKey = mintKey();
     const body: StayBody = {
       values: { ...values, ...(known !== null && nb.link === "yes" ? { customer_id: known.customerId } : {}) },
       children: { stay_extras: this.pickedExtras(nb).map((extra_id) => ({ values: { extra_id: Number(extra_id) } })) },
       ...(expectTotal ? { expect: { total: expectTotal } } : {}),
+      clientKey: this.deskKey,
     };
     await this.write(
       () => desk.book(body),
       (reply) => {
+        this.deskKey = "";
         const id = reply.data.id;
         const ref = String(reply.data["ref"]);
         this.setState({ nbBusy: false, nb: null });
@@ -991,6 +998,8 @@ export class HouseApp {
         } else this.go(nb.arrive === this.day ? "today" : "reservations", { newId: id });
       },
       (error) => {
+        // Refused for good: the next save is a new booking. Unanswered: the same key tries again.
+        if (isApiError(error) && error.code !== "PUBLIC_NETWORK_UNAVAILABLE") this.deskKey = "";
         const t = this.world()?.typeById[nb.type ?? ""];
         this.setState({ nbBusy: false, nbErr: isApiError(error) && error.code === "CAPACITY_FULL" ? tr("The last {type} went while you were typing — pick another type.", { type: t?.name ?? "" }) : this.refused(error) });
       },

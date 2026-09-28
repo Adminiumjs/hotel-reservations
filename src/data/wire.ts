@@ -64,6 +64,8 @@ export interface StayBody {
   children: { stay_extras: TreeRow[] };
   /** The total the guest was shown, as a decimal string: a different one writes nothing. */
   expect?: { total: string };
+  /** The desk's retry key for this save: sent again after a reply that never came, it answers the stay the first save made. */
+  clientKey?: string;
 }
 
 /** A written child row. */

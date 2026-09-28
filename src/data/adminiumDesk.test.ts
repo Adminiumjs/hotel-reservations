@@ -63,6 +63,11 @@ describe("the real desk door", () => {
     expect(await desk.config()).toEqual({ timezone: "America/New_York", currency: "USD" });
   });
 
+  it("takes the house's clock from Adminium's config, not the browser's", async () => {
+    const desk = new AdminiumDesk(transport({}).t, config({ now: "2026-07-28T13:05:00.000Z" }));
+    expect(await desk.config()).toEqual({ timezone: "America/New_York", currency: "USD", now: "2026-07-28T13:05:00.000Z" });
+  });
+
   it("reads only the tables the person may read", async () => {
     const { t, sent } = transport({
       [`GET ${D}/hotel_rooms`]: () => ({ data: [{ id: 2, number: "301" }, { id: 1, number: "104" }] }),
@@ -186,22 +191,68 @@ describe("the real desk door", () => {
     await expect(desk.takeOffNights(41, "2026-07-31")).rejects.toMatchObject({ code: "VALIDATION_FAILED" });
   });
 
-  it("says the quotes this Adminium has no route for are not offered", async () => {
-    const desk = new AdminiumDesk(transport({}).t, config());
-    await expect(desk.quoteEdit(41, { guests: 3 })).rejects.toMatchObject({ code: "NOT_OFFERED" });
-    await expect(desk.quoteEdit(41, {}, [{ extraId: 1, on: true }])).rejects.toMatchObject({ code: "NOT_OFFERED" });
-    await expect(desk.quoteTakeOff(41, "2026-07-29")).rejects.toMatchObject({ code: "NOT_OFFERED" });
-    await expect(desk.quoteVoid("charges", 3)).rejects.toMatchObject({ code: "NOT_OFFERED" });
+  it("asks Adminium's change quote for an edit, sending every extra line with the ones ticked on or off", async () => {
+    const { t, sent } = transport({
+      [`GET ${D}/hotel_stay_extras`]: () => ({ data: [{ id: 9, stay_id: 41, extra_id: 1, state: "on" }, { id: 10, stay_id: 41, extra_id: 2, state: "off" }] }),
+      [`POST ${D}/hotel_stays/41/dry-run`]: () => ({
+        data: { id: 41, room_type_id: 2, total: "612.40" },
+        children: { "rel:hotel_stay_extras.stay_id": [{ data: { id: 9, state: "off" } }, { data: { id: 10, state: "on" } }, { data: { id: 11, extra_id: 3 } }] },
+        nights: [{ date: "2026-07-30", rate: "205.00", base: "180.00", tags: ["Summer weeks"] }],
+      }),
+    });
+    const quote = await new AdminiumDesk(t, config()).quoteEdit(41, { depart: "2026-08-01" }, [{ extraId: 1, on: false }, { extraId: 2, on: true }, { extraId: 3, on: true }]);
+    expect(sent.at(-1)!.body).toEqual({
+      values: { depart: "2026-08-01" },
+      children: {
+        "rel:hotel_stay_extras.stay_id": [
+          { key: { id: 9 }, values: { state: "off" } },
+          { key: { id: 10 }, values: { state: "on" } },
+          { values: { extra_id: 3 } },
+        ],
+      },
+    });
+    expect([quote.data["total"], quote.nights, quote.children?.stay_extras?.length]).toEqual(["612.40", [{ date: "2026-07-30", rate: 205, base: 180, tags: ["Summer weeks"] }], 3]);
   });
 
-  it("answers a change that prices nothing with the stay's own figures", async () => {
-    const { t } = transport({
-      [`GET ${D}/hotel_stays/41`]: () => ({ data: { id: 41, first_name: "Ines", total: "570.07" } }),
-      [`GET ${D}/hotel_stay_extras`]: () => ({ data: [{ id: 9, stay_id: 41 }] }),
+  it("saves an edit and its extras in one write, with the price the desk showed", async () => {
+    const { t, sent } = transport({
+      [`GET ${D}/hotel_stay_extras`]: () => ({ data: [{ id: 9, stay_id: 41, extra_id: 1, state: "on" }] }),
+      [`PATCH ${D}/hotel_stays/41`]: () => ({ data: { id: 41 } }),
     });
-    const quote = await new AdminiumDesk(t, config()).quoteEdit(41, { first_name: "Inés", note: "Late train" });
-    expect(quote.data).toMatchObject({ id: 41, first_name: "Inés", note: "Late train", total: "570.07" });
-    expect(quote.children?.stay_extras?.map((c) => c.data["id"])).toEqual([9]);
+    await new AdminiumDesk(t, config()).edit(41, { guests: 3 }, "612.40", [{ extraId: 1, on: false }]);
+    expect(sent.filter((s) => s.method === "PATCH").map((s) => s.body)).toEqual([
+      { values: { guests: 3 }, children: { "rel:hotel_stay_extras.stay_id": [{ key: { id: 9 }, values: { state: "off" } }] }, expect: { total: "612.40" } },
+    ]);
+  });
+
+  it("takes a booking with the price it showed and a retry key, and says a replay", async () => {
+    const { t, sent } = transport({
+      [`POST ${D}/hotel_stays`]: () => ({ data: { id: 50, ref: "WH-1001" }, replayed: true }),
+      [`GET ${D}/hotel_stay_extras`]: () => ({ data: [] }),
+    });
+    const reply = await new AdminiumDesk(t, config()).book({ values: { first_name: "Elin" }, children: { stay_extras: [] }, expect: { total: "440.36" }, clientKey: "k".repeat(43) });
+    expect(sent[0]!.body).toMatchObject({ expect: { total: "440.36" }, clientKey: "k".repeat(43) });
+    expect(reply.replayed).toBe(true);
+  });
+
+  it("quotes the nights stayed and a void through the stay's change quote; a refusal of the balance is said, not thrown", async () => {
+    const { t, sent } = transport({
+      [`GET ${D}/hotel_stays/41`]: () => ({ data: { id: 41, depart: "2026-07-31", total: "900.00", paid: "500.00" } }),
+      [`GET ${D}/hotel_stay_credits`]: () => ({ data: [] }),
+      [`GET ${D}/hotel_charges/3`]: () => ({ data: { id: 3, stay_id: 41, voided: false } }),
+      [`GET ${D}/hotel_charges`]: () => ({ data: [{ id: 3, stay_id: 41, voided: false }, { id: 4, stay_id: 41, voided: true }] }),
+      [`POST ${D}/hotel_stays/41/dry-run`]: (s) => {
+        const children = (s.body as { children: Record<string, unknown[]> }).children;
+        if ("rel:hotel_charges.stay_id" in children) throw new SessionPortError("Refused.", 409, "BALANCE_EXCEEDED", {});
+        return { data: { id: 41, total: "508.60" }, children: { "rel:hotel_stay_credits.stay_id": [{ data: { id: 7, amount: "392.40" } }] } };
+      },
+    });
+    const desk = new AdminiumDesk(t, config());
+    expect(await desk.quoteTakeOff(41, "2026-07-29")).toMatchObject({ total: 508.6, refused: false, credit: 392.4 });
+    expect(await desk.quoteVoid("charges", 3)).toEqual({ refused: true, paid: 500, total: 900 });
+    expect((sent.at(-1)!.body as { children: Record<string, unknown> }).children).toEqual({
+      "rel:hotel_charges.stay_id": [{ key: { id: 3 }, values: { voided: true } }, { key: { id: 4 }, values: { voided: true } }],
+    });
   });
 
   it("hands a refusal on with Adminium's code and what it said beside", async () => {

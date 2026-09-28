@@ -139,9 +139,9 @@ export interface DeskPort {
   /** A booking priced, written nowhere; and made. */
   quote(body: StayBody): Promise<QuoteReply>;
   book(body: StayBody): Promise<StayReply>;
-  /** A change to a stay priced, written nowhere (its extras as ticked); and made. */
+  /** A change to a stay priced, written nowhere (its extras as ticked); and made, with its extras, in one write. */
   quoteEdit(id: Id, values: Record<string, unknown>, extras?: { extraId: Id; on: boolean }[]): Promise<QuoteReply>;
-  edit(id: Id, values: Record<string, unknown>, expectTotal?: string): Promise<Row>;
+  edit(id: Id, values: Record<string, unknown>, expectTotal?: string, extras?: { extraId: Id; on: boolean }[]): Promise<Row>;
 
   /** An extra put on a stay, or dropped (and put back). */
   setExtra(stayId: Id, extraId: Id, on: boolean): Promise<Row>;

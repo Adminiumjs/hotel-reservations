@@ -696,7 +696,9 @@ function nbVals(app: HouseApp, w: WorldV): V {
   const knownFirst = known === null ? "" : String(known.customer["first_name"] ?? "");
   const knownName = known === null ? "" : `${knownFirst} ${String(known.customer["last_name"] ?? "")}`.trim();
   const linkWait = known !== null && nb.link === null;
-  const small = t !== null && nb.guests > t.sleeps && !inStay;
+  // More guests than the room sleeps: Adminium refuses the quote, and the desk says it in its own words.
+  const refused = draftErr as { code?: string; params?: Record<string, unknown> } | undefined;
+  const small = t !== null && refused?.code === "VALIDATION_FAILED" && refused.params?.["column"] === "guests" && refused.params?.["reason"] === "too-many";
   const nbStop = small ? tr("A {type} sleeps {n}.", { type: t.name, n: t.sleeps }) : draftErr !== undefined ? app.refused(draftErr) : "";
   const saveOk = draft !== undefined && nbProblem === null && !s.nbBusy && !nbStop && !linkWait;
   const setN = (k: keyof typeof nb) => (e: { target: { value: string } }) => {

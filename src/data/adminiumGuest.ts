@@ -13,9 +13,9 @@
  * reference and total from its reply. A refusal reaches the screens as an
  * `ApiError` with the public API's own code.
  *
- * What this Adminium does not offer yet is said, not faked: `offers` names
- * the guest's account actions it serves, and each one it does not answers
- * `NOT_OFFERED` — the screens leave those actions out.
+ * `offers` names the guest's account actions this door serves — a new link
+ * for a stay, signing out everywhere, deleting their details — so a screen
+ * never shows one the door cannot make.
  */
 import { createPublicClient, PublicApiError, type PublicClient } from "@adminiumjs/public-client";
 
@@ -45,7 +45,7 @@ export interface GuestOptions {
  * None yet: a guest-made new link, signing out everywhere and deleting one's
  * details have no public route in the Adminium this app is built against.
  */
-export const REAL_OFFERS: GuestOffers = { newLink: false, signOutEverywhere: false, forget: false };
+export const REAL_OFFERS: GuestOffers = { newLink: true, signOutEverywhere: true, forget: true };
 
 const PAGE = 200;
 
@@ -63,7 +63,6 @@ async function answer<T>(run: () => Promise<T>): Promise<T> {
   }
 }
 
-const notOffered = (what: string) => new ApiError(501, "NOT_OFFERED", `${what} is not offered by this Adminium.`);
 
 /** The rows of a list, every page. */
 async function all(client: PublicClient, ref: string): Promise<Row[]> {
@@ -150,7 +149,7 @@ export class AdminiumGuest implements GuestPort {
   config(): Promise<PublicConfig> {
     return answer(async () => {
       const c = await this.customer.config();
-      return { timezone: c.timezone, currency: c.currency };
+      return { timezone: c.timezone, currency: c.currency, ...(c.now === undefined ? {} : { now: c.now }) };
     });
   }
 
@@ -375,8 +374,13 @@ export class AdminiumGuest implements GuestPort {
     return answer(() => this.customer.update<Row>(this.refs.myDates, String(id), { arrive, depart }, { expect: { total: expectTotal } }));
   }
 
-  newLink(_id: Id): Promise<{ sentTo: string }> {
-    return Promise.reject(notOffered("A new link"));
+  /** A signed-in guest's new link for one of their stays: the old one stops, the new one is emailed to them. */
+  newLink(id: Id): Promise<{ sentTo: string }> {
+    return answer(async () => {
+      await this.customer.newLink(this.refs.myStays, String(id));
+      const who = await this.signedIn();
+      return { sentTo: who?.email ?? "" };
+    });
   }
 
   signOut(): Promise<void> {
@@ -400,11 +404,28 @@ export class AdminiumGuest implements GuestPort {
     }
   }
 
+  /** Signed out on every device, this one too; a stay open by its own link stays open. */
   signOutEverywhere(): Promise<void> {
-    return Promise.reject(notOffered("Signing out everywhere"));
+    return answer(async () => {
+      try {
+        await this.customer.signOutEverywhere();
+      } finally {
+        this.customerSession.drop();
+      }
+    });
   }
 
+  /**
+   * The guest's details emptied: every session ends, and the stays' own links
+   * stop too (they open nothing any more, here either). A sign-in older than
+   * a few minutes is asked to sign in again first (`PUBLIC_CODE_STEP_UP`).
+   */
   forget(): Promise<void> {
-    return Promise.reject(notOffered("Deleting a guest's details"));
+    return answer(async () => {
+      await this.customer.forgetMe();
+      this.customerSession.drop();
+      this.linkSession?.drop();
+      this.linkedId = null;
+    });
   }
 }
