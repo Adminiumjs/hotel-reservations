@@ -1075,7 +1075,7 @@ export function DeskView({ v }: { v: any }) {
                                   {c.label}
                                 </span>
                                 {" "}
-                                <span style={st(`font-family:var(--mono);font-size:9.5px;color:${c.fg};opacity:.75`)}>
+                                <span style={st(`font-family:var(--mono);font-size:9.5px;color:${c.fg}`)}>
                                   {c.pct}
                                 </span>
                               </button>
@@ -1217,7 +1217,7 @@ export function DeskView({ v }: { v: any }) {
                         <Fragment key={i_f}>
                           <button onClick={f.go} aria-pressed={f.pressed} style={st(`display:flex;align-items:center;gap:7px;padding:7px 13px;border:1px solid ${f.border};border-radius:999px;background:${f.bg};color:${f.fg};font-size:12.5px;font-weight:700;cursor:pointer`)}>
                             {f.label}
-                            <span style={st("font-family:var(--mono);opacity:.75")}>
+                            <span style={st("font-family:var(--mono)")}>
                               {f.count}
                             </span>
                           </button>

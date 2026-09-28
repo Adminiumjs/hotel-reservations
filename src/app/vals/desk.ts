@@ -24,6 +24,30 @@ export const STATUS_COLOR: Record<RoomState, string> = { ready: "var(--pos)", oc
 /** A room's state inside a sentence ("12 ready of 34"). */
 export const statusInLine = (k: RoomState): string =>
   k === "ready" ? tr("ready") : k === "occupied" ? tr("occupied") : k === "cleaning" ? tr("being cleaned") : tr("out of service");
+/** How strongly a calendar night takes its type's colour: a little when empty, most of it when full. */
+const alphaOf = (ratio: number) => 0.07 + 0.7 * Math.min(1, ratio);
+/**
+ * The ink that reads better on a colour laid over the theme's surface: white or black — one of the two always
+ * clears 4.5:1 (the theme's own near-black text does not on a mid-tone like a lilac room type).
+ */
+function inkOn(rgb: readonly number[], alpha: number, theme: "light" | "dark"): string {
+  const surface = theme === "dark" ? [20, 20, 25] : [255, 255, 255];
+  const text = [0, 0, 0];
+  const lum = (c: readonly number[]) => {
+    const [r, g, b] = c.map((v) => {
+      const x = v / 255;
+      return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+    }) as [number, number, number];
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+  };
+  const bg = [0, 1, 2].map((i) => alpha * rgb[i]! + (1 - alpha) * surface[i]!);
+  const ratio = (a: readonly number[], b: readonly number[]) => {
+    const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x) as [number, number];
+    return (hi + 0.05) / (lo + 0.05);
+  };
+  return ratio([255, 255, 255], bg) >= ratio(text, bg) ? "#ffffff" : "#000000";
+}
+
 /** How many rooms of the rack are in one state, as a whole sentence for each state. */
 export function rackCount(k: RoomState, n: number, all: number): string {
   if (k === "ready") return tr("{n} of {all} ready|{n} of {all} ready", { n, all });
@@ -551,9 +575,10 @@ export function deskVals(app: HouseApp, w: WorldV): V {
         id: t.id + dd,
         label: f.cap ? iso(`${String(f.sold)}/${String(f.cap)}`) : iso("—"),
         aria: f.cap ? tr("{type}, {day}: {sold} of {n} sold", { type: t.name, day: strip(fDW(dd)), sold: f.sold, n: f.cap }) : tr("{type}, {day}: no room to sell", { type: t.name, day: strip(fDW(dd)) }),
-        bg: f.cap ? `rgba(${String(rgb[0])},${String(rgb[1])},${String(rgb[2])},${(0.07 + 0.7 * Math.min(1, ratio)).toFixed(2)})` : "var(--surface-3)",
+        bg: f.cap ? `rgba(${String(rgb[0])},${String(rgb[1])},${String(rgb[2])},${alphaOf(ratio).toFixed(2)})` : "var(--surface-3)",
         border: f.cap && f.sold >= f.cap ? "var(--danger)" : dd === s.calDay ? "var(--accent)" : "var(--border)",
-        fg: ratio >= 0.86 ? "#ffffff" : f.cap ? "var(--fg)" : "var(--fg-subtle)",
+        // The house's own colour, however full: the figure in whichever ink reads better on it.
+        fg: f.cap ? inkOn(rgb, alphaOf(ratio), s.theme) : "var(--fg-subtle)",
         full: f.cap > 0 && f.sold >= f.cap,
         go: () => app.setState({ calDay: app.state.calDay === dd ? null : dd }),
       };
