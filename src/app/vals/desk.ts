@@ -57,6 +57,13 @@ export function heldForOther(w: WorldV, roomId: Id, span: { id?: Id; arrive: str
   return w.stays.find((o) => o.id !== span.id && o.roomId === roomId && holds(o) && overlaps(o, span)) ?? null;
 }
 export const inRoom = (w: WorldV, roomId: Id) => w.stays.find((x) => x.state === "in" && x.roomId === roomId) ?? null;
+
+/** What housekeeping is told of a room's day, with no names: leaving (late or not) or someone arriving. */
+export function roomFact(w: WorldV, roomId: Id, today: string): string | null {
+  const leaving = w.stays.find((x) => x.state === "in" && x.roomId === roomId && x.depart === today);
+  if (leaving !== undefined) return hasExtra(w, leaving, "LATE") ? tr("Late leaving · until {time}", { time: strip(fT(w.H.lateUntil)) }) : tr("Leaving today");
+  return w.stays.some((x) => x.state === "booked" && x.roomId === roomId && x.arrive === today) ? tr("Arriving today") : null;
+}
 const hexRgb = (h: string) => {
   const n = parseInt(h.slice(1), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
@@ -471,6 +478,7 @@ export function deskVals(app: HouseApp, w: WorldV): V {
         const t = w.typeById[r.type]!;
         const k = statusOf(r);
         const who = inRoom(w, r.id);
+        const fact = hk ? roomFact(w, r.id, today) : null;
         const cl = r.closures.find((c) => c.from <= today && (c.to === null || today <= c.to));
         return {
           id: `r${r.n}`,
@@ -482,8 +490,8 @@ export function deskVals(app: HouseApp, w: WorldV): V {
           statusLabel: statusWord(k),
           border: k === "occupied" ? "var(--border-strong)" : "var(--border)",
           opacity: k === "oos" ? ".62" : "1",
-          hasWho: !hk && who !== null,
-          who: who === null ? "" : tr("{name} · to {day}", { name: who.last || who.name, day: strip(fD(who.depart)) }),
+          hasWho: (!hk && who !== null) || fact !== null,
+          who: fact ?? (who === null ? "" : tr("{name} · to {day}", { name: who.last || who.name, day: strip(fD(who.depart)) })),
           hasReason: cl !== undefined,
           reason: cl === undefined ? "" : (cl.reason ?? tr("Out of service")) + (cl.to !== null ? " · " + tr("back {day}", { day: strip(fD(plus(cl.to, 1))) }) : ""),
           hasNote: cl === undefined && r.note !== null && k === "ready" && !hk,

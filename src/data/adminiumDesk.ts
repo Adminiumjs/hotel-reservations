@@ -177,7 +177,9 @@ export class AdminiumDesk implements DeskPort {
 
   stays(): Promise<StayWithLines[]> {
     return answer(async () => {
-      const [stays, extras, charges, credits, payments] = await Promise.all([this.list("stays"), this.list("stay_extras"), this.list("charges"), this.list("stay_credits"), this.list("payments")]);
+      // Only what this person may read: housekeeping reads a stay's room, dates and status, and its extras, and no money.
+      const read = (table: Table) => (this.may(table) ? this.list(table) : Promise.resolve([] as Row[]));
+      const [stays, extras, charges, credits, payments] = await Promise.all([read("stays"), read("stay_extras"), read("charges"), read("stay_credits"), read("payments")]);
       const of = (rows: Row[], id: Id) => rows.filter((row) => row["stay_id"] === id);
       return stays.map((stay) => ({ stay, extras: of(extras, stay.id), charges: of(charges, stay.id), credits: of(credits, stay.id), payments: of(payments, stay.id) }));
     });

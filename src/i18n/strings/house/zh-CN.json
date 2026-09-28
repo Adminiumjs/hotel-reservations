@@ -674,5 +674,6 @@
   "Your reservations": "您的预订",
   "Your room is kept for your current dates. To move them, ring us on {phone}.": "您的房间按当前日期保留。如需更改，请致电 {phone}。",
   "Your surname": "您的姓",
-  "The board has everything you need for the day.": "总览里有您当天需要的一切。"
+  "The board has everything you need for the day.": "总览里有您当天需要的一切。",
+  "Late leaving · until {time}": "延迟退房 · 至 {time}"
 }
