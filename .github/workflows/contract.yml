@@ -112,6 +112,11 @@ jobs:
           TEST_MYSQL_URL: mysql://root@127.0.0.1:3306
         run: npx vitest run
 
+      - name: The demo in a browser
+        run: |
+          npx playwright install --with-deps chromium
+          npm run e2e
+
       - name: The copies of other repos' files
         env:
           ADMINIUM_REPO: ${{ runner.temp }}/adminium-product

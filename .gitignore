@@ -1,6 +1,7 @@
 node_modules
 dist
 dist-surface
+e2e-results
 *.tsbuildinfo
 .DS_Store
 *.local
