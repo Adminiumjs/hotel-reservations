@@ -6110,6 +6110,16 @@
                   "zh-CN": "客人账上未付",
                   "zh-TW": "客人帳上未付"
                 },
+                "metricLabel": "for their whole stays, not yet paid",
+                "metricLabels": {
+                  "de-DE": "für den ganzen Aufenthalt, noch nicht bezahlt",
+                  "fr-FR": "pour tout le séjour, pas encore payé",
+                  "da-DK": "for hele opholdet, endnu ikke betalt",
+                  "cs-CZ": "za celý pobyt, dosud nezaplaceno",
+                  "ar-EG": "عن كامل الإقامة، لم يُدفع بعد",
+                  "zh-CN": "整个住宿期间，尚未支付",
+                  "zh-TW": "整個住宿期間，尚未支付"
+                },
                 "metricFormat": "currency",
                 "deltaMode": "none",
                 "showSparkline": false,
@@ -6139,9 +6149,111 @@
               }
             },
             {
-              "i": "recorded",
+              "i": "occupancy",
               "widget": "kpi-stat-card",
               "x": 0,
+              "y": 3,
+              "w": 4,
+              "h": 3,
+              "config": {
+                "title": "Occupancy tonight",
+                "titles": {
+                  "en-US": "Occupancy tonight",
+                  "de-DE": "Belegung heute Nacht",
+                  "fr-FR": "Occupation ce soir",
+                  "da-DK": "Belægning i nat",
+                  "cs-CZ": "Obsazenost dnes v noci",
+                  "ar-EG": "الإشغال الليلة",
+                  "zh-CN": "今晚入住率",
+                  "zh-TW": "今晚入住率"
+                },
+                "metricLabel": "of the rooms we can sell",
+                "metricLabels": {
+                  "de-DE": "der Zimmer, die wir verkaufen können",
+                  "fr-FR": "des chambres que nous pouvons vendre",
+                  "da-DK": "af de værelser, vi kan sælge",
+                  "cs-CZ": "z pokojů, které můžeme prodat",
+                  "ar-EG": "من الغرف التي يمكننا بيعها",
+                  "zh-CN": "可售客房的比例",
+                  "zh-TW": "可售客房的比例"
+                },
+                "emptyState": {
+                  "titleKey": "No rooms to sell tonight",
+                  "titles": {
+                    "de-DE": "Heute Nacht keine Zimmer im Verkauf",
+                    "fr-FR": "Aucune chambre à vendre ce soir",
+                    "da-DK": "Ingen værelser at sælge i nat",
+                    "cs-CZ": "Dnes v noci žádné pokoje k prodeji",
+                    "ar-EG": "لا غرف للبيع الليلة",
+                    "zh-CN": "今晚没有可售客房",
+                    "zh-TW": "今晚沒有可售客房"
+                  }
+                },
+                "metricFormat": "percent",
+                "deltaMode": "none",
+                "showSparkline": false,
+                "iconName": "door-open",
+                "binding": {
+                  "kind": "capacity-counts",
+                  "source": {
+                    "name": "stays"
+                  },
+                  "shape": "metric+delta",
+                  "capacity": {
+                    "metric": "occupancy"
+                  }
+                }
+              }
+            },
+            {
+              "i": "room-income",
+              "widget": "kpi-stat-card",
+              "x": 4,
+              "y": 3,
+              "w": 4,
+              "h": 3,
+              "config": {
+                "title": "Room income tonight",
+                "titles": {
+                  "en-US": "Room income tonight",
+                  "de-DE": "Zimmereinnahmen heute Nacht",
+                  "fr-FR": "Recette des chambres ce soir",
+                  "da-DK": "Værelsesindtægt i nat",
+                  "cs-CZ": "Příjem z pokojů dnes v noci",
+                  "ar-EG": "دخل الغرف الليلة",
+                  "zh-CN": "今晚客房收入",
+                  "zh-TW": "今晚客房收入"
+                },
+                "metricLabel": "the nightly rates of the rooms sold",
+                "metricLabels": {
+                  "de-DE": "die Nachtpreise der verkauften Zimmer",
+                  "fr-FR": "les prix par nuit des chambres vendues",
+                  "da-DK": "nattepriserne for de solgte værelser",
+                  "cs-CZ": "ceny za noc prodaných pokojů",
+                  "ar-EG": "أسعار الليلة للغرف المباعة",
+                  "zh-CN": "已售客房的每晚价格",
+                  "zh-TW": "已售客房的每晚價格"
+                },
+                "metricFormat": "currency",
+                "deltaMode": "none",
+                "showSparkline": false,
+                "iconName": "landmark",
+                "binding": {
+                  "kind": "capacity-counts",
+                  "source": {
+                    "name": "stays"
+                  },
+                  "shape": "metric+delta",
+                  "capacity": {
+                    "metric": "earnings"
+                  }
+                }
+              }
+            },
+            {
+              "i": "recorded",
+              "widget": "kpi-stat-card",
+              "x": 8,
               "y": 3,
               "w": 4,
               "h": 3,
@@ -6192,11 +6304,329 @@
               }
             },
             {
+              "i": "made-by-week",
+              "widget": "chart-bar",
+              "x": 0,
+              "y": 6,
+              "w": 8,
+              "h": 8,
+              "config": {
+                "title": "Reservations made each week",
+                "titles": {
+                  "en-US": "Reservations made each week",
+                  "de-DE": "Reservierungen pro Woche",
+                  "fr-FR": "Réservations par semaine",
+                  "da-DK": "Reservationer pr. uge",
+                  "cs-CZ": "Rezervace za týden",
+                  "ar-EG": "الحجوزات كل أسبوع",
+                  "zh-CN": "每周预订量",
+                  "zh-TW": "每週預訂量"
+                },
+                "binding": {
+                  "kind": "table-query",
+                  "source": {
+                    "name": "stays",
+                    "type": "table"
+                  },
+                  "shape": "timeseries",
+                  "aggregations": [
+                    {
+                      "fn": "count",
+                      "alias": "stays"
+                    }
+                  ],
+                  "bucket": {
+                    "column": "created_at",
+                    "unit": "week"
+                  },
+                  "window": {
+                    "column": "created_at",
+                    "last": 8,
+                    "unit": "week",
+                    "calendar": true
+                  }
+                }
+              }
+            },
+            {
+              "i": "made-where",
+              "widget": "chart-stacked-bar-100",
+              "x": 8,
+              "y": 6,
+              "w": 4,
+              "h": 8,
+              "config": {
+                "title": "Made online or at the desk, last 30 days",
+                "titles": {
+                  "en-US": "Made online or at the desk, last 30 days",
+                  "de-DE": "Online oder an der Rezeption, letzte 30 Tage",
+                  "fr-FR": "En ligne ou à la réception, 30 derniers jours",
+                  "da-DK": "Online eller i receptionen, seneste 30 dage",
+                  "cs-CZ": "Online nebo na recepci, posledních 30 dní",
+                  "ar-EG": "عبر الإنترنت أو في الاستقبال، آخر 30 يومًا",
+                  "zh-CN": "在线或前台，最近 30 天",
+                  "zh-TW": "線上或櫃檯，最近 30 天"
+                },
+                "subtitle": "Reservations by where they were made",
+                "subtitles": {
+                  "de-DE": "Reservierungen nach Ort der Buchung",
+                  "fr-FR": "Réservations selon leur provenance",
+                  "da-DK": "Reservationer efter hvor de blev lavet",
+                  "cs-CZ": "Rezervace podle místa vytvoření",
+                  "ar-EG": "الحجوزات حسب مكان إجرائها",
+                  "zh-CN": "按预订渠道统计",
+                  "zh-TW": "按預訂管道統計"
+                },
+                "emptyState": {
+                  "titleKey": "No reservations made in the last 30 days.",
+                  "titles": {
+                    "de-DE": "In den letzten 30 Tagen keine Reservierungen.",
+                    "fr-FR": "Aucune réservation ces 30 derniers jours.",
+                    "da-DK": "Ingen reservationer de seneste 30 dage.",
+                    "cs-CZ": "Za posledních 30 dní žádné rezervace.",
+                    "ar-EG": "لا حجوزات في آخر 30 يومًا.",
+                    "zh-CN": "最近 30 天没有预订。",
+                    "zh-TW": "最近 30 天沒有預訂。"
+                  }
+                },
+                "binding": {
+                  "kind": "table-query",
+                  "source": {
+                    "name": "stays",
+                    "type": "table"
+                  },
+                  "shape": "categorical",
+                  "groupBy": [
+                    "channel"
+                  ],
+                  "aggregations": [
+                    {
+                      "fn": "count",
+                      "alias": "stays"
+                    }
+                  ],
+                  "window": {
+                    "column": "created_at",
+                    "last": 30,
+                    "unit": "day"
+                  }
+                }
+              }
+            },
+            {
+              "i": "leaving-owing",
+              "widget": "mini-table",
+              "x": 0,
+              "y": 14,
+              "w": 6,
+              "h": 7,
+              "config": {
+                "title": "Leaving today with money owing",
+                "titles": {
+                  "en-US": "Leaving today with money owing",
+                  "de-DE": "Heute abreisend mit offenem Betrag",
+                  "fr-FR": "Départs du jour avec un solde dû",
+                  "da-DK": "Rejser i dag med udestående beløb",
+                  "cs-CZ": "Dnes odjíždějí s nezaplacenou částkou",
+                  "ar-EG": "يغادرون اليوم وعليهم مبالغ",
+                  "zh-CN": "今日退房且有未结金额",
+                  "zh-TW": "今日退房且有未結金額"
+                },
+                "subtitle": "Leaving today · balance above zero",
+                "subtitles": {
+                  "de-DE": "Abreise heute · offener Betrag über null",
+                  "fr-FR": "Départ aujourd'hui · solde supérieur à zéro",
+                  "da-DK": "Rejser i dag · saldo over nul",
+                  "cs-CZ": "Odjezd dnes · zůstatek nad nulou",
+                  "ar-EG": "المغادرة اليوم · رصيد أكبر من صفر",
+                  "zh-CN": "今日退房 · 余额大于零",
+                  "zh-TW": "今日退房 · 餘額大於零"
+                },
+                "emptyState": {
+                  "titleKey": "Nobody leaving with money owing.",
+                  "titles": {
+                    "de-DE": "Niemand reist mit offenem Betrag ab.",
+                    "fr-FR": "Personne ne part avec un solde dû.",
+                    "da-DK": "Ingen rejser med udestående beløb.",
+                    "cs-CZ": "Nikdo neodjíždí s nezaplacenou částkou.",
+                    "ar-EG": "لا أحد يغادر وعليه مبالغ.",
+                    "zh-CN": "没有带着未结金额退房的客人。",
+                    "zh-TW": "沒有帶著未結金額退房的客人。"
+                  }
+                },
+                "limit": 6,
+                "columns": [
+                  {
+                    "name": "guest_name",
+                    "label": "Guest"
+                  },
+                  {
+                    "name": "balance",
+                    "label": "Owing",
+                    "logicalType": "money",
+                    "format": "currency"
+                  }
+                ],
+                "secondary": [
+                  "ref",
+                  "room_type"
+                ],
+                "viewAllHref": "/p/hotel-reservations?f.status=eq:in_house&f.depart=gte:today&f.depart=lte:today&f.balance=gt:0",
+                "binding": {
+                  "kind": "table-query",
+                  "source": {
+                    "name": "stays",
+                    "type": "table"
+                  },
+                  "shape": "record-list",
+                  "select": [
+                    "id",
+                    "ref",
+                    "guest_name",
+                    "balance"
+                  ],
+                  "lookups": [
+                    "room_type:room_type_id.name"
+                  ],
+                  "filters": [
+                    {
+                      "column": "status",
+                      "op": "eq",
+                      "value": "in_house"
+                    },
+                    {
+                      "column": "depart",
+                      "op": "eq",
+                      "day": "today"
+                    },
+                    {
+                      "column": "balance",
+                      "op": "gt",
+                      "value": 0
+                    }
+                  ],
+                  "orderBy": [
+                    {
+                      "column": "balance",
+                      "dir": "desc"
+                    }
+                  ],
+                  "limit": 6
+                }
+              }
+            },
+            {
+              "i": "next-arrivals",
+              "widget": "mini-table",
+              "x": 6,
+              "y": 14,
+              "w": 6,
+              "h": 7,
+              "config": {
+                "title": "Next arrivals",
+                "titles": {
+                  "en-US": "Next arrivals",
+                  "de-DE": "Nächste Anreisen",
+                  "fr-FR": "Prochaines arrivées",
+                  "da-DK": "Næste ankomster",
+                  "cs-CZ": "Nejbližší příjezdy",
+                  "ar-EG": "الوصول القادم",
+                  "zh-CN": "即将入住",
+                  "zh-TW": "即將入住"
+                },
+                "subtitle": "Booked, arriving from today",
+                "subtitles": {
+                  "de-DE": "Gebucht, Anreise ab heute",
+                  "fr-FR": "Réservés, arrivée à partir d'aujourd'hui",
+                  "da-DK": "Booket, ankomst fra i dag",
+                  "cs-CZ": "Rezervováno, příjezd od dneška",
+                  "ar-EG": "محجوز، الوصول من اليوم",
+                  "zh-CN": "已预订，今天起入住",
+                  "zh-TW": "已預訂，今天起入住"
+                },
+                "emptyState": {
+                  "titleKey": "No arrivals ahead.",
+                  "titles": {
+                    "de-DE": "Keine Anreisen in Sicht.",
+                    "fr-FR": "Aucune arrivée à venir.",
+                    "da-DK": "Ingen ankomster forude.",
+                    "cs-CZ": "Žádné příjezdy před námi.",
+                    "ar-EG": "لا وصول قادم.",
+                    "zh-CN": "暂无即将入住的客人。",
+                    "zh-TW": "暫無即將入住的客人。"
+                  }
+                },
+                "limit": 6,
+                "columns": [
+                  {
+                    "name": "guest_name",
+                    "label": "Guest"
+                  },
+                  {
+                    "name": "arrive",
+                    "label": "Arrives",
+                    "logicalType": "date"
+                  },
+                  {
+                    "name": "arrival_time",
+                    "label": "About",
+                    "format": "mono"
+                  }
+                ],
+                "secondary": [
+                  "ref",
+                  "room_type"
+                ],
+                "viewAllHref": "/p/hotel-reservations?f.status=eq:booked&f.arrive=gte:today",
+                "binding": {
+                  "kind": "table-query",
+                  "source": {
+                    "name": "stays",
+                    "type": "table"
+                  },
+                  "shape": "record-list",
+                  "select": [
+                    "id",
+                    "ref",
+                    "guest_name",
+                    "arrive",
+                    "arrival_time"
+                  ],
+                  "lookups": [
+                    "room_type:room_type_id.name"
+                  ],
+                  "filters": [
+                    {
+                      "column": "status",
+                      "op": "eq",
+                      "value": "booked"
+                    },
+                    {
+                      "column": "arrive",
+                      "op": "gte",
+                      "day": "today"
+                    }
+                  ],
+                  "orderBy": [
+                    {
+                      "column": "arrive",
+                      "dir": "asc"
+                    },
+                    {
+                      "column": "arrival_time",
+                      "dir": "asc"
+                    }
+                  ],
+                  "limit": 6
+                }
+              }
+            },
+            {
               "i": "late-cancellations",
               "widget": "kpi-stat-card",
-              "x": 4,
-              "y": 3,
-              "w": 4,
+              "x": 0,
+              "y": 21,
+              "w": 3,
               "h": 3,
               "config": {
                 "title": "Late cancellations this month",
@@ -6209,6 +6639,16 @@
                   "ar-EG": "الإلغاءات المتأخرة هذا الشهر",
                   "zh-CN": "本月逾期取消",
                   "zh-TW": "本月逾期取消"
+                },
+                "metricLabel": "by guests",
+                "metricLabels": {
+                  "de-DE": "durch Gäste",
+                  "fr-FR": "par des clients",
+                  "da-DK": "af gæster",
+                  "cs-CZ": "hosty",
+                  "ar-EG": "من قِبل الضيوف",
+                  "zh-CN": "由客人发起",
+                  "zh-TW": "由客人發起"
                 },
                 "metricFormat": "plain",
                 "deltaMode": "none",
@@ -6254,9 +6694,9 @@
             {
               "i": "no-shows",
               "widget": "kpi-stat-card",
-              "x": 8,
-              "y": 3,
-              "w": 4,
+              "x": 3,
+              "y": 21,
+              "w": 3,
               "h": 3,
               "config": {
                 "title": "No-shows this month",
@@ -6304,47 +6744,105 @@
               }
             },
             {
-              "i": "made-by-week",
-              "widget": "chart-bar",
-              "x": 0,
-              "y": 6,
-              "w": 12,
-              "h": 8,
+              "i": "out-of-service",
+              "widget": "mini-table",
+              "x": 6,
+              "y": 21,
+              "w": 6,
+              "h": 6,
               "config": {
-                "title": "Reservations made each week",
+                "title": "Rooms out of service",
                 "titles": {
-                  "en-US": "Reservations made each week",
-                  "de-DE": "Reservierungen pro Woche",
-                  "fr-FR": "Réservations par semaine",
-                  "da-DK": "Reservationer pr. uge",
-                  "cs-CZ": "Rezervace za týden",
-                  "ar-EG": "الحجوزات كل أسبوع",
-                  "zh-CN": "每周预订量",
-                  "zh-TW": "每週預訂量"
+                  "en-US": "Rooms out of service",
+                  "de-DE": "Zimmer außer Betrieb",
+                  "fr-FR": "Chambres hors service",
+                  "da-DK": "Værelser ude af drift",
+                  "cs-CZ": "Pokoje mimo provoz",
+                  "ar-EG": "غرف خارج الخدمة",
+                  "zh-CN": "停用客房",
+                  "zh-TW": "停用客房"
                 },
+                "subtitle": "Out today or later",
+                "subtitles": {
+                  "de-DE": "Heute oder später außer Betrieb",
+                  "fr-FR": "Hors service aujourd'hui ou plus tard",
+                  "da-DK": "Ude af drift i dag eller senere",
+                  "cs-CZ": "Mimo provoz dnes nebo později",
+                  "ar-EG": "خارج الخدمة اليوم أو لاحقًا",
+                  "zh-CN": "今天或之后停用",
+                  "zh-TW": "今天或之後停用"
+                },
+                "emptyState": {
+                  "titleKey": "No room is out of service.",
+                  "titles": {
+                    "de-DE": "Kein Zimmer ist außer Betrieb.",
+                    "fr-FR": "Aucune chambre hors service.",
+                    "da-DK": "Intet værelse er ude af drift.",
+                    "cs-CZ": "Žádný pokoj není mimo provoz.",
+                    "ar-EG": "لا توجد غرفة خارج الخدمة.",
+                    "zh-CN": "没有停用的客房。",
+                    "zh-TW": "沒有停用的客房。"
+                  }
+                },
+                "limit": 6,
+                "columns": [
+                  {
+                    "name": "room",
+                    "label": "Room",
+                    "format": "mono"
+                  },
+                  {
+                    "name": "to_date",
+                    "label": "Last night out",
+                    "logicalType": "date"
+                  }
+                ],
+                "secondary": [
+                  "reason"
+                ],
+                "viewAllHref": "/p/hotel-out-of-service?f.active=eq:true",
                 "binding": {
                   "kind": "table-query",
                   "source": {
-                    "name": "stays",
+                    "name": "room_closures",
                     "type": "table"
                   },
-                  "shape": "timeseries",
-                  "aggregations": [
+                  "shape": "record-list",
+                  "select": [
+                    "id",
+                    "reason",
+                    "to_date"
+                  ],
+                  "lookups": [
+                    "room:room_id.number"
+                  ],
+                  "filters": [
                     {
-                      "fn": "count",
-                      "alias": "stays"
+                      "column": "active",
+                      "op": "eq",
+                      "value": true
+                    },
+                    {
+                      "or": [
+                        {
+                          "column": "to_date",
+                          "op": "gte",
+                          "day": "today"
+                        },
+                        {
+                          "column": "to_date",
+                          "op": "is_null"
+                        }
+                      ]
                     }
                   ],
-                  "bucket": {
-                    "column": "created_at",
-                    "unit": "week"
-                  },
-                  "window": {
-                    "column": "created_at",
-                    "last": 8,
-                    "unit": "week",
-                    "calendar": true
-                  }
+                  "orderBy": [
+                    {
+                      "column": "from_date",
+                      "dir": "desc"
+                    }
+                  ],
+                  "limit": 6
                 }
               }
             }

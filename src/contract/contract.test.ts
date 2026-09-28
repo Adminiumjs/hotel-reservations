@@ -99,9 +99,12 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
 
       it("installs the app, keeping every rule, both browser keys and the outbox", async () => {
         const invoices = withInvoices();
+        // A suggested add-on is installed with the app only when the install lists it (the box the operator ticks).
+        const listed: { key: string; version: string }[] = [];
         if (invoices) {
           const addOn = addOnBundle();
           ok(await staff.post(`/api/v1/add-ons/upload?expectedSha512=${encodeURIComponent(addOn.integrity)}`, addOn.buffer));
+          listed.push({ key: addOn.key, version: addOn.version });
         }
         const app = appBundle();
         const staged = await staff.post(`/api/v1/apps/upload?expectedSha512=${encodeURIComponent(app.integrity)}`, app.buffer);
@@ -114,7 +117,7 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         const installed = ok(
           await staff.post<{ rules: { skipped: unknown[] }; schema: { created: string[] }; publicAccess: { keys: Record<string, string> }; outbox: { defined: boolean } }>(
             "/api/v1/apps/install",
-            { ...body, planChecksum: plan.checksum, ...(invoices ? {} : { addOns: { invoices: false } }) },
+            { ...body, planChecksum: plan.checksum, addOns: listed },
           ),
         );
         const created = installed.schema.created;
