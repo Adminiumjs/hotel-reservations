@@ -675,5 +675,10 @@
   "Your room is kept for your current dates. To move them, ring us on {phone}.": "您目前的日期會保留房間。如需更改日期，請來電 {phone}。",
   "Your surname": "您的姓氏",
   "The board has everything you need for the day.": "看板上有您今天需要的一切。",
-  "Late leaving · until {time}": "延遲退房 · 至 {time}"
+  "Late leaving · until {time}": "延遲退房 · 至 {time}",
+  "The folio for {ref} is open to print.": "{ref} 的住宿結算單已開啟，可以列印。",
+  "There is no email on this stay.": "此訂房沒有電子郵件。",
+  "The folio is on its way to {email}.": "住宿結算單已寄到 {email}。",
+  "Email it to {first}": "寄給 {first}",
+  "Email the folio": "寄出住宿結算單"
 }

@@ -53,6 +53,8 @@ const DESK_STAY_COLUMNS = [
   "note",
   "expect_by",
   "language",
+  "folio_sent_at",
+  "folio_so_far_at",
   "cancel_code",
   "customer_id",
 ];

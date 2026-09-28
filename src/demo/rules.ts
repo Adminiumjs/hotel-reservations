@@ -300,7 +300,9 @@ export const MANIFEST_RULES = {
         "stay-cancelled-house",
         "stay-no-show",
         "stay-dates-changed",
-        "stay-new-link"
+        "stay-new-link",
+        "stay-folio",
+        "stay-folio-owing"
       ],
       "status": [
         "queued",
@@ -1662,6 +1664,8 @@ export const MANIFEST_RULES = {
             "note",
             "expect_by",
             "language",
+            "folio_sent_at",
+            "folio_so_far_at",
             "cancel_code",
             "customer_id"
           ],
@@ -2050,6 +2054,42 @@ export const MANIFEST_RULES = {
         "depart",
         "total"
       ]
+    },
+    {
+      "kind": "stay-folio",
+      "link": "stay_id",
+      "gate": {
+        "setting": {
+          "table": "settings",
+          "column": "guest_emails_on"
+        }
+      },
+      "onChange": {
+        "table": "stays",
+        "columns": [
+          "folio_sent_at"
+        ],
+        "changed": true
+      },
+      "repeat": true
+    },
+    {
+      "kind": "stay-folio-owing",
+      "link": "stay_id",
+      "gate": {
+        "setting": {
+          "table": "settings",
+          "column": "guest_emails_on"
+        }
+      },
+      "onChange": {
+        "table": "stays",
+        "columns": [
+          "folio_so_far_at"
+        ],
+        "changed": true
+      },
+      "repeat": true
     }
   ],
   "kinds": {
@@ -2062,6 +2102,8 @@ export const MANIFEST_RULES = {
     "stay-cancelled-house": "hotel-stay-cancelled-house",
     "stay-no-show": "hotel-stay-no-show",
     "stay-dates-changed": "hotel-stay-dates-changed",
-    "stay-new-link": "hotel-stay-new-link"
+    "stay-new-link": "hotel-stay-new-link",
+    "stay-folio": "hotel-stay-folio",
+    "stay-folio-owing": "hotel-stay-folio-owing"
   }
 } as const;

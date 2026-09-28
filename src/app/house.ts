@@ -171,6 +171,8 @@ export class HouseApp {
   persona: "guest" | "desk";
   state: State;
   zone = "UTC";
+  /** Invoices & Receipts is attached: the folio prints and emails. */
+  folioOn = false;
   now = Date.now();
   private skew = 0;
   private version = 0;
@@ -268,6 +270,7 @@ export class HouseApp {
     try {
       const config = this.persona === "desk" ? await this.ports.desk!.config() : await this.ports.guest!.config();
       this.zone = config.timezone ?? "UTC";
+      this.folioOn = "folio" in config && config.folio === true;
       setCurrency(config.currency);
       if (config.now) this.skew = Date.parse(config.now) - Date.now();
       this.now = Date.now() + this.skew;
@@ -778,6 +781,28 @@ export class HouseApp {
       this.setState({ cancelId: null });
       this.toast(this.refused(error), "warn");
     });
+  }
+  /** The folio drawn by Invoices & Receipts, opened to print. */
+  async printFolio(st: StV): Promise<void> {
+    await this.write(
+      () => this.ports.desk!.printFolio(st.id),
+      (r) => {
+        if (r.url !== null && typeof window !== "undefined") window.open(r.url, "_blank", "noopener");
+        this.toast(tr("The folio for {ref} is open to print.", { ref: st.ref }), "info");
+      },
+    );
+  }
+  /** The folio emailed with the document: settled, or so far while money is owing (Adminium's balance decides). */
+  async emailFolio(st: StV): Promise<void> {
+    if (!st.email) {
+      this.toast(tr("There is no email on this stay."), "warn");
+      return;
+    }
+    const soFar = st.state === "in" && st.m.balance > 0.004;
+    await this.write(
+      () => this.ports.desk!.emailFolio(st.id, soFar),
+      () => this.toast(tr("The folio is on its way to {email}.", { email: st.email })),
+    );
   }
   async relink(st: StV): Promise<void> {
     await this.write(() => this.ports.guest!.newLink(st.id), (r) => this.toast(tr("A new link is on its way to {email}.", { email: r.sentTo || (this.state.signedIn ?? "") }), "info"));

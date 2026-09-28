@@ -675,5 +675,10 @@
   "Your room is kept for your current dates. To move them, ring us on {phone}.": "Pokoj vám držíme v současném termínu. Pro jeho změnu nám zavolejte na {phone}.",
   "Your surname": "Vaše příjmení",
   "The board has everything you need for the day.": "V přehledu dne najdete vše, co dnes potřebujete.",
-  "Late leaving · until {time}": "Pozdní odjezd · do {time}"
+  "Late leaving · until {time}": "Pozdní odjezd · do {time}",
+  "The folio for {ref} is open to print.": "Účet pobytu {ref} je otevřený k tisku.",
+  "There is no email on this stay.": "U tohoto pobytu není e-mail.",
+  "The folio is on its way to {email}.": "Účet pobytu je na cestě na {email}.",
+  "Email it to {first}": "Poslat ho {first}",
+  "Email the folio": "Poslat účet pobytu"
 }

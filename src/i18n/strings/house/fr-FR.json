@@ -675,5 +675,10 @@
   "Your room is kept for your current dates. To move them, ring us on {phone}.": "Votre chambre est gardée pour vos dates actuelles. Pour les changer, appelez-nous au {phone}.",
   "Your surname": "Votre nom de famille",
   "The board has everything you need for the day.": "Le tableau de bord a tout ce qu'il vous faut pour la journée.",
-  "Late leaving · until {time}": "Départ tardif · jusqu'à {time}"
+  "Late leaving · until {time}": "Départ tardif · jusqu'à {time}",
+  "The folio for {ref} is open to print.": "La note du séjour de {ref} est ouverte pour l'impression.",
+  "There is no email on this stay.": "Aucune adresse e-mail pour ce séjour.",
+  "The folio is on its way to {email}.": "La note du séjour est en route vers {email}.",
+  "Email it to {first}": "L'envoyer à {first}",
+  "Email the folio": "Envoyer la note du séjour"
 }

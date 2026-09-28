@@ -22,7 +22,11 @@
  *                              dates before and now, and the new total beside
  *                              the old one — one email for each change;
  *   stay-new-link              a signed-in guest asked for a new link to a
- *                              reservation: the new one, the old one stopped.
+ *                              reservation: the new one, the old one stopped;
+ *   stay-folio(-owing)         the desk emails the folio, with Invoices &
+ *                              Receipts' document attached: settled ("thank
+ *                              you for staying") or so far, with what is still
+ *                              to settle — the desk picks by Adminium's balance.
  *
  * The log is the dedupe: a kind already queued or sent for the same stay is
  * not queued again (a change of dates is told each time). A reservation linked
@@ -44,6 +48,8 @@ export const KINDS = [
   "stay-no-show",
   "stay-dates-changed",
   "stay-new-link",
+  "stay-folio",
+  "stay-folio-owing",
 ] as const;
 export type Kind = (typeof KINDS)[number];
 
@@ -109,5 +115,8 @@ export const OUTBOX = {
       was: ["arrive", "depart", "total"],
     },
     // "stay-new-link" is sent by Adminium when a signed-in guest makes a new link (no producer).
+    // The folio, each time the desk sends it.
+    { kind: "stay-folio", link: "stay_id", ...GATE, onChange: { table: "stays", columns: ["folio_sent_at"], changed: true }, repeat: true },
+    { kind: "stay-folio-owing", link: "stay_id", ...GATE, onChange: { table: "stays", columns: ["folio_so_far_at"], changed: true }, repeat: true },
   ],
 };

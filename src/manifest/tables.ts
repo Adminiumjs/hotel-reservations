@@ -188,6 +188,8 @@ export const EMAIL_KINDS: Record<string, string> = {
   "stay-no-show": "We missed you",
   "stay-dates-changed": "Dates changed",
   "stay-new-link": "A new link",
+  "stay-folio": "The folio",
+  "stay-folio-owing": "The folio so far",
 };
 
 // ── the stay's rules ────────────────────────────────────────────────────────
@@ -332,6 +334,8 @@ export const TABLES: Table[] = [
       text("late_arrival_note", 80, "Late arrival words", opt),
       { ref: "tax_rate", type: "decimal", scale: 3, default: 0, label: l("Tax rate (%)"), rules: { validation: { min: 0, max: 100 } } },
       text("tax_label", 60, "Tax name", { default: "Tax" }),
+      // The house's words for a credit of nights not stayed, as its folio prints it.
+      text("credit_label", 60, "Folio line for nights not stayed", { default: "Nights not stayed" }),
       clock("arrive_from", "Arrive from", "15:00"),
       clock("leave_by", "Leave by", "11:00"),
       clock("late_until", "Late leaving until", "14:00"),
@@ -609,6 +613,9 @@ export const TABLES: Table[] = [
       at("cancelled_at", "Cancelled", { ...opt, rules: stamp("now", onStatus("cancelled")) }),
       // Staff only: a person's name, or "guest" for the guest's own cancel.
       text("cancelled_by", 80, "Cancelled by", { ...opt, rules: stamp({ byOrigin: { public: "guest", staff: "user-name" } }, onStatus("cancelled")) }),
+      // When the desk last emailed the folio: settled, or so far.
+      at("folio_sent_at", "Folio emailed", opt),
+      at("folio_so_far_at", "Folio so far emailed", opt),
       at("no_show_marked_at", "Marked as a no-show", { ...opt, rules: { stamp: { set: "now", on: onStatus("no_show"), clearOnBack: true } } }),
       fk("customer_id", "customers", "Guest account", opt),
       // The reservation's own link: emailed to the guest, never shown in a list.
@@ -686,6 +693,8 @@ export const TABLES: Table[] = [
       id,
       fk("stay_id", "stays", "Reservation", { index: true }),
       choice("reason", "Why", { left_early: "Left early", missed: "A night they missed" }, { default: "left_early" }),
+      // What the folio calls the line: the house's words of the day it was recorded.
+      text("label", 60, "Folio line", { ...opt, rules: { default: { from: setting("credit_label") } } }),
       // The first night not stayed, and the day after the last.
       date("from_date", "First night", { rules: { notBefore: { column: "arrive", via: "stay_id" } } }),
       date("to_date", "Until", { rules: { notBefore: { column: "from_date" } } }),

@@ -124,6 +124,8 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         const schema = ok(await staff.get<{ model: { tables: { id: string; name: string }[] } }>(`/api/v1/connections/${connectionId}/schema`));
         tableIds = Object.fromEntries(Object.entries(real).map(([ref, name]) => [ref, schema.model.tables.find((t) => t.name === name)!.id]));
         ok(await staff.patch(`/api/v1/connections/${connectionId}`, { timezone: DEMO_ZONE, currency: DEMO_CURRENCY }));
+        // Where the links in its emails point: an install says it once.
+        ok(await staff.put("/api/v1/settings/email", { publicOrigin: server.base }));
         skipped = installed.rules.skipped;
         expect(Object.keys(installed.publicAccess.keys).sort()).toEqual(["customer", "link"]);
         expect(installed.outbox.defined).toBe(true);
@@ -386,6 +388,110 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         expect(made.filter((m) => m.status === "fulfilled").length).toBe(left);
         expect(made.filter((m) => m.status === "rejected").map((m) => (m as PromiseRejectedResult).reason.code)).toEqual(["PUBLIC_NO_ROOM"]);
       }, 180_000);
+
+      /** The next email to an address the server's mail sink holds, after the `after`-th it held. */
+      const sinkCount = async () => ((await (await fetch(`${server.sink}/messages`)).json()) as unknown[]).length;
+      const mailTo = async (to: string, after: number) =>
+        until(async () => {
+          const all = (await (await fetch(`${server.sink}/messages`)).json()) as { to: string[]; subject: string; text: string }[];
+          return all.slice(after).find((m) => m.to.includes(to));
+        }, `an email to ${to}`, 150_000);
+      const codeIn = (text: string) => /\b(\d{6})\b/.exec(text)?.[1] ?? "";
+      /** Two guests with a stay each, made online, and their own links. */
+      const pair = { a: { email: `ines.${engine}@wrenhouse.dev`, id: 0, token: "" }, b: { email: `piet.${engine}@wrenhouse.dev`, id: 0, token: "" } };
+
+      it("keeps each guest to their own stays, whether signed in or by a stay's own link", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        const types = await rows("room_types");
+        const garden = types.find((t) => t["name"] === "Garden double")!;
+        const breakfast = (await rows("extras")).find((e) => e["code"] === "BRK")!;
+        for (const [who, first, last] of [["a", "Ines", "Ortega"], ["b", "Piet", "Vos"]] as const) {
+          const r = await (await guestOf()).reserve(
+            { values: { room_type_id: garden.id, arrive: "2026-08-17", depart: "2026-08-20", guests: 2, first_name: first, last_name: last, email: pair[who].email, arrival_time: "17:00", language: who === "a" ? "fr-FR" : "en-US" }, children: { stay_extras: [{ values: { extra_id: breakfast.id } }] } },
+            who.repeat(43),
+          );
+          pair[who].id = r.data.id;
+          pair[who].token = r.link!.token;
+        }
+        // A signs in with the code her email carries.
+        const a = await guestOf();
+        const before = await sinkCount();
+        await a.requestSignIn(pair.a.email, "fr-FR");
+        const signIn = await mailTo(pair.a.email, before);
+        expect(signIn.subject).toContain("Wren House");
+        // Until the core reads a person their own details, the door says so after the session is made (checked below).
+        await a.verifyCode(pair.a.email, codeIn(signIn.text)).catch((error: { code?: string }) => expect(["PUBLIC_UPSTREAM_UNAVAILABLE", "PUBLIC_QUERY_REFUSED"]).toContain(error.code));
+        expect((await a.myStays()).map((s) => s.stay.id)).toEqual([pair.a.id]);
+        // B's stay, as A, by every door: as if it were not there.
+        expect(await refusalOf(() => a.changeStay(pair.b.id, { arrival_time: "18:00" }))).toBe("PUBLIC_REF_NOT_FOUND");
+        expect(await refusalOf(() => a.changeStay(pair.b.id, { status: "cancelled", cancel_code: "self" }))).toBe("PUBLIC_REF_NOT_FOUND");
+        expect(await refusalOf(() => a.quoteDates(pair.b.id, "2026-08-18", "2026-08-21"))).toBe("PUBLIC_REF_NOT_FOUND");
+        expect(await refusalOf(() => a.newLink(pair.b.id))).toBe("PUBLIC_REF_NOT_FOUND");
+        expect(await refusalOf(() => a.addExtra(pair.b.id, breakfast.id))).not.toBe("WROTE");
+        // A's own dates, priced again with the extras following them; her arrival time, which cancels nothing.
+        const quote = await a.quoteDates(pair.a.id, "2026-08-18", "2026-08-21");
+        expect(quote.children?.stay_extras?.map((l) => Number(l.data["nights"]))).toEqual([3]);
+        expect(String((await a.moveDates(pair.a.id, "2026-08-18", "2026-08-21", money(quote.data["total"])))["arrive"])).toBe("2026-08-18");
+        await a.changeStay(pair.a.id, { arrival_time: "19:00" });
+        expect((await rows("stays")).find((s) => s.id === pair.a.id)!["cancel_code"]).toBeNull();
+        // Her stay's own link opens it; a new link stops the old one, and the tab it had opened.
+        const byLink = await guestOf();
+        await byLink.openLink(pair.a.token);
+        await a.newLink(pair.a.id);
+        expect(await refusalOf(() => byLink.linkedStay())).toBe("PUBLIC_REF_NOT_FOUND");
+        expect(await refusalOf(async () => (await guestOf()).openLink(pair.a.token))).toBe("LINK_EXPIRED");
+        // B's link opens B, and never A.
+        const b = await guestOf();
+        await b.openLink(pair.b.token);
+        expect(await refusalOf(() => b.changeStay(pair.a.id, { arrival_time: "20:00" }))).toBe("PUBLIC_REF_NOT_FOUND");
+        // Signed out everywhere: nothing of A's opens with that session.
+        await a.signOutEverywhere();
+        expect(await refusalOf(() => a.myStays())).toBe("PUBLIC_REF_NOT_FOUND");
+      }, 420_000);
+
+      /** B, signed in once for both of the next two (a sign-in is asked for only so often). */
+      let signedB: AdminiumGuest | null = null;
+      const bSignedIn = async () => {
+        if (signedB !== null) return signedB;
+        const b = await guestOf();
+        const before = await sinkCount();
+        await b.requestSignIn(pair.b.email);
+        await b.verifyCode(pair.b.email, codeIn((await mailTo(pair.b.email, before)).text)).catch(() => undefined);
+        signedB = b;
+        return b;
+      };
+
+      it("reads a signed-in guest their own details", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        expect(await (await bSignedIn()).signedIn()).toMatchObject({ email: pair.b.email, name: "Piet Vos" });
+      }, 240_000);
+
+      it("deletes a guest's details at his asking: the account emptied, his stays keep theirs, their links stop", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        const b = await bSignedIn();
+        await b.forget();
+        expect((await rows("customers")).filter((c) => c["last_name"] === "Vos")).toEqual([]);
+        const stay = (await rows("stays")).find((s) => s.id === pair.b.id)!;
+        expect([stay["first_name"], stay["email"]]).toEqual(["Piet", pair.b.email]);
+        expect(await refusalOf(async () => (await guestOf()).openLink(pair.b.token))).toBe("LINK_EXPIRED");
+      }, 240_000);
+
+      it("prints a folio through Invoices & Receipts, and emails one with the document in the guest's language", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        if (!withInvoices()) ctx.skip();
+        const { desk } = await deskOf(staff);
+        const teo = byRef(await rows("stays"), "WH-S3283");
+        const printed = await desk.printFolio(teo.id);
+        const page = String((await staff.get(printed.url!)).body);
+        const figure = (value: unknown) => Number(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        for (const words of ["WH-S3283", "301", figure(teo["total"]), figure(teo["balance"])]) expect(page, words).toContain(words);
+        // Ines's stay (made online, in French), its folio so far.
+        const before = await sinkCount();
+        await desk.emailFolio(pair.a.id, true);
+        const mail = await mailTo(pair.a.email, before);
+        expect(mail.subject).toContain("note du séjour");
+        expect((mail as unknown as { attachments: { contentType: string }[] }).attachments.length).toBeGreaterThan(0);
+      }, 240_000);
 
       it("removes the sample", async (ctx) => {
         needsWrites(() => ctx.skip());

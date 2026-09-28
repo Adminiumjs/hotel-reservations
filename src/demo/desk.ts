@@ -46,7 +46,8 @@ export class DemoDesk implements DeskPort {
   }
 
   async config() {
-    return { timezone: this.world.zone, currency: this.world.currency, now: new Date(this.engine.now).toISOString() };
+    // The demo's house has Invoices & Receipts: its folio prints and emails (the demo sends nothing).
+    return { timezone: this.world.zone, currency: this.world.currency, now: new Date(this.engine.now).toISOString(), folio: true };
   }
 
   async house(): Promise<DeskHouse> {
@@ -332,6 +333,15 @@ export class DemoDesk implements DeskPort {
       Object.assign(row, this.engine.stampsFor("payments", null, row, this.writer));
       return { ...row };
     });
+  }
+
+  async printFolio(_id: Id): Promise<{ url: string | null }> {
+    return { url: null };
+  }
+
+  async emailFolio(id: Id, soFar: boolean): Promise<Row> {
+    const at = new Date(this.engine.now).toISOString();
+    return this.move(id, soFar ? { folio_so_far_at: at } : { folio_sent_at: at });
   }
 
   async voidRow(table: "charges" | "payments" | "stay_credits", id: Id, reason: string): Promise<Row> {

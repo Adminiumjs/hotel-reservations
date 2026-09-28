@@ -675,5 +675,10 @@
   "Your room is kept for your current dates. To move them, ring us on {phone}.": "غرفتك محجوزة لتواريخك الحالية. لتغييرها، اتصل بنا على {phone}.",
   "Your surname": "اسم عائلتك",
   "The board has everything you need for the day.": "في اللوحة كل ما تحتاجه لليوم.",
-  "Late leaving · until {time}": "مغادرة متأخرة · حتى {time}"
+  "Late leaving · until {time}": "مغادرة متأخرة · حتى {time}",
+  "The folio for {ref} is open to print.": "حساب الإقامة لـ {ref} مفتوح للطباعة.",
+  "There is no email on this stay.": "لا يوجد بريد إلكتروني لهذه الإقامة.",
+  "The folio is on its way to {email}.": "حساب الإقامة في طريقه إلى {email}.",
+  "Email it to {first}": "أرسله إلى {first}",
+  "Email the folio": "أرسل حساب الإقامة"
 }

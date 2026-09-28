@@ -60,12 +60,24 @@ describe("the real desk door", () => {
   it("says who is signed in and the app's roles by their own names", async () => {
     const desk = new AdminiumDesk(transport({}).t, config({ access: { tables: {}, roles: [{ slug: "hotel-manager", name: "Manager" }] } }));
     expect(await desk.me()).toEqual({ name: "Maeve R.", roles: ["manager"] });
-    expect(await desk.config()).toEqual({ timezone: "America/New_York", currency: "USD" });
+    expect(await desk.config()).toEqual({ timezone: "America/New_York", currency: "USD", folio: false });
+  });
+
+  it("prints the folio through Invoices & Receipts, and emails it by stamping when it was asked for", async () => {
+    const { t, sent } = transport({
+      [`POST /api/v1/apps/hotel/documents/render`]: () => ({ printUrl: "/api/v1/documents/doc_1/print" }),
+      [`PATCH ${D}/hotel_stays/41`]: (s) => ({ data: { id: 41, ...(s.body as { values: object }).values } }),
+    });
+    const desk = new AdminiumDesk(t, config({ now: "2026-07-28T13:05:00.000Z", addOns: { invoices: { version: "1.0.6", settings: {} } } }), { clock: () => Date.parse("2026-07-28T13:05:00.000Z") });
+    expect((await desk.config()).folio).toBe(true);
+    expect(await desk.printFolio(41)).toEqual({ url: "/api/v1/documents/doc_1/print" });
+    await desk.emailFolio(41, true);
+    expect(sent.map((s) => s.body)).toEqual([{ ref: "stays", kind: "invoice", pk: { id: 41 } }, { values: { folio_so_far_at: "2026-07-28T13:05:00.000Z" } }]);
   });
 
   it("takes the house's clock from Adminium's config, not the browser's", async () => {
     const desk = new AdminiumDesk(transport({}).t, config({ now: "2026-07-28T13:05:00.000Z" }));
-    expect(await desk.config()).toEqual({ timezone: "America/New_York", currency: "USD", now: "2026-07-28T13:05:00.000Z" });
+    expect(await desk.config()).toEqual({ timezone: "America/New_York", currency: "USD", now: "2026-07-28T13:05:00.000Z", folio: false });
   });
 
   it("reads only the tables the person may read", async () => {

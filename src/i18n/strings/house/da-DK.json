@@ -675,5 +675,10 @@
   "Your room is kept for your current dates. To move them, ring us on {phone}.": "Dit værelse holdes til dine nuværende datoer. Ring til os på {phone} for at flytte dem.",
   "Your surname": "Dit efternavn",
   "The board has everything you need for the day.": "Tavlen har alt, hvad du skal bruge i dag.",
-  "Late leaving · until {time}": "Sen afrejse · indtil {time}"
+  "Late leaving · until {time}": "Sen afrejse · indtil {time}",
+  "The folio for {ref} is open to print.": "Opholdsregningen for {ref} er åben til udskrift.",
+  "There is no email on this stay.": "Der er ingen e-mail på dette ophold.",
+  "The folio is on its way to {email}.": "Opholdsregningen er på vej til {email}.",
+  "Email it to {first}": "Send den til {first}",
+  "Email the folio": "Send opholdsregningen"
 }

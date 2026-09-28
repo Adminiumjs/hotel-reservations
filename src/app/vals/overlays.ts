@@ -128,11 +128,11 @@ export function overlayVals(app: HouseApp, w: WorldV): V {
       blockTitle: tr("Not while there is {amount} on the account", { amount: strip(money(bal)) }),
       blockBody: tr("Record what they pay — card, cash or a transfer, part of it if that is what they have — and the departure goes straight through."),
       goSettle,
-      printOn: false,
-      print: () => undefined,
-      emailOn: false,
-      emailLabel: "",
-      email: () => undefined,
+      printOn: app.folioOn,
+      print: () => void app.printFolio(os),
+      emailOn: app.folioOn && os.email !== "",
+      emailLabel: tr("Email it to {first}", { first: os.first || os.name }),
+      email: () => void app.emailFolio(os),
       goFolio: () => {
         app.setState({ checkoutId: null });
         app.openFolio(os.id, "today");

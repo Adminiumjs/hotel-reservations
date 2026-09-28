@@ -1011,6 +1011,11 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
   } else if (fst.state === "noshow" && nightsLeft(today, fst) >= 1) {
     act("ca", tr("They came after all"), "undo-2", () => void app.cameAfterAll(fst));
   }
+  // Checked out, with Invoices & Receipts: the folio printed or emailed.
+  if (fst.state === "out" && app.folioOn) {
+    act("pr", tr("Print the folio"), "printer", () => void app.printFolio(fst));
+    act("em", tr("Email the folio"), "mail", () => void app.emailFolio(fst));
+  }
   if (giveBack > 0.004 && fst.state !== "in" && fst.state !== "booked") act("gb", tr("Record money given back"), "wallet", () => app.openSettle(fst.id, giveBack.toFixed(2), giveBack, "given_back"));
   A.sort((x, y) => Number(x["primary"]) - Number(y["primary"]));
   const backs: Partial<Record<View, string>> = { reservations: tr("All reservations"), calendar: tr("The calendar"), rack: tr("The room rack"), newbooking: tr("Take a booking") };

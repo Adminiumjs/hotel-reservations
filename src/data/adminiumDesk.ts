@@ -143,7 +143,12 @@ export class AdminiumDesk implements DeskPort {
   }
 
   async config() {
-    return { timezone: this.cfg.timezone ?? this.cfg.serverTimezone, currency: this.cfg.currency, ...(typeof this.cfg.now === "string" ? { now: this.cfg.now } : {}) };
+    return {
+      timezone: this.cfg.timezone ?? this.cfg.serverTimezone,
+      currency: this.cfg.currency,
+      ...(typeof this.cfg.now === "string" ? { now: this.cfg.now } : {}),
+      folio: this.cfg.addOns["invoices"] !== undefined,
+    };
   }
 
   house(): Promise<DeskHouse> {
@@ -431,6 +436,19 @@ export class AdminiumDesk implements DeskPort {
 
   voidRow(table: "charges" | "payments" | "stay_credits", id: Id, reason: string): Promise<Row> {
     return answer(() => this.change(table, id, { voided: true, void_reason: reason.trim() }));
+  }
+
+  printFolio(id: Id): Promise<{ url: string | null }> {
+    return answer(async () => {
+      const drawn = await this.t.mutate<{ printUrl: string }>(`/api/v1/apps/${APP_KEY}/documents/render`, "POST", { ref: "stays", kind: "invoice", pk: { id } });
+      return { url: drawn.printUrl };
+    });
+  }
+
+  emailFolio(id: Id, soFar: boolean): Promise<Row> {
+    // Adminium's own clock stamps when it was asked for; the outbox hears the change and sends the folio.
+    const at = new Date(this.opts.clock?.() ?? Date.now() + this.skew).toISOString();
+    return answer(() => this.change("stays", id, soFar ? { folio_so_far_at: at } : { folio_sent_at: at }));
   }
 
   /** Whether a void would go through: the row voided in the stay's change quote, its other rows as they are. */

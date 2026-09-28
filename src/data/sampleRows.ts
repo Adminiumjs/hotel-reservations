@@ -184,7 +184,7 @@ export interface PerNight {
  */
 // ── written by `npm run sample` from manifest.json; do not edit by hand ──
 export const COLUMNS: Record<string, Record<string, Fill>> = {
-  settings: { name: REQUIRED, address: REQUIRED, town: null, phone: REQUIRED, email: null, since: null, about: null, finding: null, morning: null, directions_train: null, directions_car: null, directions_foot: null, breakfast_hours: null, late_arrival_note: null, tax_rate: 0, tax_label: "Tax", arrive_from: "15:00", leave_by: "11:00", late_until: "14:00", no_show_at: "11:00", cancel_days: 2, max_nights: 14, ahead_days: 365, ref_start: 1001, ref_prefix: "R-", guest_emails_on: true },
+  settings: { name: REQUIRED, address: REQUIRED, town: null, phone: REQUIRED, email: null, since: null, about: null, finding: null, morning: null, directions_train: null, directions_car: null, directions_foot: null, breakfast_hours: null, late_arrival_note: null, tax_rate: 0, tax_label: "Tax", credit_label: "Nights not stayed", arrive_from: "15:00", leave_by: "11:00", late_until: "14:00", no_show_at: "11:00", cancel_days: 2, max_nights: 14, ahead_days: 365, ref_start: 1001, ref_prefix: "R-", guest_emails_on: true },
   house_notes: { icon: null, text: REQUIRED, position: 0 },
   room_types: { code: REQUIRED, name: REQUIRED, blurb: null, description: null, sleeps: 2, base_rate: REQUIRED, color: null, icon: null, position: 0, active: true },
   room_type_features: { room_type_id: REQUIRED, feature: REQUIRED, icon: null, position: 0 },
@@ -194,10 +194,10 @@ export const COLUMNS: Record<string, Record<string, Fill>> = {
   extras: { code: null, label: REQUIRED, short: null, how: null, icon: null, amount: REQUIRED, per: "night", spaces: null, active: true, position: 0 },
   charge_items: { label: REQUIRED, detail: null, amount: REQUIRED, icon: null, extra_id: null, active: true, position: 0 },
   customers: { email: null, first_name: null, last_name: null, forgotten_at: null, created_at: null },
-  stays: { ref_seq: null, ref: null, status: "booked", room_type_id: REQUIRED, room_id: null, arrive: REQUIRED, depart: REQUIRED, guests: 2, nights: null, first_name: REQUIRED, last_name: null, guest_name: null, email: null, mobile: null, arrival_time: null, note: null, expect_by: null, language: null, channel: "online", room_total: null, extras_total: null, extras_nightly: null, charges_total: null, credits_total: null, subtotal: null, tax_rate: null, tax_label: null, tax: null, total: null, paid: null, balance: null, late_cancel: false, cancel_code: null, cancel_by: null, created_at: null, checked_in_at: null, checked_in_by: null, checked_out_at: null, checked_out_by: null, cancelled_at: null, cancelled_by: null, no_show_marked_at: null, customer_id: null, link_token: null, link_stopped: false, client_key: null },
+  stays: { ref_seq: null, ref: null, status: "booked", room_type_id: REQUIRED, room_id: null, arrive: REQUIRED, depart: REQUIRED, guests: 2, nights: null, first_name: REQUIRED, last_name: null, guest_name: null, email: null, mobile: null, arrival_time: null, note: null, expect_by: null, language: null, channel: "online", room_total: null, extras_total: null, extras_nightly: null, charges_total: null, credits_total: null, subtotal: null, tax_rate: null, tax_label: null, tax: null, total: null, paid: null, balance: null, late_cancel: false, cancel_code: null, cancel_by: null, created_at: null, checked_in_at: null, checked_in_by: null, checked_out_at: null, checked_out_by: null, cancelled_at: null, cancelled_by: null, folio_sent_at: null, folio_so_far_at: null, no_show_marked_at: null, customer_id: null, link_token: null, link_stopped: false, client_key: null },
   stay_extras: { stay_id: REQUIRED, extra_id: REQUIRED, state: "on", label: null, each: null, per: null, nights: null, guests: null, nightly: null, amount: null, added_at: null },
   charges: { stay_id: REQUIRED, charge_item_id: null, label: null, amount: REQUIRED, note: null, charged_on: null, recorded_by: null, voided: false, void_reason: null, voided_at: null, voided_by: null },
-  stay_credits: { stay_id: REQUIRED, reason: "left_early", from_date: REQUIRED, to_date: REQUIRED, room_type_id: null, nights: null, room_amount: null, extras_nightly: null, amount: null, line_amount: null, recorded_by: null, created_at: null, voided: false, void_reason: null, voided_at: null, voided_by: null },
+  stay_credits: { stay_id: REQUIRED, reason: "left_early", label: null, from_date: REQUIRED, to_date: REQUIRED, room_type_id: null, nights: null, room_amount: null, extras_nightly: null, amount: null, line_amount: null, recorded_by: null, created_at: null, voided: false, void_reason: null, voided_at: null, voided_by: null },
   payments: { stay_id: REQUIRED, kind: "taken", amount: REQUIRED, method: "card", reference: null, note: null, signed: null, paid_on: null, recorded_at: null, recorded_by: null, voided: false, void_reason: null, voided_at: null, voided_by: null },
   messages: { kind: REQUIRED, status: "queued", to_address: null, language: null, stay_id: null, customer_id: null, due: null, created_at: null, sent_at: null, error: null, was: null, repeat_key: null, skip_reason: null },
 };
@@ -218,6 +218,7 @@ export const RULES: Rules = {
   defaults: [
     { table: "stays", column: "tax_rate", from: "app:settings.tax_rate" },
     { table: "stays", column: "tax_label", from: "app:settings.tax_label" },
+    { table: "stay_credits", column: "label", from: "app:settings.credit_label" },
   ],
   formulas: [
     { table: "stays", column: "nights", scale: 2, expr: {"daysBetween":["arrive","depart"]} },

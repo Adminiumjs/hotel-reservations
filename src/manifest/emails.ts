@@ -45,6 +45,10 @@ export type EmailWords = Record<Kind, Words> & {
   totalWas: string;
   /** "Taxes and city levy (9%)": the stay's own tax name and rate. */
   taxLine: string;
+  /** The folio's lines: what was paid, what is still to settle, and the sentence sent only with the document. */
+  paid: string;
+  balanceLine: string;
+  attached: string;
   foot: string;
 };
 
@@ -58,13 +62,16 @@ export const EMAIL_EN: EmailWords = {
   settle: "Nothing is taken online. You settle at the desk.",
   cancelBy: "Cancel at no charge until {{stay.cancel_by.time}} on {{stay.cancel_by.date}}.",
   lateOrEarly: "Late or early? Write to {{practice.email}} or ring us on {{practice.phone}}.",
-  totalWas: "Total, was {{was.total}}",
+  totalWas: "Total, was {{was.total.money}}",
   taxLine: "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
+  paid: "Paid",
+  balanceLine: "Still to settle",
+  attached: "Your folio for the {{room_type.name}}, {{stay.arrive.day_month}} to {{stay.depart.day_month}}, is attached.",
   foot: "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us.",
   "stay-made": {
     name: "Reservation made",
     subject: "Your room at {{appName}}, {{stay.ref}}",
-    preheader: "{{stay.arrive.day_month}} to {{stay.depart.day_month}} · {{stay.total}} · nothing is taken online",
+    preheader: "{{stay.arrive.day_month}} to {{stay.depart.day_month}} · {{stay.total.money}} · nothing is taken online",
     heading: "You have a room, {{recipient.first_name}}.",
     paras: ["Arriving {{stay.arrive.day_month}}, from {{practice.arrive_from}}. Leaving {{stay.depart.day_month}}, by {{practice.leave_by}}."],
     button: "See your reservation",
@@ -72,7 +79,7 @@ export const EMAIL_EN: EmailWords = {
   "stay-made-desk": {
     name: "Reservation made at the desk",
     subject: "Your room at {{appName}}, {{stay.ref}}",
-    preheader: "{{stay.arrive.day_month}} to {{stay.depart.day_month}} · {{stay.total}}",
+    preheader: "{{stay.arrive.day_month}} to {{stay.depart.day_month}} · {{stay.total.money}}",
     heading: "You have a room, {{recipient.first_name}}.",
     paras: ["Arriving {{stay.arrive.day_month}}, from {{practice.arrive_from}}. Leaving {{stay.depart.day_month}}, by {{practice.leave_by}}."],
   },
@@ -133,7 +140,7 @@ export const EMAIL_EN: EmailWords = {
   "stay-dates-changed": {
     name: "Dates changed",
     subject: "Your dates have changed — {{stay.ref}}",
-    preheader: "{{stay.arrive.day_month}} to {{stay.depart.day_month}} · {{stay.total}}",
+    preheader: "{{stay.arrive.day_month}} to {{stay.depart.day_month}} · {{stay.total.money}}",
     heading: "Your dates have changed, {{recipient.first_name}}.",
     paras: [
       "Before: {{was.arrive.day_month}} to {{was.depart.day_month}}.",
@@ -151,10 +158,26 @@ export const EMAIL_EN: EmailWords = {
     ],
     button: "See your reservation",
   },
+  "stay-folio": {
+    name: "The folio",
+    subject: "Your folio from {{appName}} — {{stay.ref}}",
+    preheader: "{{stay.arrive.day_month}} to {{stay.depart.day_month}} · {{stay.total.money}}",
+    heading: "Thank you for staying with us, {{recipient.first_name}}.",
+    paras: ["We hope to see you again."],
+  },
+  "stay-folio-owing": {
+    name: "The folio so far",
+    subject: "Your folio so far — {{stay.ref}}",
+    preheader: "{{stay.balance.money}} still to settle",
+    heading: "Your folio so far, {{recipient.first_name}}.",
+    paras: ["There is {{stay.balance.money}} still to settle at the desk."],
+  },
 };
 
 type Block = { block: string; id: string; data: Record<string, unknown> };
 const para = (id: string, ...paras: string[]): Block => ({ block: "email.text", id, data: { paras } });
+/** The folio's documents: an email that carries one, if Invoices & Receipts draws it. */
+const FOLIO: ReadonlySet<Kind> = new Set(["stay-folio", "stay-folio-owing"]);
 
 /** A stay's extras, each its own line with what it costs. */
 const EXTRAS: Block = {
@@ -162,7 +185,7 @@ const EXTRAS: Block = {
   id: "extras",
   data: {
     from: { link: "stay", table: "stay_extras", via: "stay_id", orderBy: "id", where: { column: "state", in: ["on"] }, limit: 20 },
-    row: { title: "{{row.label}}", amount: "{{row.amount}}" },
+    row: { title: "{{row.label}}", amount: "{{row.amount.money}}" },
   },
 };
 
@@ -174,12 +197,27 @@ function layout(kind: Kind, all: EmailWords) {
   const blocks: Block[] = [];
   if (w.heading !== undefined) blocks.push({ block: "email.heading", id: "heading", data: { text: w.heading } });
   blocks.push({ block: "email.stats", id: "reference", data: { items: [{ label: all.reference, value: "{{stay.ref}}" }] } });
+  // Sent only with the document: an email that went without it says nothing of it.
+  if (FOLIO.has(kind)) blocks.push({ block: "email.text", id: "attached", data: { paras: [all.attached], withAttachment: true } });
   blocks.push(para("body", ...w.paras));
+  if (FOLIO.has(kind)) {
+    blocks.push({
+      block: "email.tax-breakdown",
+      id: "folio",
+      data: {
+        lines: [
+          { label: all.total, amount: "{{stay.total.money}}" },
+          { label: all.paid, amount: "{{stay.paid.money}}" },
+          { label: all.balanceLine, amount: "{{stay.balance.money}}" },
+        ],
+      },
+    });
+  }
   if (WITH_STAY.has(kind)) {
     blocks.push({
       block: "email.tax-breakdown",
       id: "room",
-      data: { lines: [{ label: all.theRoom, amount: "{{stay.room_total}}" }] },
+      data: { lines: [{ label: all.theRoom, amount: "{{stay.room_total.money}}" }] },
     });
     blocks.push(EXTRAS);
     blocks.push({
@@ -187,17 +225,17 @@ function layout(kind: Kind, all: EmailWords) {
       id: "totals",
       data: {
         lines: [
-          { label: all.taxLine, amount: "{{stay.tax}}" },
-          { label: all.total, amount: "{{stay.total}}" },
+          { label: all.taxLine, amount: "{{stay.tax.money}}" },
+          { label: all.total, amount: "{{stay.total.money}}" },
         ],
       },
     });
-    blocks.push({ block: "email.box", id: "settle", data: { label: all.settle } });
+    blocks.push(para("settle", all.settle));
     blocks.push(para("cancel", all.cancelBy, all.lateOrEarly));
   }
   if (kind === "stay-dates-changed") {
-    blocks.push({ block: "email.tax-breakdown", id: "totals", data: { lines: [{ label: all.totalWas, amount: "{{stay.total}}" }] } });
-    blocks.push({ block: "email.box", id: "settle", data: { label: all.settle } });
+    blocks.push({ block: "email.tax-breakdown", id: "totals", data: { lines: [{ label: all.totalWas, amount: "{{stay.total.money}}" }] } });
+    blocks.push(para("settle", all.settle));
     blocks.push(para("cancel", all.cancelBy, all.lateOrEarly));
   }
   // The reservation's own link goes only to the person it was made for, and
@@ -235,6 +273,7 @@ export function emailTemplates(kinds: readonly Kind[]): unknown[] {
   const words = emailWords();
   return kinds.map((kind) => ({
     key: `hotel-${kind}`,
+    ...(FOLIO.has(kind) ? { attach: { kind: "invoice", link: "stay", optional: true } } : {}),
     name: Object.fromEntries(Object.entries(words).map(([tag, w]) => [tag, w[kind].name])),
     vars: varsOf(kind),
     locales: Object.fromEntries(Object.entries(words).map(([tag, w]) => [tag, layout(kind, w)])),

@@ -26,10 +26,10 @@ export const DOCUMENTS = [
       reference: { via: "room_id", column: "number" },
       items: {
         collections: [
-          { nightly: "room_total", columns: { desc: "room_type_id.name", date: "date", rate: "rate", qty: "qty", tags: "tags" } },
-          { table: "stay_extras", via: "stay_id", orderBy: "id", where: { column: "state", in: ["on"] }, columns: { desc: "label", amount: "amount" } },
-          { table: "charges", via: "stay_id", orderBy: "id", unless: "voided", columns: { desc: "label", date: "charged_on", amount: "amount" } },
-          { table: "stay_credits", via: "stay_id", orderBy: "id", unless: "voided", columns: { date: "from_date", qty: "nights", amount: "line_amount" } },
+          { nightly: "room_total", columns: { desc: "room_type_id.name", date: "date", rate: "rate", qty: "qty" } },
+          { table: "stay_extras", via: "stay_id", orderBy: "id", where: { column: "state", in: ["on"] }, columns: { desc: "label", rate: "amount", amount: "amount" } },
+          { table: "charges", via: "stay_id", orderBy: "id", unless: "voided", columns: { desc: "label", date: "charged_on", rate: "amount", amount: "amount" } },
+          { table: "stay_credits", via: "stay_id", orderBy: "id", unless: "voided", columns: { desc: "label", date: "from_date", qty: "nights", rate: "line_amount", amount: "line_amount" } },
         ],
       },
       subtotal: { column: "subtotal" },
@@ -38,7 +38,11 @@ export const DOCUMENTS = [
       tax: { column: "tax" },
       total: { column: "total" },
       paid: { column: "paid" },
-      amountDue: { column: "balance" },
+      balance: { column: "balance" },
+      // "Payments so far": each one taken, as recorded; a voided one left off.
+      payments: {
+        collection: { table: "payments", via: "stay_id", orderBy: "recorded_at", unless: "voided", columns: { number: "reference", paidOn: "paid_on", method: "method", amount: "signed" } },
+      },
     },
   },
   {

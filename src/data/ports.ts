@@ -125,7 +125,8 @@ export interface Folio extends StayWithLines {
 
 export interface DeskPort {
   me(): Promise<DeskPerson>;
-  config(): Promise<{ timezone: string | null; currency: string | null; now?: string }>;
+  /** `folio`: Invoices & Receipts is attached, so the folio can be printed and emailed. */
+  config(): Promise<{ timezone: string | null; currency: string | null; now?: string; folio?: boolean }>;
   house(): Promise<DeskHouse>;
 
   /** Every stay on the book, with its extras. */
@@ -167,6 +168,10 @@ export interface DeskPort {
   recordPayment(stayId: Id, payment: { kind: "taken" | "given_back"; amount: string; method: "card" | "cash" | "transfer"; reference?: string | null; note?: string | null }): Promise<Row>;
   /** A manager's: a charge, a payment or a credit voided, with the reason. */
   voidRow(table: "charges" | "payments" | "stay_credits", id: Id, reason: string): Promise<Row>;
+  /** The folio drawn by Invoices & Receipts, and where its print copy is (none in the demo). */
+  printFolio(id: Id): Promise<{ url: string | null }>;
+  /** The folio emailed to the guest with the document: settled, or so far with what is still to settle. */
+  emailFolio(id: Id, soFar: boolean): Promise<Row>;
   /** Whether a void would go through, written nowhere: refused when it would leave more paid than the stay costs. */
   quoteVoid(table: "charges" | "payments" | "stay_credits", id: Id): Promise<{ refused: boolean; paid: number; total: number }>;
 

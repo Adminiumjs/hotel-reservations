@@ -675,5 +675,10 @@
   "Your room is kept for your current dates. To move them, ring us on {phone}.": "Ihr Zimmer bleibt für Ihre aktuellen Daten reserviert. Um sie zu verschieben, rufen Sie uns an: {phone}.",
   "Your surname": "Ihr Nachname",
   "The board has everything you need for the day.": "In der Übersicht steht alles, was Sie für den Tag brauchen.",
-  "Late leaving · until {time}": "Späte Abreise · bis {time}"
+  "Late leaving · until {time}": "Späte Abreise · bis {time}",
+  "The folio for {ref} is open to print.": "Die Gastrechnung für {ref} ist zum Drucken geöffnet.",
+  "There is no email on this stay.": "Für diese Reservierung ist keine E-Mail-Adresse hinterlegt.",
+  "The folio is on its way to {email}.": "Die Gastrechnung ist unterwegs an {email}.",
+  "Email it to {first}": "An {first} mailen",
+  "Email the folio": "Gastrechnung mailen"
 }
