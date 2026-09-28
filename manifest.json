@@ -6463,8 +6463,8 @@
                   {
                     "name": "balance",
                     "label": "Owing",
-                    "logicalType": "money",
-                    "format": "currency"
+                    "logicalType": "decimal",
+                    "semantic": "money"
                   }
                 ],
                 "secondary": [

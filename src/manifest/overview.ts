@@ -175,7 +175,7 @@ export const OVERVIEW_LAYOUT = {
         limit: 6,
         columns: [
           { name: "guest_name", label: "Guest" },
-          { name: "balance", label: "Owing", logicalType: "money", format: "currency" },
+          { name: "balance", label: "Owing", logicalType: "decimal", semantic: "money" },
         ],
         secondary: ["ref", "room_type"],
         viewAllHref: "/p/hotel-reservations?f.status=eq:in_house&f.depart=gte:today&f.depart=lte:today&f.balance=gt:0",
