@@ -12,6 +12,7 @@ import { dow, fD, fDW, fLong, fT, fWd, guestsW, fsi, iso, money, nights, nightsO
 import { okEmail, type HouseApp, type View } from "../house.ts";
 import type { RoomV, StV, WorldV } from "../world.ts";
 import { creditLabel, extraDetail, pillOf, timeOptions } from "./guest.ts";
+import { blankNb, cameAfterAll, counts, emailFolio, folio as folioOf, markNoShow, nbChanged, openCheckin, openEdit, openFolio, openRoom, openSettle, printFolio, saveNb, setRoomStatus, signOutStaff } from "../desk.ts";
 
 type V = Record<string, unknown>;
 export type RoomState = "ready" | "occupied" | "cleaning" | "oos";
@@ -23,6 +24,13 @@ export const STATUS_COLOR: Record<RoomState, string> = { ready: "var(--pos)", oc
 /** A room's state inside a sentence ("12 ready of 34"). */
 export const statusInLine = (k: RoomState): string =>
   k === "ready" ? tr("ready") : k === "occupied" ? tr("occupied") : k === "cleaning" ? tr("being cleaned") : tr("out of service");
+/** How many rooms of the rack are in one state, as a whole sentence for each state. */
+export function rackCount(k: RoomState, n: number, all: number): string {
+  if (k === "ready") return tr("{n} of {all} ready|{n} of {all} ready", { n, all });
+  if (k === "occupied") return tr("{n} of {all} occupied|{n} of {all} occupied", { n, all });
+  if (k === "cleaning") return tr("{n} of {all} being cleaned|{n} of {all} being cleaned", { n, all });
+  return tr("{n} of {all} out of service|{n} of {all} out of service", { n, all });
+}
 /** A floor inside a sentence ("Room 203 · second floor"). */
 export function floorInLine(fl: number): string {
   if (fl === 1) return tr("first floor");
@@ -78,7 +86,7 @@ export function parseMoney(raw: string): number {
 
 /** The night figures Adminium counts, for a pool on a night: what can be sold and what is sold. */
 export function nightFig(app: HouseApp, w: WorldV, typeId: string, night: string, except?: Id | null): { cap: number; sold: number } {
-  const c = (app.counts() ?? []).find((x: NightCount) => x.table === "stays" && String(x.pool) === typeId && x.date === night);
+  const c = (counts(app) ?? []).find((x: NightCount) => x.table === "stays" && String(x.pool) === typeId && x.date === night);
   const own = except == null ? 0 : w.stays.filter((x) => x.id === except && holds(x) && x.type === typeId && covers(x, night)).length;
   // The size already leaves out the rooms out of service that night.
   if (c !== undefined) return { cap: c.size, sold: c.taken - own };
@@ -100,7 +108,7 @@ export function freeAcross(app: HouseApp, w: WorldV, typeId: string, a: string, 
 function parkingOn(app: HouseApp, w: WorldV, night: string): { taken: number; spaces: number } {
   const e = w.extras.find((x) => x.code === "PRK");
   if (e === undefined) return { taken: 0, spaces: 0 };
-  const c = (app.counts() ?? []).find((x: NightCount) => x.table === "stay_extras" && String(x.pool) === e.id && x.date === night);
+  const c = (counts(app) ?? []).find((x: NightCount) => x.table === "stay_extras" && String(x.pool) === e.id && x.date === night);
   if (c !== undefined) return { taken: c.taken, spaces: c.size };
   return { taken: w.stays.filter((x) => holds(x) && covers(x, night) && x.extras.includes(e.id)).length, spaces: e.spaces ?? 0 };
 }
@@ -128,7 +136,7 @@ export function deskPill(app: HouseApp, x: StV): { label: string; bg: string; fg
   else if (x.state === "in" && x.depart === today) [k, label] = ["warn", tr("Leaving today")];
   else if (x.state === "in") [k, label] = ["pos", tr("In house")];
   else if (x.state === "booked" && x.expectBy !== null && x.expectBy > x.arrive && x.expectBy >= today && x.arrive <= today) [k, label] = ["info", tr("Expected {day}", { day: strip(fDW(x.expectBy)) })];
-  else if (x.arrive < today) [k, label] = ["warn", tr("Due yesterday")];
+  else if (x.arrive < today) [k, label] = ["warn", tr("Due {day}", { day: strip(fD(x.arrive)) })];
   else if (x.arrive === today) [k, label] = ["info", tr("Arriving today")];
   const c = pillOf(k);
   return { label, bg: c[0], fg: c[1] };
@@ -206,12 +214,13 @@ export function deskVals(app: HouseApp, w: WorldV): V {
     h1Size: narrow ? "23px" : "27px",
     boardCols: narrow ? "1fr" : "repeat(auto-fit,minmax(260px,1fr))",
     staffName: me.name,
+    reconnecting: app.state.reconnecting,
     staffIni: initials(me.name),
     staffRole: staffRole(app),
     staffMenu: s.staffMenu,
     staffExpanded: s.staffMenu ? "true" : "false",
     toggleStaff: () => app.setState({ staffMenu: !app.state.staffMenu }),
-    signOutStaff: () => app.signOutStaff(),
+    signOutStaff: () => signOutStaff(app),
   };
 
   const navCount: Record<string, number> = { today: due.length + arrivingNow.length + leavingIn.length, rack: rooms.filter((r) => roomStatus(r, today) === "cleaning").length };
@@ -232,7 +241,7 @@ export function deskVals(app: HouseApp, w: WorldV): V {
       label: n.label,
       icon: n.icon,
       current: on ? "page" : "false",
-      go: () => (n.id === "newbooking" ? app.go("newbooking", { editId: null, nb: app.blankNb(), nbErr: "", nbTouched: false }) : app.go(n.id)),
+      go: () => (n.id === "newbooking" ? app.go("newbooking", { editId: null, nb: blankNb(app), nbErr: "", nbTouched: false }) : app.go(n.id)),
       bg: on ? "var(--accent-soft)" : "transparent",
       fg: on ? "var(--accent)" : "var(--fg-muted)",
       weight: on ? "700" : "600",
@@ -244,9 +253,9 @@ export function deskVals(app: HouseApp, w: WorldV): V {
 
   // ── Today
   v["kpis"] = [
-    { id: "k1", label: tr("Occupancy tonight"), value: sellAll ? pct(soldN / sellAll) : iso("—"), sub: tr("of the {n} rooms we can sell", { n: sellAll }), fg: "var(--accent)" },
+    { id: "k1", label: tr("Occupancy tonight"), value: sellAll ? pct(soldN / sellAll) : iso("—"), sub: tr("of the {n} room we can sell|of the {n} rooms we can sell", { n: sellAll }), fg: "var(--accent)" },
     { id: "k2", label: tr("Rooms sold"), value: fsi(tr("{sold} of {n}", { sold: soldN, n: sellAll })), sub: tr("{n} out of service", { n: oosN }), fg: "var(--fg)" },
-    { id: "k3", label: tr("Arrivals"), value: iso(String(arrivalsAll.length)), sub: tr("{n} still to come", { n: arrivingNow.length }), fg: "var(--fg)" },
+    { id: "k3", label: tr("Arrivals"), value: iso(String(arrivalsAll.length)), sub: tr("{n} still to come|{n} still to come", { n: arrivingNow.length }), fg: "var(--fg)" },
     {
       id: "k4",
       label: tr("Departures"),
@@ -271,7 +280,7 @@ export function deskVals(app: HouseApp, w: WorldV): V {
       opacity: gone ? ".6" : "1",
       noteOn: !!st.note,
       note: st.note,
-      openFolio: () => app.openFolio(st.id, "today"),
+      openFolio: () => openFolio(app, st.id, "today"),
       hasPrimary: !gone,
       primaryBg: "var(--accent)",
       primaryFg: "var(--accent-fg)",
@@ -295,7 +304,7 @@ export function deskVals(app: HouseApp, w: WorldV): V {
         pillFg: p.fg,
         meta: tr("{type} · {guests} · was due {day}", { type: t.name, guests: strip(guestsW(st.guests)), day: strip(fDW(st.arrive)) }),
         primaryLabel: tr("Check in"),
-        primary: () => app.openCheckin(st.id),
+        primary: () => openCheckin(app, st.id),
       };
     }
     if (kind === "arriving") {
@@ -313,7 +322,7 @@ export function deskVals(app: HouseApp, w: WorldV): V {
           tr("{type} · {guests} · leaves {day}", { type: t.name, guests: strip(guestsW(st.guests)), day: strip(fD(st.depart)) }) +
           (st.given && st.room !== null ? ` · ${tr("room {room} given ahead", { room: st.room })}` : ""),
         primaryLabel: tr("Check in"),
-        primary: () => app.openCheckin(st.id),
+        primary: () => openCheckin(app, st.id),
       };
     }
     if (kind === "inhouse") {
@@ -432,7 +441,7 @@ export function deskVals(app: HouseApp, w: WorldV): V {
   };
   v["searchHits"] = hitsAll.slice(0, 8).map((x) => {
     const p = deskPill(app, x);
-    return { id: x.ref, name: x.name, tint: w.typeById[x.type]!.tint, sub: iso(`${x.ref} · ${strip(fD(x.arrive))}–${strip(fD(x.depart))}`), pill: p.label, pillBg: p.bg, pillFg: p.fg, go: () => app.openFolio(x.id, view ?? "today") };
+    return { id: x.ref, name: x.name, tint: w.typeById[x.type]!.tint, sub: iso(`${x.ref} · ${strip(fD(x.arrive))}–${strip(fD(x.depart))}`), pill: p.label, pillBg: p.bg, pillFg: p.fg, go: () => openFolio(app, x.id, view ?? "today") };
   });
   v["hasResults"] = hitsAll.length > 0;
   v["noResults"] = q.length >= 2 && hitsAll.length === 0;
@@ -463,8 +472,8 @@ export function deskVals(app: HouseApp, w: WorldV): V {
   v["rackFiltered"] = s.rackFilter !== null;
   v["rackFilterNote"] =
     s.rackFilter !== null
-      ? fsi(tr("{n} {status} of {all}", { n: rooms.filter((r) => statusOf(r) === s.rackFilter).length, status: statusInLine(s.rackFilter as RoomState), all: rooms.length }))
-      : fsi(tr("{n} rooms", { n: rooms.length }));
+      ? fsi(rackCount(s.rackFilter as RoomState, rooms.filter((r) => statusOf(r) === s.rackFilter).length, rooms.length))
+      : fsi(tr("{n} room|{n} rooms", { n: rooms.length }));
   v["clearRackFilter"] = () => app.setState({ rackFilter: null });
   const floors = [...new Set(rooms.map((r) => r.floor))].sort((a, b) => a - b);
   v["rackFloors"] = floors.map((fl) => {
@@ -473,7 +482,7 @@ export function deskVals(app: HouseApp, w: WorldV): V {
       id: `f${String(fl)}`,
       title: floorName(fl),
       display: rs.length === 0 ? "none" : "block",
-      sub: s.rackFilter !== null ? fsi(tr("{n} of them here", { n: rs.length })) : fsi(tr("{n} rooms · {ready} ready", { n: rs.length, ready: rs.filter((r) => statusOf(r) === "ready").length })),
+      sub: s.rackFilter !== null ? fsi(tr("{n} of them here", { n: rs.length })) : fsi(tr("{n} room · {ready} ready|{n} rooms · {ready} ready", { n: rs.length, ready: rs.filter((r) => statusOf(r) === "ready").length })),
       rooms: rs.map((r) => {
         const t = w.typeById[r.type]!;
         const k = statusOf(r);
@@ -489,7 +498,9 @@ export function deskVals(app: HouseApp, w: WorldV): V {
           statusColor: STATUS_COLOR[k],
           statusLabel: statusWord(k),
           border: k === "occupied" ? "var(--border-strong)" : "var(--border)",
-          opacity: k === "oos" ? ".62" : "1",
+          // Out of service reads as set aside, not faded: its words keep their contrast.
+          bg: k === "oos" ? "var(--surface-3)" : "var(--surface)",
+          opacity: "1",
           hasWho: (!hk && who !== null) || fact !== null,
           who: fact ?? (who === null ? "" : tr("{name} · to {day}", { name: who.last || who.name, day: strip(fD(who.depart)) })),
           hasReason: cl !== undefined,
@@ -500,11 +511,11 @@ export function deskVals(app: HouseApp, w: WorldV): V {
           canReady: k === "cleaning",
           canClean: hk && k === "ready",
           open: () => {
-            if (!app.isHousekeeping()) app.openRoom(r.n);
+            if (!app.isHousekeeping()) openRoom(app, r.n);
           },
           tileCursor: hk ? "default" : "pointer",
-          markReady: () => void app.setRoomStatus(r.n, "ready"),
-          markClean: () => void app.setRoomStatus(r.n, "cleaning"),
+          markReady: () => void setRoomStatus(app, r.n, "ready"),
+          markClean: () => void setRoomStatus(app, r.n, "cleaning"),
         };
       }),
     };
@@ -583,13 +594,13 @@ export function deskVals(app: HouseApp, w: WorldV): V {
       arrCount: String(arr.length),
       depCount: String(dep.length),
       parking: fsi(tr("{taken} of {spaces}", { taken: p.taken, spaces: p.spaces })),
-      arrivals: arr.map((x) => ({ id: x.ref, name: x.name, flat: w.typeById[x.type]!.flat, sub: iso(`${x.ref} · ${strip(nights(nightsOf(x.arrive, x.depart)))} · ${w.typeById[x.type]!.code}`), go: () => app.openFolio(x.id, "calendar") })),
+      arrivals: arr.map((x) => ({ id: x.ref, name: x.name, flat: w.typeById[x.type]!.flat, sub: iso(`${x.ref} · ${strip(nights(nightsOf(x.arrive, x.depart)))} · ${w.typeById[x.type]!.code}`), go: () => openFolio(app, x.id, "calendar") })),
       departures: dep.map((x) => ({
         id: x.ref,
         name: x.name,
         flat: w.typeById[x.type]!.flat,
         sub: iso(`${x.ref} · ${x.arrive > today ? tr("arrives {day}", { day: strip(fDW(x.arrive)) }) : tr("in since {day}", { day: strip(fD(x.arrive)) })}`),
-        go: () => app.openFolio(x.id, "calendar"),
+        go: () => openFolio(app, x.id, "calendar"),
       })),
       noArrivals: arr.length === 0,
       noDepartures: dep.length === 0,
@@ -651,7 +662,7 @@ export function deskVals(app: HouseApp, w: WorldV): V {
       balFg: dead && Math.abs(bal) < 0.005 ? "var(--fg-subtle)" : bal > 0.004 ? "var(--fg)" : bal < -0.004 ? "var(--warn)" : "var(--pos)",
       isNew: x.id === s.newId,
       rowBg: x.id === s.newId ? "var(--accent-soft)" : "transparent",
-      go: () => app.openFolio(x.id, "reservations"),
+      go: () => openFolio(app, x.id, "reservations"),
     };
   });
   v["resEmpty"] = shown.length === 0;
@@ -690,7 +701,7 @@ function nbVals(app: HouseApp, w: WorldV): V {
       draft = a.value;
       draftErr = a.error;
     } else {
-      const changed = app.nbChanged(ed, nb);
+      const changed = nbChanged(ed, nb);
       const toggles = w.extras.filter((e) => !!nb.extras[e.id] !== ed.extras.includes(e.id)).map((e) => ({ extraId: Number(e.id), on: !!nb.extras[e.id] }));
       const a = app.ask(`quote-edit:${String(ed.id)}:${JSON.stringify(changed)}:${JSON.stringify(toggles)}`, () => app.ports.desk!.quoteEdit(ed.id, changed, toggles));
       draft = a.value;
@@ -763,7 +774,7 @@ function nbVals(app: HouseApp, w: WorldV): V {
         sleeps: tr("sleeps {n}", { n: x.sleeps }),
         pressed: on ? "true" : "false",
         left: tooSmall ? tr("too small for {n}", { n: nb.guests }) : left > 0 ? tr("{n} open", { n: left }) : tr("nothing open"),
-        leftFg: left > 0 && !tooSmall ? "var(--pos)" : "var(--fg-subtle)",
+        leftFg: left > 0 && !tooSmall ? (on ? "var(--fg)" : "var(--pos)") : "var(--fg-subtle)",
         total: q !== undefined ? money(q.data["room_total"]) : iso("—"),
         pick: () => {
           if (ok) app.setState({ nb: { ...app.state.nb!, type: x.id }, nbErr: "" });
@@ -863,11 +874,11 @@ function nbVals(app: HouseApp, w: WorldV): V {
             : tr("Pick a room type first"),
     showCheckIn: ed === null && draft !== undefined && nb.arrive === today && nbProblem === null,
     confirm: () => {
-      if (saveOk) void app.saveNb(false, known === null ? null : { customerId: known.customer.id }, total);
-      else if (!nb.first.trim() || !nb.last.trim()) void app.saveNb(false, null, total);
+      if (saveOk) void saveNb(app, false, known === null ? null : { customerId: known.customer.id }, total);
+      else if (!nb.first.trim() || !nb.last.trim()) void saveNb(app, false, null, total);
     },
     confirmCheckIn: () => {
-      if (saveOk) void app.saveNb(true, known === null ? null : { customerId: known.customer.id }, total);
+      if (saveOk) void saveNb(app, true, known === null ? null : { customerId: known.customer.id }, total);
     },
     refLine: ed !== null ? ed.ref : tr("Given when you save"),
     foot: ed !== null ? tr("Changing the dates or the room type prices the nights again at today's rates.") : tr("The reference is given when you save."),
@@ -875,7 +886,7 @@ function nbVals(app: HouseApp, w: WorldV): V {
     cancelEdit: () => {
       const id = app.state.editId;
       app.setState({ editId: null, nb: null });
-      if (id !== null) app.openFolio(id, app.state.folioBack);
+      if (id !== null) openFolio(app, id, app.state.folioBack);
     },
   };
 }
@@ -886,7 +897,7 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
   const today = app.day;
   const narrow = app.narrow();
   const t = w.typeById[fst.type]!;
-  const folio = app.folio(fst.id);
+  const folio = folioOf(app, fst.id);
   const rows: V[] = [];
   let run = 0;
   const r2 = (x: number) => Math.round(x * 100) / 100;
@@ -995,28 +1006,29 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
   const charge = () => app.setState({ chargeOpen: true, chargePick: null, chargeNote: "", chargeAmt: "", chargeTouched: false });
   const giveBack = dead ? paid : Math.max(0, -bal);
   if (fst.state === "booked") {
-    if (fst.arrive <= today) act("ci", tr("Check in"), "log-in", () => app.openCheckin(fst.id), true);
-    act("ch", tr("Change"), "pencil", () => app.openEdit(fst));
+    if (fst.arrive <= today) act("ci", tr("Check in"), "log-in", () => openCheckin(app, fst.id), true);
+    act("ch", tr("Change"), "pencil", () => openEdit(app, fst));
     if (fst.arrive <= plus(today, 1) && keepDays(today, fst)) act("lt", tr("They will be late…"), "clock", () => app.setState({ expectId: fst.id, expectPick: fst.expectBy }));
     act("cx", tr("Cancel"), "calendar-x", () => app.askCancel(fst.id, "desk"));
-    if (fst.arrive <= today && noShowFrom(app, w, fst)) act("ns", tr("Mark as a no-show"), "user-x", () => void app.markNoShow(fst));
+    if (fst.arrive <= today && noShowFrom(app, w, fst)) act("ns", tr("Mark as a no-show"), "user-x", () => void markNoShow(app, fst));
     act("ac", tr("Add a charge"), "plus", charge);
-    act("rp", tr("Record a payment"), "wallet", () => app.openSettle(fst.id));
+    act("rp", tr("Record a payment"), "wallet", () => openSettle(app, fst.id));
   } else if (fst.state === "in") {
     act("ac", tr("Add a charge"), "plus", charge);
-    act("rp", tr("Record a payment"), "wallet", () => app.openSettle(fst.id));
+    act("rp", tr("Record a payment"), "wallet", () => openSettle(app, fst.id));
     act("mv", tr("Move to another room"), "arrow-left-right", () => app.setState({ moveId: fst.id, movePick: null, moveUp: null }));
-    act("ch", tr("Change"), "pencil", () => app.openEdit(fst));
+    act("ch", tr("Change"), "pencil", () => openEdit(app, fst));
     act("co", tr("Check out"), "log-out", () => app.setState({ checkoutId: fst.id, coMode: "booked" }), true);
   } else if (fst.state === "noshow" && nightsLeft(today, fst) >= 1) {
-    act("ca", tr("They came after all"), "undo-2", () => void app.cameAfterAll(fst));
+    act("ca", tr("They came after all"), "undo-2", () => void cameAfterAll(app, fst));
   }
   // Checked out, with Invoices & Receipts: the folio printed or emailed.
   if (fst.state === "out" && app.folioOn) {
-    act("pr", tr("Print the folio"), "printer", () => void app.printFolio(fst));
-    act("em", tr("Email the folio"), "mail", () => void app.emailFolio(fst));
+    // Printing opens Adminium's document page, which a screens-only role cannot reach yet: a manager prints.
+    if (app.canPrint()) act("pr", tr("Print the folio"), "printer", () => void printFolio(app, fst));
+    act("em", tr("Email the folio"), "mail", () => void emailFolio(app, fst));
   }
-  if (giveBack > 0.004 && fst.state !== "in" && fst.state !== "booked") act("gb", tr("Record money given back"), "wallet", () => app.openSettle(fst.id, giveBack.toFixed(2), giveBack, "given_back"));
+  if (giveBack > 0.004 && fst.state !== "in" && fst.state !== "booked") act("gb", tr("Record money given back"), "wallet", () => openSettle(app, fst.id, giveBack.toFixed(2), giveBack, "given_back"));
   A.sort((x, y) => Number(x["primary"]) - Number(y["primary"]));
   const backs: Partial<Record<View, string>> = { reservations: tr("All reservations"), calendar: tr("The calendar"), rack: tr("The room rack"), newbooking: tr("Take a booking") };
   const liveCharges = fst.charges.filter((c) => !c.voided).length;

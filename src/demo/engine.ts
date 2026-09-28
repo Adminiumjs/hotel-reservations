@@ -490,7 +490,8 @@ export class Engine {
       const inHouse = before["status"] === "in_house" && after["status"] === "in_house";
       if (values["arrive"] !== undefined || values["depart"] !== undefined) {
         if (!(inHouse && values["arrive"] === undefined)) this.judgeNights(after["arrive"], after["depart"], writer.origin);
-        else if (daysBetween(String(after["arrive"]), String(after["depart"])) < 1) throw refusedValue("depart", "out-of-range", writer.origin);
+        // A begun stay keeps its own arrival: only its length is judged, as Adminium judges it (one night to the most).
+        else if (daysBetween(String(after["arrive"]), String(after["depart"])) < 1 || daysBetween(String(after["arrive"]), String(after["depart"])) > this.num("max_nights")) throw refusedValue("depart", "out-of-range", writer.origin);
       }
       this.judgePlace(after, writer.origin, { except: id, ...(inHouse ? { from: this.today() } : {}) });
     }
@@ -643,7 +644,12 @@ export class Engine {
       for (const stay of this.world.where("stays", (s) => s["status"] === timed.from)) {
         const at = this.moment(stay, timed.at);
         if (at === null || this.now < at) continue;
-        moved.push(this.write(() => this.updateStay(stay.id, { status: timed.to }, CLOCK)));
+        // A move its own rules refuse now (the guest's stated time not come yet) is left, and tried again later.
+        try {
+          moved.push(this.write(() => this.updateStay(stay.id, { status: timed.to }, CLOCK)));
+        } catch {
+          continue;
+        }
       }
     }
     return moved;

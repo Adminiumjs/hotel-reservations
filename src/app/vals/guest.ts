@@ -43,12 +43,17 @@ export function hasIcon(label: string): string {
 
 export const sleepsLine = (n: number) => tr("Sleeps {n}", { n });
 
+/** The house in figures: each counted by its own plural, as a list. */
+function houseFacts(rooms: number, floors: number, kinds: number): string {
+  return [tr("{n} room|{n} rooms", { n: rooms }), tr("{n} floor|{n} floors", { n: floors }), tr("{n} kind of room|{n} kinds of room", { n: kinds })].map(strip).join(" · ");
+}
+
 /** Floors a list of rooms is spread over, said as a sentence. */
 export function floorSpread(floors: number[]): string {
   const fs = [...new Set(floors)].sort((a, b) => a - b);
   if (fs.length === 1) return tr("On floor {a}", { a: fs[0]! });
   if (fs.length === 2) return tr("On floors {a} and {b}", { a: fs[0]!, b: fs[1]! });
-  return tr("On all {n} floors", { n: fs.length });
+  return tr("On every floor");
 }
 
 /** The times a guest may say they will come. */
@@ -104,8 +109,8 @@ export function cancelNote(app: HouseApp, arrive: string, booked: boolean, cance
   if (stage === "inside") {
     const p = { time: strip(fT(H.arriveFrom)), day: strip(fDW(arrive)) };
     return booked
-      ? tr("You are inside the two days before your arrival: you can cancel until {time} on {day}; it is marked as a late cancellation. Nothing is charged.", p)
-      : tr("You would be inside the two days before your arrival: you can cancel until {time} on {day}; it is marked as a late cancellation. Nothing is charged.", p);
+      ? tr("You are inside the notice we ask for: you can cancel until {time} on {day}; it is marked as a late cancellation. Nothing is charged.", p)
+      : tr("You would be inside the notice we ask for: you can cancel until {time} on {day}; it is marked as a late cancellation. Nothing is charged.", p);
   }
   return tr("Cancel at no charge until {moment}.", { moment: strip(momentWords(app, arrive, cancelBy)) });
 }
@@ -187,8 +192,9 @@ export function guestVals(app: HouseApp, w: WorldV): V {
     maxNights: String(H.maxNights),
     morningLine: H.morning,
     heroMark: H.since === null ? H.name.toUpperCase() : tr("{name} · EST {since}", { name: H.name.toUpperCase(), since: H.since }),
-    heroLine: `${tr("{rooms} rooms above the harbour, {floors} floors, {kinds} kinds of room.", { rooms: rooms.length, floors, kinds })}${H.about ? ` ${H.about}` : ""}`,
-    houseLine: tr("{rooms} rooms over {floors} floors. {kinds} kinds of room.", { rooms: rooms.length, floors, kinds }),
+    // The counts are the house's rooms; the words about it are its own (settings), never this app's.
+    heroLine: `${houseFacts(rooms.length, floors, kinds)}.${H.about ? ` ${H.about}` : ""}`,
+    houseLine: `${houseFacts(rooms.length, floors, kinds)}.`,
     breakfastHow: ex("BRK") === undefined ? "" : tr("{price} per person, per night", { price: strip(money0(ex("BRK")!.amount)) }),
     findingLine: H.finding,
     roomsIntro: tr("{kinds} kinds of room over {floors} floors. Rates move with the night, so the numbers here are where a quiet weeknight starts. Put your dates in and we will show you the real ones.", { kinds, floors }),
@@ -365,7 +371,7 @@ export function guestVals(app: HouseApp, w: WorldV): V {
       icon: pt.icon,
       chip: `${pt.code} · ${tr("sleeps {n}", { n: pt.sleeps })}`,
       hasLeft: left > 0 && left <= 4,
-      leftText: tr("{n} left", { n: left }),
+      leftText: tr("{n} left|{n} left", { n: left }),
       leftBg: left <= 2 ? "var(--warn)" : "rgba(10,10,15,.42)",
       leftFg: left <= 2 ? "var(--warn-fg)" : "rgba(255,255,255,.94)",
       name: pt.name,
@@ -448,6 +454,8 @@ export function guestVals(app: HouseApp, w: WorldV): V {
   const a = s.auth;
   const wait = Math.max(0, Math.ceil(60 - (Date.now() - a.sentAt) / 1000));
   v["au"] = {
+    endedOn: a.ended !== "",
+    ended: a.ended,
     formOn: a.stage === "form",
     sentOn: a.stage === "sent",
     linkOn: a.stage === "link",
@@ -507,7 +515,7 @@ export function guestVals(app: HouseApp, w: WorldV): V {
     if (x.state === "noshow") return [tr("No-show"), "danger"];
     if (x.state === "out") return [tr("Checked out"), "mute"];
     if (x.state === "in") return x.depart === today ? [tr("Leaving today"), "warn"] : [tr("You are with us"), "pos"];
-    if (x.arrive < today) return [tr("Due yesterday"), "warn"];
+    if (x.arrive < today) return [tr("Due {day}", { day: strip(fD(x.arrive)) }), "warn"];
     if (x.arrive === today) return [tr("Arriving today"), "info"];
     return [tr("Booked"), "plain"];
   };
@@ -585,7 +593,7 @@ function offer(app: HouseApp, t: TypeV, a: TypeAvailability | undefined, q: Quot
     icon: t.icon,
     chip: `${t.code} · ${tr("sleeps {n}", { n: t.sleeps })}`,
     hasLeft: open && left <= 4,
-    leftText: tr("{n} left", { n: left }),
+    leftText: tr("{n} left|{n} left", { n: left }),
     leftBg: left <= 2 ? "var(--warn)" : "rgba(10,10,15,.42)",
     leftFg: left <= 2 ? "var(--warn-fg)" : "rgba(255,255,255,.94)",
     name: t.name,
@@ -750,7 +758,7 @@ function oneVals(app: HouseApp, w: WorldV, st: StV, gp: (x: StV) => [string, str
   const paid = st.m.paid;
   // A note with {phone} is drawn with the house's number as a link (`trx` in the view): its English is the key.
   let deadNote = "";
-  if (booked && st.arrive < today) deadNote = key("We expected you yesterday — ring us on {phone} so we keep your room.");
+  if (booked && st.arrive < today) deadNote = key("We expected you on {day} — ring us on {phone} so we keep your room.");
   else if (booked && cut) deadNote = key("It is your arrival day. Anything to change, ring us on {phone}.");
   else if (st.state === "in") deadNote = tr("You are with us — anything you need, ask at the desk.");
   else if (st.state === "out") deadNote = tr("This stay has finished.");
@@ -784,6 +792,7 @@ function oneVals(app: HouseApp, w: WorldV, st: StV, gp: (x: StV) => [string, str
     live,
     dead: !live,
     deadNote,
+    deadDay: strip(fDW(st.arrive)),
     deadPhone: booked && cut,
     phone: H.phone,
     outside: live && !inside,
@@ -791,7 +800,7 @@ function oneVals(app: HouseApp, w: WorldV, st: StV, gp: (x: StV) => [string, str
     lineMoment: momentWords(app, st.arrive, st.cancelBy),
     cutMoment: fsi(tr("{time} on {day}", { time: strip(fT(H.arriveFrom)), day: strip(fDW(st.arrive)) })),
     outsideMsg: tr("Cancel at no charge until {moment}.", { moment: strip(momentWords(app, st.arrive, st.cancelBy)) }),
-    insideMsg: tr("You are inside the two days before your arrival. You can still cancel until {time} on {day}; it will be marked as a late cancellation. Nothing is charged.", { time: strip(fT(H.arriveFrom)), day: strip(fDW(st.arrive)) }),
+    insideMsg: tr("You are inside the notice we ask for. You can still cancel until {time} on {day}; it will be marked as a late cancellation. Nothing is charged.", { time: strip(fT(H.arriveFrom)), day: strip(fDW(st.arrive)) }),
     daysAhead: st.state !== "booked" ? "" : st.arrive > today ? tr("{days} from today", { days: strip(days(nightsOf(today, st.arrive))) }) : st.arrive === today ? tr("Today") : "",
     arrivalTime: st.arrivalTime,
     times: timeOptions(st.arrivalTime, H.lateArrival),

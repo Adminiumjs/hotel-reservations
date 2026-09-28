@@ -1,0 +1,51 @@
+{
+ "de-DE": {
+  "Good morning — the clock is at {time}.": "Guten Morgen — die Uhr steht auf {time}.",
+  "Signed in as {name}.": "Angemeldet als {name}.",
+  "The clock is at {time}.": "Die Uhr steht auf {time}.",
+  "The clock is at {time}. Departures are due.": "Die Uhr steht auf {time}. Abreisen sind fällig.",
+  "The house is not answering — try Reserve the room.": "Das Haus antwortet nicht — versuchen Sie „Zimmer reservieren“."
+ },
+ "fr-FR": {
+  "Good morning — the clock is at {time}.": "Bonjour — il est {time}.",
+  "Signed in as {name}.": "Connecté en tant que {name}.",
+  "The clock is at {time}.": "Il est {time}.",
+  "The clock is at {time}. Departures are due.": "Il est {time}. Des départs sont attendus.",
+  "The house is not answering — try Reserve the room.": "La maison ne répond pas — essayez Réserver la chambre."
+ },
+ "cs-CZ": {
+  "Good morning — the clock is at {time}.": "Dobré ráno — je {time}.",
+  "Signed in as {name}.": "Přihlášen(a) jako {name}.",
+  "The clock is at {time}.": "Je {time}.",
+  "The clock is at {time}. Departures are due.": "Je {time}. Čekají odjezdy.",
+  "The house is not answering — try Reserve the room.": "Hotel neodpovídá — zkuste Rezervovat pokoj."
+ },
+ "da-DK": {
+  "Good morning — the clock is at {time}.": "Godmorgen — klokken er {time}.",
+  "Signed in as {name}.": "Logget ind som {name}.",
+  "The clock is at {time}.": "Klokken er {time}.",
+  "The clock is at {time}. Departures are due.": "Klokken er {time}. Afrejser venter.",
+  "The house is not answering — try Reserve the room.": "Hotellet svarer ikke — prøv Reservér værelset."
+ },
+ "zh-CN": {
+  "Good morning — the clock is at {time}.": "早上好 — 现在是 {time}。",
+  "Signed in as {name}.": "已以 {name} 身份登录。",
+  "The clock is at {time}.": "现在是 {time}。",
+  "The clock is at {time}. Departures are due.": "现在是 {time}。有客人该退房了。",
+  "The house is not answering — try Reserve the room.": "酒店系统暂未响应 — 请再点一次“预订房间”。"
+ },
+ "zh-TW": {
+  "Good morning — the clock is at {time}.": "早安 — 現在時間 {time}。",
+  "Signed in as {name}.": "已登入：{name}。",
+  "The clock is at {time}.": "現在時間 {time}。",
+  "The clock is at {time}. Departures are due.": "現在時間 {time}。有客人該退房了。",
+  "The house is not answering — try Reserve the room.": "飯店沒有回應 — 請試試「預訂此房」。"
+ },
+ "ar-EG": {
+  "Good morning — the clock is at {time}.": "صباح الخير — الساعة الآن {time}.",
+  "Signed in as {name}.": "مسجّل الدخول باسم {name}.",
+  "The clock is at {time}.": "الساعة الآن {time}.",
+  "The clock is at {time}. Departures are due.": "الساعة الآن {time}. حان موعد المغادرات.",
+  "The house is not answering — try Reserve the room.": "الفندق لا يستجيب — جرّب «احجز الغرفة»."
+ }
+}

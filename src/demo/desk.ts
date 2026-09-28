@@ -227,7 +227,7 @@ export class DemoDesk implements DeskPort {
     });
   }
 
-  async quoteTakeOff(id: Id, from: string): Promise<{ total: number; refused: boolean; data: Record<string, unknown>; credit: number }> {
+  async quoteTakeOff(id: Id, from: string): Promise<{ total: number; refused: boolean; data: Record<string, unknown>; credit: number; stale?: boolean }> {
     try {
       return this.engine.dry(() => {
         const stay = this.world.get("stays", id);

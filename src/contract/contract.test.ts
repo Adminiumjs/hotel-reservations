@@ -36,6 +36,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { AdminiumDesk } from "../data/adminiumDesk.ts";
 import { AdminiumGuest } from "../data/adminiumGuest.ts";
+import { publicRefs } from "../data/publicRefs.ts";
 import { COLUMNS, resolveSample } from "../data/sampleRows.ts";
 import { createSessionTransport } from "../data/sessionSource.ts";
 import { loadStaffConfig } from "../staffConnection.ts";
@@ -224,15 +225,35 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         await t.port.config();
         return { desk: new AdminiumDesk(t, cfg), t, cfg };
       };
-      /** A guest's page: its own tab, the house's keys. */
-      const guestOf = async () => {
-        const c = ok(await new Caller(server.base).get<{ publishableKey: string; publicKeys?: Record<string, string>; tables: Record<string, string> }>("/apps/hotel/customer/surface-config.json"));
+      const customerConfig = async () => ok(await new Caller(server.base).get<{ publishableKey: string; publicKeys?: Record<string, string>; tables: Record<string, string> }>("/apps/hotel/customer/surface-config.json"));
+      /** A guest's page: its own tab, the house's keys. `sent` hears each session the page sends, by the key it goes with. */
+      const guestOf = async (sent?: Map<string, string>) => {
+        const c = await customerConfig();
         const fetchIn: typeof fetch = (input, init) => {
           const headers = new Headers(init?.headers);
           headers.set("origin", server.base);
+          const session = headers.get("x-adminium-public-session");
+          if (sent !== undefined && session !== null) sent.set(headers.get("authorization") ?? "", session);
           return fetch(new URL(String(input), server.base), { ...init, headers });
         };
         return new AdminiumGuest({ baseUrl: server.base, publishableKey: c.publishableKey, publicKeys: c.publicKeys ?? {}, tables: c.tables }, { fetch: fetchIn, storage: null });
+      };
+      /**
+       * The public doors as a page writing its own requests would use them — a key, a session, a ref — so a
+       * check reaches the door it names, whatever the app's own routing would have chosen.
+       */
+      const rawDoor = async () => {
+        const c = await customerConfig();
+        const refs = publicRefs(c.tables);
+        const call = async (key: string, session: string | undefined, path: string, init: { method?: string; body?: unknown } = {}) => {
+          const res = await fetch(new URL(path, server.base), {
+            method: init.method ?? "GET",
+            headers: { authorization: `Bearer ${key}`, origin: server.base, "content-type": "application/json", ...(session === undefined ? {} : { "x-adminium-public-session": session }) },
+            ...(init.body === undefined ? {} : { body: JSON.stringify(init.body) }),
+          });
+          return { status: res.status, body: (await res.json().catch(() => ({}))) as { data?: Row[] | Row; error?: { code?: string } } };
+        };
+        return { keys: { customer: c.publishableKey, link: c.publicKeys?.["link"] ?? "" }, refs, call };
       };
       /** A person with one of the app's roles, invited and signed in. */
       const person = async (slug: string, email: string, name: string) => {
@@ -312,6 +333,9 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         const quote = await desk.quoteTakeOff(ros.id, "2026-07-28");
         expect([quote.refused, money(quote.credit)]).toEqual([false, "360.00"]);
         await desk.takeOffNights(ros.id, "2026-07-28");
+        // Sent again (a reply that never came): the credit already made is found, and no second one is.
+        await desk.takeOffNights(ros.id, "2026-07-28");
+        expect((await rows("stay_credits")).filter((c) => c["stay_id"] === ros.id).length).toBe(1);
         const owing = byRef(await rows("stays"), "WH-S3292");
         expect(money(owing["total"])).toBe(money(quote.total));
         expect(await refusalOf(() => desk.checkOut(ros.id))).toBe("STATE_MOVE_REFUSED");
@@ -355,6 +379,13 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         expect(await refusalOf(() => fd.desk.voidRow("charges", charge.id, "no"))).toBe("TABLE_FORBIDDEN");
         const teo = byRef(await rows("stays"), "WH-S3283");
         expect(await refusalOf(() => fd.t.mutate(`/api/v1/data/${fd.cfg.connectionId!}/${fd.cfg.tables["stays"]!}/${String(teo.id)}`, "PATCH", { values: { total: "1.00" } }))).toBe("COLUMN_FORBIDDEN");
+        // A stay that already has a credit (none of its nights, so its money stands): the front desk still gets Adminium's quote
+        // for leaving early — its credits go back as they are — and may change none of them.
+        const staying = (await rows("stays")).find((st) => st["status"] === "in_house" && String(st["depart"]) > "2026-07-30")!;
+        const { t, cfg } = await deskOf(staff);
+        const missed = (await t.mutate<{ data: Row }>(`/api/v1/data/${cfg.connectionId!}/${cfg.tables["stay_credits"]!}`, "POST", { values: { stay_id: staying.id, reason: "missed", from_date: "2026-07-28", to_date: "2026-07-28" } })).data;
+        expect(await refusalOf(() => fd.desk.quoteTakeOff(staying.id, "2026-07-28"))).toBe("WROTE");
+        expect(await refusalOf(() => fd.t.mutate(`/api/v1/data/${fd.cfg.connectionId!}/${fd.cfg.tables["stay_credits"]!}/${String(missed.id)}`, "PATCH", { values: { voided: true } }))).toBe("COLUMN_FORBIDDEN");
         const hk = await person("hotel-housekeeping", `jory.${engine}@wrenhouse.test`, "Jory");
         const seen = await hk.desk.stays();
         expect(seen.length).toBeGreaterThan(40);
@@ -407,7 +438,11 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         needsWrites(() => ctx.skip());
         const types = await rows("room_types");
         const garden = types.find((t) => t["name"] === "Garden double")!;
-        const breakfast = (await rows("extras")).find((e) => e["code"] === "BRK")!;
+        const extras = await rows("extras");
+        const breakfast = extras.find((e) => e["code"] === "BRK")!;
+        const parking = extras.find((e) => e["code"] === "PRK")!;
+        const door = await rawDoor();
+        const linesOf = async (stayId: unknown) => (await rows("stay_extras")).filter((l) => l["stay_id"] === stayId);
         for (const [who, first, last] of [["a", "Ines", "Ortega"], ["b", "Piet", "Vos"]] as const) {
           const r = await (await guestOf()).reserve(
             { values: { room_type_id: garden.id, arrive: "2026-08-17", depart: "2026-08-20", guests: 2, first_name: first, last_name: last, email: pair[who].email, arrival_time: "17:00", language: who === "a" ? "fr-FR" : "en-US" }, children: { stay_extras: [{ values: { extra_id: breakfast.id } }] } },
@@ -417,7 +452,8 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
           pair[who].token = r.link!.token;
         }
         // A signs in with the code her email carries.
-        const a = await guestOf();
+        const aSent = new Map<string, string>();
+        const a = await guestOf(aSent);
         const before = await sinkCount();
         await a.requestSignIn(pair.a.email, "fr-FR");
         const signIn = await mailTo(pair.a.email, before);
@@ -430,7 +466,22 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         expect(await refusalOf(() => a.changeStay(pair.b.id, { status: "cancelled", cancel_code: "self" }))).toBe("PUBLIC_REF_NOT_FOUND");
         expect(await refusalOf(() => a.quoteDates(pair.b.id, "2026-08-18", "2026-08-21"))).toBe("PUBLIC_REF_NOT_FOUND");
         expect(await refusalOf(() => a.newLink(pair.b.id))).toBe("PUBLIC_REF_NOT_FOUND");
-        expect(await refusalOf(() => a.addExtra(pair.b.id, breakfast.id))).not.toBe("WROTE");
+        // An extra B does not have (so no rule of B's own could be what refuses it), and B's own line.
+        expect(await refusalOf(() => a.addExtra(pair.b.id, parking.id))).not.toBe("WROTE");
+        const bLine = (await linesOf(pair.b.id)).find((l) => l["extra_id"] === breakfast.id)!;
+        expect(await refusalOf(() => a.setExtra(bLine.id, "off", pair.b.id))).not.toBe("WROTE");
+        expect((await linesOf(pair.b.id)).map((l) => [l["extra_id"], l["state"]])).toEqual([[breakfast.id, "on"]]);
+        // What A's session reads, row by row, through every door of hers: nothing of another stay's.
+        const aSession = aSent.get(`Bearer ${door.keys.customer}`)!;
+        expect(aSession).toBeTruthy();
+        const others = new Set((await rows("stays")).filter((st) => st.id !== pair.a.id).map((st) => st.id));
+        expect(others.size).toBeGreaterThan(10);
+        for (const ref of [door.refs.myStays, door.refs.myExtras, door.refs.myCharges, door.refs.myCredits, door.refs.myPayments]) {
+          const got = await door.call(door.keys.customer, aSession, `/api/v1/public/records/${ref}?limit=200`);
+          expect(got.status, ref).toBe(200);
+          const read = (got.body.data ?? []) as Row[];
+          expect(read.filter((row) => others.has((ref === door.refs.myStays ? row.id : row["stay_id"]) as Row["id"])), ref).toEqual([]);
+        }
         // A's own dates, priced again with the extras following them; her arrival time, which cancels nothing.
         const quote = await a.quoteDates(pair.a.id, "2026-08-18", "2026-08-21");
         expect(quote.children?.stay_extras?.map((l) => Number(l.data["nights"]))).toEqual([3]);
@@ -443,13 +494,23 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         await a.newLink(pair.a.id);
         expect(await refusalOf(() => byLink.linkedStay())).toBe("PUBLIC_REF_NOT_FOUND");
         expect(await refusalOf(async () => (await guestOf()).openLink(pair.a.token))).toBe("LINK_EXPIRED");
-        // B's link opens B, and never A.
-        const b = await guestOf();
+        // B's link opens B, and never A: A's stay asked for, changed and added to through the link door itself.
+        const bSent = new Map<string, string>();
+        const b = await guestOf(bSent);
         await b.openLink(pair.b.token);
-        expect(await refusalOf(() => b.changeStay(pair.a.id, { arrival_time: "20:00" }))).toBe("PUBLIC_REF_NOT_FOUND");
-        // Signed out everywhere: nothing of A's opens with that session.
+        const bLink = bSent.get(`Bearer ${door.keys.link}`)!;
+        expect(bLink).toBeTruthy();
+        expect((await door.call(door.keys.link, bLink, `/api/v1/public/records/${door.refs.linkStay}/${String(pair.a.id)}`)).status).toBe(404);
+        expect((await door.call(door.keys.link, bLink, `/api/v1/public/records/${door.refs.linkStay}/${String(pair.a.id)}`, { method: "PATCH", body: { values: { arrival_time: "20:00" } } })).status).toBe(404);
+        expect((await door.call(door.keys.link, bLink, `/api/v1/public/records/${door.refs.linkExtras}`, { method: "POST", body: { values: { stay_id: pair.a.id, extra_id: parking.id } } })).status).toBeGreaterThanOrEqual(400);
+        expect((await rows("stays")).find((st) => st.id === pair.a.id)!["arrival_time"]).toBe("19:00");
+        expect((await linesOf(pair.a.id)).some((l) => l["extra_id"] === parking.id)).toBe(false);
+        // Signed out everywhere: the session A held, sent again as it was, opens nothing.
         await a.signOutEverywhere();
         expect(await refusalOf(() => a.myStays())).toBe("PUBLIC_REF_NOT_FOUND");
+        const replayed = await door.call(door.keys.customer, aSession, `/api/v1/public/records/${door.refs.myStays}`);
+        expect(replayed.status).not.toBe(200);
+        expect((replayed.body.data ?? []) as Row[]).toEqual([]);
       }, 420_000);
 
       /** B, signed in once for both of the next two (a sign-in is asked for only so often). */

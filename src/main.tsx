@@ -16,8 +16,8 @@ import { DEMO } from "./surface.ts";
 const container = document.getElementById("root");
 if (!container) throw new Error("Missing #root — check index.html");
 
-/** This app's name, as the failure screen says it. */
-const BRAND = "Wren House";
+/** This app, as the failure screen says it: the kind of app, never a sample house's name. */
+const BRAND = "The hotel";
 
 /**
  * The headline for a startup failure, chosen by CAUSE.
@@ -36,7 +36,7 @@ function titleFor(code: string | null): string {
     case "AMBIGUOUS_CONNECTION":
       return `${BRAND} does not know which database to read`;
     case "CONNECTION_PAUSED":
-      return `${BRAND}'s database is paused`;
+      return `The hotel's database is paused`;
     case "NO_CONNECTION":
       return `${BRAND} is not connected`;
     case "NO_BACKEND":

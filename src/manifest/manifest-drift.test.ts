@@ -335,9 +335,12 @@ describe("the desk writes only what running the day needs", () => {
   it("records charges, payments and credits but never changes one: voids are a manager's", () => {
     for (const t of ["charges", "payments", "stay_credits"]) {
       expect(role("front-desk").permissions, t).toContain(`table:@${t}:create`);
-      expect(role("front-desk").permissions, t).not.toContain(`table:@${t}:update`);
       expect(role("manager").permissions, t).toContain(`table:@${t}:update`);
     }
+    for (const t of ["charges", "payments"]) expect(role("front-desk").permissions, t).not.toContain(`table:@${t}:update`);
+    // A stay's change quote sends its credits back as they are, which counts as an update: the desk may, but no
+    // column that voids one or moves its nights or money.
+    expect(role("front-desk").limits!["stay_credits"]!["writable"]).toEqual(["void_reason"]);
   });
 
   it("cancels saying whether the guest asked or the house is cancelling — never as the guest online", () => {

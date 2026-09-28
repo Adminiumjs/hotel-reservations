@@ -73,12 +73,14 @@ export const ROLES = [
       ...grant("stays", "create", "update"),
       ...grant("stay_extras", "create", "update"),
       ...grant("charges", "create"),
-      ...grant("stay_credits", "create"),
+      // A credit is recorded, never changed: the update grant only lets the stay's change quote send its credits back as they are.
+      ...grant("stay_credits", "create", "update"),
       ...grant("payments", "create"),
       ...grant("rooms", "update"),
       ...grant("room_closures", "create", "update"),
     ],
     limits: {
+      stay_credits: { writable: ["void_reason"] },
       stays: {
         writable: DESK_STAY_COLUMNS,
         writableValues: {

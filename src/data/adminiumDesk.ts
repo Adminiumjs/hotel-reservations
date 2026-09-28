@@ -27,6 +27,10 @@ import { ApiError, type Id, type LiveFrame, type Night, type NightCount, type Qu
 /** The app's key: its roles are named `hotel-<role>`, its tables `hotel_<table>` when the server does not say. */
 const APP_KEY = "hotel";
 const PAGE = 200;
+/** The most rows one read of the book brings back. */
+const MOST_ROWS = 10_000;
+/** How far back the desk's book reaches: stays that left within these days, and every stay still live or ahead. */
+export const BOOK_DAYS = 60;
 
 type Table =
   | "settings" | "room_types" | "room_type_features" | "rooms" | "extras" | "house_notes" | "room_closures" | "rate_rules" | "charge_items"
@@ -72,6 +76,8 @@ export interface DeskOptions {
 }
 
 export interface EventSourceLike {
+  /** 2 once the browser has given up on it (a reconnect answered other than 200). */
+  readyState?: number;
   onopen: ((event: unknown) => void) | null;
   onerror: ((event: unknown) => void) | null;
   addEventListener(type: string, listener: (event: { data: string }) => void): void;
@@ -110,9 +116,26 @@ export class AdminiumDesk implements DeskPort {
     const actions = this.cfg.access?.tables[table];
     return actions === undefined ? this.cfg.access === null : actions.includes(action);
   }
+  /**
+   * A write. The CSRF token is the session's: after a sign-in in another tab
+   * the one this page holds is refused, and the write never happened — so it
+   * is sent once more with a fresh token.
+   */
+  private async mutate<T>(path: string, method: "POST" | "PATCH" | "DELETE", body?: unknown): Promise<T> {
+    try {
+      return await this.t.mutate<T>(path, method, body);
+    } catch (error) {
+      if (!refusedAs(error, "CSRF_FAILED")) throw error;
+      await this.t.refresh();
+      return this.t.mutate<T>(path, method, body);
+    }
+  }
+  /** Every row of a table (or those `filter` keeps), a page at a time, oldest first. */
   private async list(table: Table, filter?: string): Promise<Row[]> {
     const rows: Row[] = [];
-    for (let offset = 0; offset < 50 * PAGE; offset += PAGE) {
+    for (let offset = 0; ; offset += PAGE) {
+      // Past this the answer would be cut short without saying so: say so instead.
+      if (offset >= MOST_ROWS) throw new ApiError(413, "TOO_MANY_ROWS", `More than ${String(MOST_ROWS)} ${table} rows to read.`, { table });
       const got = await this.t.get<Page>(await this.path(table, `?limit=${String(PAGE)}&offset=${String(offset)}${filter === undefined ? "" : `&where=${filter}`}`));
       rows.push(...got.data);
       if (got.data.length < PAGE) break;
@@ -124,11 +147,11 @@ export class AdminiumDesk implements DeskPort {
   }
   private async create(table: Table, values: Record<string, unknown>, children?: Record<string, { values: Record<string, unknown> }[]>): Promise<Row> {
     const body = children === undefined ? { values } : { values, children };
-    return (await this.t.mutate<{ data: Row }>(await this.path(table), "POST", body)).data;
+    return (await this.mutate<{ data: Row }>(await this.path(table), "POST", body)).data;
   }
   private async change(table: Table, id: Id, values: Record<string, unknown>, from?: string): Promise<Row> {
     const body = from === undefined ? { values } : { values, from };
-    return (await this.t.mutate<{ data: Row }>(await this.path(table, `/${encodeURIComponent(String(id))}`), "PATCH", body)).data;
+    return (await this.mutate<{ data: Row }>(await this.path(table, `/${encodeURIComponent(String(id))}`), "PATCH", body)).data;
   }
   private today(): string {
     return venueDay(this.opts.clock?.() ?? Date.now() + this.skew, this.cfg.timezone ?? this.cfg.serverTimezone ?? "UTC");
@@ -183,10 +206,25 @@ export class AdminiumDesk implements DeskPort {
   stays(): Promise<StayWithLines[]> {
     return answer(async () => {
       // Only what this person may read: housekeeping reads a stay's room, dates and status, and its extras, and no money.
-      const read = (table: Table) => (this.may(table) ? this.list(table) : Promise.resolve([] as Row[]));
-      const [stays, extras, charges, credits, payments] = await Promise.all([read("stays"), read("stay_extras"), read("charges"), read("stay_credits"), read("payments")]);
-      const of = (rows: Row[], id: Id) => rows.filter((row) => row["stay_id"] === id);
-      return stays.map((stay) => ({ stay, extras: of(extras, stay.id), charges: of(charges, stay.id), credits: of(credits, stay.id), payments: of(payments, stay.id) }));
+      // The book as the desk works it: every stay still to come or in the house, and those that left in the last
+      // weeks. Older stays are Adminium's Reservations page's; a folio opened by its id reads the stay itself.
+      const since = addDays(this.today(), -BOOK_DAYS);
+      const window = encodeURIComponent(JSON.stringify({ or: [{ column: "depart", op: "gte", value: since }, { column: "status", op: "in", value: ["booked", "in_house"] }] }));
+      const stays = this.may("stays") ? await this.list("stays", window) : [];
+      if (stays.length === 0) return [];
+      // A stay's lines are made after it: those of the book's oldest stay on are every line the book needs.
+      const first = stays.reduce((least, stay) => Math.min(least, Number(stay.id)), Number.POSITIVE_INFINITY);
+      const from = encodeURIComponent(JSON.stringify({ column: "stay_id", op: "gte", value: first }));
+      const read = (table: Table) => (this.may(table) ? this.list(table, from) : Promise.resolve([] as Row[]));
+      const [extras, charges, credits, payments] = await Promise.all([read("stay_extras"), read("charges"), read("stay_credits"), read("payments")]);
+      const byStay = (rows: Row[]) => {
+        const out = new Map<string, Row[]>();
+        for (const row of rows) out.set(String(row["stay_id"]), [...(out.get(String(row["stay_id"])) ?? []), row]);
+        return out;
+      };
+      const [e, c, cr, p] = [byStay(extras), byStay(charges), byStay(credits), byStay(payments)];
+      const of = (rows: Map<string, Row[]>, id: Id) => rows.get(String(id)) ?? [];
+      return stays.map((stay) => ({ stay, extras: of(e, stay.id), charges: of(c, stay.id), credits: of(cr, stay.id), payments: of(p, stay.id) }));
     });
   }
 
@@ -207,14 +245,23 @@ export class AdminiumDesk implements DeskPort {
 
   /** The stay's nights as Adminium priced them; none when it keeps the stay's price as one line, or has no nightly lines to say. */
   private async nightly(id: Id): Promise<Night[]> {
+    return (await this.nightlyAnswer(id)).nights;
+  }
+  /** The nightly lines, and whether the rates moved since the stay was priced (its nights no longer add up to its room total). */
+  private async nightlyAnswer(id: Id): Promise<{ nights: Night[]; stale: boolean }> {
     try {
       const got = await this.t.get<{ data: { nights?: Record<string, unknown>[]; stale?: boolean } }>(await this.path("stays", `/${encodeURIComponent(String(id))}/nightly`));
-      if (got.data.stale === true) return [];
-      return (got.data.nights ?? []).map((n) => ({ date: String(n["date"]), rate: Number(n["rate"]), base: Number(n["base"] ?? n["rate"]), tags: Array.isArray(n["tags"]) ? n["tags"].map(String) : [] }));
+      if (got.data.stale === true) return { nights: [], stale: true };
+      return { nights: (got.data.nights ?? []).map((n) => ({ date: String(n["date"]), rate: Number(n["rate"]), base: Number(n["base"] ?? n["rate"]), tags: Array.isArray(n["tags"]) ? n["tags"].map(String) : [] })), stale: false };
     } catch (error) {
-      if (error instanceof SessionPortError && error.status === 404) return [];
+      if (error instanceof SessionPortError && error.status === 404) return { nights: [], stale: false };
       throw error;
     }
+  }
+  /** A credit this stay already has for these nights: a write sent again after it was made finds it, and makes no second. */
+  private async liveCredit(id: Id, reason: "left_early" | "missed", from: unknown): Promise<Row | undefined> {
+    const credits = await this.list("stay_credits", where("stay_id", id));
+    return credits.find((c) => c["reason"] === reason && String(c["from_date"]) === String(from) && c["voided"] !== true && c["voided"] !== 1);
   }
 
   guestByEmail(email: string) {
@@ -257,7 +304,7 @@ export class AdminiumDesk implements DeskPort {
       const write = await this.withExtras(body);
       // A booking is priced before its guest is named: a placeholder name, written nowhere.
       if (write.values["first_name"] === undefined || write.values["first_name"] === "") write.values["first_name"] = "—";
-      const got = await this.t.mutate<{ data: Row; children?: Record<string, { data: Row }[]>; nights?: Record<string, unknown>[] }>(await this.path("stays", "/dry-run"), "POST", write);
+      const got = await this.mutate<{ data: Row; children?: Record<string, { data: Row }[]>; nights?: Record<string, unknown>[] }>(await this.path("stays", "/dry-run"), "POST", write);
       const rel = Object.keys(write.children)[0]!;
       return {
         data: got.data,
@@ -273,8 +320,9 @@ export class AdminiumDesk implements DeskPort {
     return answer(async () => {
       const write = await this.withExtras(body);
       const sent = { ...write, ...(body.expect === undefined ? {} : { expect: body.expect }), ...(body.clientKey === undefined ? {} : { clientKey: body.clientKey }) };
-      const reply = await this.t.mutate<{ data: Row; replayed?: boolean }>(await this.path("stays"), "POST", sent);
-      const lines = await this.list("stay_extras", where("stay_id", reply.data.id));
+      const reply = await this.mutate<{ data: Row; replayed?: boolean }>(await this.path("stays"), "POST", sent);
+      // The booking is made: its lines are read for the toast only, and a failed read never hides the booking.
+      const lines = await this.list("stay_extras", where("stay_id", reply.data.id)).catch(() => [] as Row[]);
       return { data: reply.data, children: { stay_extras: lines.map((data) => ({ data })) }, ...(reply.replayed === true ? { replayed: true as const } : {}) };
     });
   }
@@ -311,7 +359,7 @@ export class AdminiumDesk implements DeskPort {
   quoteEdit(id: Id, values: Record<string, unknown>, extras: { extraId: Id; on: boolean }[] = []): Promise<QuoteReply> {
     return answer(async () => {
       const body = await this.changeBody(id, values, extras, true);
-      const got = await this.t.mutate<{ data: Row; children?: Record<string, { data: Row }[]>; nights?: Record<string, unknown>[] }>(await this.path("stays", `/${encodeURIComponent(String(id))}/dry-run`), "POST", body);
+      const got = await this.mutate<{ data: Row; children?: Record<string, { data: Row }[]>; nights?: Record<string, unknown>[] }>(await this.path("stays", `/${encodeURIComponent(String(id))}/dry-run`), "POST", body);
       const lines = Object.values(got.children ?? {})[0] ?? [];
       return {
         data: got.data,
@@ -326,7 +374,7 @@ export class AdminiumDesk implements DeskPort {
   edit(id: Id, values: Record<string, unknown>, expectTotal?: string, extras?: { extraId: Id; on: boolean }[]): Promise<Row> {
     return answer(async () => {
       const body = await this.changeBody(id, values, extras, false);
-      return (await this.t.mutate<{ data: Row }>(await this.path("stays", `/${encodeURIComponent(String(id))}`), "PATCH", { ...body, ...(expectTotal === undefined ? {} : { expect: { total: expectTotal } }) })).data;
+      return (await this.mutate<{ data: Row }>(await this.path("stays", `/${encodeURIComponent(String(id))}`), "PATCH", { ...body, ...(expectTotal === undefined ? {} : { expect: { total: expectTotal } }) })).data;
     });
   }
 
@@ -353,7 +401,7 @@ export class AdminiumDesk implements DeskPort {
     return answer(async () => {
       const stay = await this.one("stays", id);
       if (from <= String(stay["arrive"]) || from >= String(stay["depart"])) throw new ApiError(422, "VALIDATION_FAILED", "Those nights are not the stay's.", { fields: { from_date: { code: "out-of-range" } } });
-      return this.create("stay_credits", { stay_id: id, reason: "left_early", from_date: from, to_date: stay["depart"] });
+      return (await this.liveCredit(id, "left_early", from)) ?? this.create("stay_credits", { stay_id: id, reason: "left_early", from_date: from, to_date: stay["depart"] });
     });
   }
 
@@ -363,12 +411,14 @@ export class AdminiumDesk implements DeskPort {
    * the new one), priced by Adminium; refused when it would leave more paid
    * than the stay costs.
    */
-  quoteTakeOff(id: Id, from: string): Promise<{ total: number; refused: boolean; data: Record<string, unknown>; credit: number }> {
+  quoteTakeOff(id: Id, from: string): Promise<{ total: number; refused: boolean; data: Record<string, unknown>; credit: number; stale?: boolean }> {
     return answer(async () => {
-      const [stay, credits, rel] = await Promise.all([this.one("stays", id), this.list("stay_credits", where("stay_id", id)), this.t.relation(this.real("stay_credits"), "stay_id")]);
+      const [stay, credits, rel, nightly] = await Promise.all([this.one("stays", id), this.list("stay_credits", where("stay_id", id)), this.t.relation(this.real("stay_credits"), "stay_id"), this.nightlyAnswer(id)]);
+      // Adminium prices a credit at today's rates: once they moved, the nights not stayed are not what the stay paid for them.
+      if (nightly.stale) return { total: Number(stay["total"]), refused: true, data: stay, credit: 0, stale: true };
       const rows = [...credits.map((c) => ({ key: { id: c.id }, values: { voided: c["voided"] } })), { values: { reason: "left_early", from_date: from, to_date: stay["depart"] } }];
       try {
-        const got = await this.t.mutate<{ data: Row; children?: Record<string, { data: Row }[]> }>(await this.path("stays", `/${encodeURIComponent(String(id))}/dry-run`), "POST", { values: {}, children: { [rel]: rows } });
+        const got = await this.mutate<{ data: Row; children?: Record<string, { data: Row }[]> }>(await this.path("stays", `/${encodeURIComponent(String(id))}/dry-run`), "POST", { values: {}, children: { [rel]: rows } });
         const made = (got.children?.[rel] ?? []).find((c) => !credits.some((old) => old.id === c.data["id"]));
         return { total: Number(got.data["total"]), refused: false, data: got.data, credit: Number(made?.data["amount"] ?? 0) };
       } catch (error) {
@@ -392,7 +442,8 @@ export class AdminiumDesk implements DeskPort {
       const stay = await this.one("stays", id);
       const today = this.today();
       // The nights missed come off only when the desk says so: a credit row, priced by Adminium.
-      if (!to.chargeMissed && String(stay["arrive"]) < today) await this.create("stay_credits", { stay_id: id, reason: "missed", from_date: stay["arrive"], to_date: today });
+      if (!to.chargeMissed && String(stay["arrive"]) < today && (await this.liveCredit(id, "missed", stay["arrive"])) === undefined)
+        await this.create("stay_credits", { stay_id: id, reason: "missed", from_date: stay["arrive"], to_date: today });
       return this.change("stays", id, { room_id: to.roomId, status: "in_house" }, "no_show");
     });
   }
@@ -440,7 +491,7 @@ export class AdminiumDesk implements DeskPort {
 
   printFolio(id: Id): Promise<{ url: string | null }> {
     return answer(async () => {
-      const drawn = await this.t.mutate<{ printUrl: string }>(`/api/v1/apps/${APP_KEY}/documents/render`, "POST", { ref: "stays", kind: "invoice", pk: { id } });
+      const drawn = await this.mutate<{ printUrl: string }>(`/api/v1/apps/${APP_KEY}/documents/render`, "POST", { ref: "stays", kind: "invoice", pk: { id } });
       return { url: drawn.printUrl };
     });
   }
@@ -459,7 +510,7 @@ export class AdminiumDesk implements DeskPort {
       const [stay, rows, rel] = await Promise.all([this.one("stays", stayId), this.list(table, where("stay_id", stayId)), this.t.relation(this.real(table), "stay_id")]);
       const sent = rows.map((r) => ({ key: { id: r.id }, values: { voided: r.id === row.id ? true : r["voided"] } }));
       try {
-        const got = await this.t.mutate<{ data: Row }>(await this.path("stays", `/${encodeURIComponent(String(stayId))}/dry-run`), "POST", { values: {}, children: { [rel]: sent } });
+        const got = await this.mutate<{ data: Row }>(await this.path("stays", `/${encodeURIComponent(String(stayId))}/dry-run`), "POST", { values: {}, children: { [rel]: sent } });
         return { refused: false, paid: Number(got.data["paid"]), total: Number(got.data["total"]) };
       } catch (error) {
         if (refusedAs(error, "BALANCE_EXCEEDED")) return { refused: true, paid: Number(stay["paid"]), total: Number(stay["total"]) };
@@ -481,16 +532,25 @@ export class AdminiumDesk implements DeskPort {
   endClosure(id: Id): Promise<Row> {
     return answer(async () => {
       const closure = await this.one("room_closures", id);
-      const yesterday = addDays(this.today(), -1);
+      const today = this.today();
+      const yesterday = addDays(today, -1);
+      const begun = String(closure["from_date"]) <= today;
       const ended = await this.change("room_closures", id, { active: false, to_date: yesterday < String(closure["from_date"]) ? closure["from_date"] : yesterday });
-      // Back from repair, a room is cleaned before anyone sleeps in it.
-      const room = await this.one("rooms", closure["room_id"] as Id);
-      if (room["status"] === "ready") await this.change("rooms", room.id, { status: "cleaning" });
+      // Back from repair, a room is cleaned before anyone sleeps in it; one never closed is as it was.
+      if (begun) {
+        const room = await this.one("rooms", closure["room_id"] as Id);
+        if (room["status"] === "ready") await this.change("rooms", room.id, { status: "cleaning" });
+      }
       return ended;
     });
   }
 
   // ── the session and the stream ────────────────────────────────────────────
+
+  signInAgain(): void {
+    const next = typeof window === "undefined" ? "/" : window.location.pathname;
+    (this.opts.leave ?? ((url: string) => window.location.assign(url)))(`/login?next=${encodeURIComponent(next)}`);
+  }
 
   async signOut(): Promise<void> {
     try {
@@ -501,9 +561,19 @@ export class AdminiumDesk implements DeskPort {
     }
   }
 
+  private subscribeAgain(listener: (frame: LiveFrame) => void, onState: ((state: "live" | "reconnecting") => void) | undefined, keep: (stop: () => void) => void): void {
+    keep(this.subscribe((frame) => listener(frame), (state) => {
+      onState?.(state);
+      // Set up at last: whatever changed meanwhile was not heard.
+      if (state === "live") listener({ table: "*", id: 0, op: "update" });
+    }));
+  }
+
   subscribe(listener: (frame: LiveFrame) => void, onState?: (state: "live" | "reconnecting") => void): () => void {
     let source: EventSourceLike | null = null;
     let closed = false;
+    let later: ReturnType<typeof setTimeout> | undefined;
+    let restarted: (() => void) | undefined;
     const byChannel = new Map<string, string>();
     void (async () => {
       try {
@@ -518,36 +588,55 @@ export class AdminiumDesk implements DeskPort {
         }
         if (closed || channels.length === 0) return;
         const open = this.opts.stream ?? ((url: string) => new EventSource(url, { withCredentials: true }) as unknown as EventSourceLike);
-        source = open(`/api/v1/events?channels=${channels.map(encodeURIComponent).join(",")}`);
+        const url = `/api/v1/events?channels=${channels.map(encodeURIComponent).join(",")}`;
         let wasDown = false;
-        source.onopen = () => {
-          onState?.("live");
-          // Whatever happened while the stream was down was not heard: ask again.
-          if (wasDown) listener({ table: "*", id: 0, op: "update" });
-          wasDown = false;
-        };
-        source.onerror = () => {
-          wasDown = true;
-          onState?.("reconnecting");
-        };
-        for (const type of ["record.create", "record.update", "record.delete", "record.bulk-create"]) {
-          source.addEventListener(type, (event) => {
-            try {
-              const frame = JSON.parse(event.data) as { channel?: string; type?: string; data?: { pk?: { id?: unknown } } };
-              const table = byChannel.get(String(frame.channel)) ?? "*";
-              const op = String(frame.type ?? type).replace(/^record\./, "");
-              listener({ table, id: Number(frame.data?.pk?.id ?? 0), op: op === "create" || op === "bulk-create" ? "insert" : op === "delete" ? "delete" : "update" });
-            } catch {
-              listener({ table: "*", id: 0, op: "update" });
+        let wait = 1_000;
+        const connect = () => {
+          if (closed) return;
+          const here = open(url);
+          source = here;
+          here.onopen = () => {
+            wait = 1_000;
+            onState?.("live");
+            // Whatever happened while the stream was down was not heard: ask again.
+            if (wasDown) listener({ table: "*", id: 0, op: "update" });
+            wasDown = false;
+          };
+          here.onerror = () => {
+            wasDown = true;
+            onState?.("reconnecting");
+            // A reconnect answered other than 200 (a proxy's 502 while the server restarts, a session gone) ends
+            // the browser's own retries for good: open it again, a little later each time.
+            if (here.readyState === 2) {
+              here.close();
+              later = setTimeout(connect, wait);
+              wait = Math.min(wait * 2, 30_000);
             }
-          });
-        }
+          };
+          for (const type of ["record.create", "record.update", "record.delete", "record.bulk-create"]) {
+            here.addEventListener(type, (event) => {
+              try {
+                const frame = JSON.parse(event.data) as { channel?: string; type?: string; data?: { pk?: { id?: unknown } } };
+                const table = byChannel.get(String(frame.channel)) ?? "*";
+                const op = String(frame.type ?? type).replace(/^record\./, "");
+                listener({ table, id: Number(frame.data?.pk?.id ?? 0), op: op === "create" || op === "bulk-create" ? "insert" : op === "delete" ? "delete" : "update" });
+              } catch {
+                listener({ table: "*", id: 0, op: "update" });
+              }
+            });
+          }
+        };
+        connect();
       } catch {
         onState?.("reconnecting");
+        // The channels could not be set up (a schema read failed): try again shortly.
+        if (!closed) later = setTimeout(() => this.subscribeAgain(listener, onState, (stop) => (restarted = stop)), 5_000);
       }
     })();
     return () => {
       closed = true;
+      if (later !== undefined) clearTimeout(later);
+      restarted?.();
       source?.close();
     };
   }

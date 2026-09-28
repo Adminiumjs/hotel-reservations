@@ -70,7 +70,10 @@ export const SURFACE_EXTRAS = {
  */
 export const SURFACE_STAFF_ONLY = [
   "src/view/DeskView.tsx",
+  "src/view/OverlaysDeskView.tsx",
+  "src/app/desk.ts",
   "src/app/vals/desk.ts",
+  "src/app/vals/overlaysDesk.ts",
   "src/data/adminiumDesk.ts",
   "src/data/sessionSource.ts",
 ] as const;

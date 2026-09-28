@@ -1,6 +1,5 @@
 {
   "files": {
-    "src/i18n/strings/chrome.ts": 1,
     "src/surface-nav.ts": 1,
     "vite.config.ts": 1
   }

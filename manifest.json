@@ -199,7 +199,6 @@
               "columns": {
                 "desc": "label",
                 "date": "from_date",
-                "qty": "nights",
                 "rate": "line_amount",
                 "amount": "line_amount"
               }
@@ -281,10 +280,6 @@
         },
         "attendedBy": {
           "column": "recorded_by"
-        },
-        "balanceAfter": {
-          "via": "stay_id",
-          "column": "balance"
         }
       }
     }
@@ -6421,26 +6416,26 @@
               "w": 6,
               "h": 7,
               "config": {
-                "title": "Leaving today with money owing",
+                "title": "Leaving with money owing",
                 "titles": {
-                  "en-US": "Leaving today with money owing",
-                  "de-DE": "Heute abreisend mit offenem Betrag",
-                  "fr-FR": "Départs du jour avec un solde dû",
-                  "da-DK": "Rejser i dag med udestående beløb",
-                  "cs-CZ": "Dnes odjíždějí s nezaplacenou částkou",
-                  "ar-EG": "يغادرون اليوم وعليهم مبالغ",
-                  "zh-CN": "今日退房且有未结金额",
-                  "zh-TW": "今日退房且有未結金額"
+                  "en-US": "Leaving with money owing",
+                  "de-DE": "Abreisend mit offenem Betrag",
+                  "fr-FR": "Départs avec un solde dû",
+                  "da-DK": "Rejser med udestående beløb",
+                  "cs-CZ": "Odjíždějí s nezaplacenou částkou",
+                  "ar-EG": "يغادرون وعليهم مبالغ",
+                  "zh-CN": "退房且有未结金额",
+                  "zh-TW": "退房且有未結金額"
                 },
-                "subtitle": "Leaving today · balance above zero",
+                "subtitle": "Leaving today or overdue · balance above zero",
                 "subtitles": {
-                  "de-DE": "Abreise heute · offener Betrag über null",
-                  "fr-FR": "Départ aujourd'hui · solde supérieur à zéro",
-                  "da-DK": "Rejser i dag · saldo over nul",
-                  "cs-CZ": "Odjezd dnes · zůstatek nad nulou",
-                  "ar-EG": "المغادرة اليوم · رصيد أكبر من صفر",
-                  "zh-CN": "今日退房 · 余额大于零",
-                  "zh-TW": "今日退房 · 餘額大於零"
+                  "de-DE": "Abreise heute oder überfällig · offener Betrag über null",
+                  "fr-FR": "Départ aujourd'hui ou en retard · solde supérieur à zéro",
+                  "da-DK": "Rejser i dag eller forsinket · saldo over nul",
+                  "cs-CZ": "Odjezd dnes nebo po termínu · zůstatek nad nulou",
+                  "ar-EG": "المغادرة اليوم أو متأخرة · رصيد أكبر من صفر",
+                  "zh-CN": "今日退房或已逾期 · 余额大于零",
+                  "zh-TW": "今日退房或已逾期 · 餘額大於零"
                 },
                 "emptyState": {
                   "titleKey": "Nobody leaving with money owing.",
@@ -6471,7 +6466,7 @@
                   "ref",
                   "room_type"
                 ],
-                "viewAllHref": "/p/hotel-reservations?f.status=eq:in_house&f.depart=gte:today&f.depart=lte:today&f.balance=gt:0",
+                "viewAllHref": "/p/hotel-reservations?f.status=eq:in_house&f.depart=lte:today&f.balance=gt:0",
                 "binding": {
                   "kind": "table-query",
                   "source": {
@@ -6496,7 +6491,7 @@
                     },
                     {
                       "column": "depart",
-                      "op": "eq",
+                      "op": "lte",
                       "day": "today"
                     },
                     {
@@ -8187,12 +8182,18 @@
         "table:@stay_extras:update",
         "table:@charges:create",
         "table:@stay_credits:create",
+        "table:@stay_credits:update",
         "table:@payments:create",
         "table:@rooms:update",
         "table:@room_closures:create",
         "table:@room_closures:update"
       ],
       "limits": {
+        "stay_credits": {
+          "writable": [
+            "void_reason"
+          ]
+        },
         "stays": {
           "writable": [
             "status",
@@ -9553,9 +9554,9 @@
       "vars": [
         "manage_url",
         "practice.address",
-        "practice.arrive_from",
+        "practice.arrive_from.time",
         "practice.email",
-        "practice.leave_by",
+        "practice.leave_by.time",
         "practice.phone",
         "recipient.first_name",
         "room_type.name",
@@ -9600,7 +9601,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "Arriving {{stay.arrive.day_month}}, from {{practice.arrive_from}}. Leaving {{stay.depart.day_month}}, by {{practice.leave_by}}."
+                  "Arriving {{stay.arrive.day_month}}, from {{practice.arrive_from.time}}. Leaving {{stay.depart.day_month}}, by {{practice.leave_by.time}}."
                 ]
               }
             },
@@ -9669,7 +9670,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "Cancel at no charge until {{stay.cancel_by.time}} on {{stay.cancel_by.date}}.",
+                  "Cancelling costs nothing. After {{stay.cancel_by.time}} on {{stay.cancel_by.date}}, a cancellation is marked as late.",
                   "Late or early? Write to {{practice.email}} or ring us on {{practice.phone}}."
                 ]
               }
@@ -9713,7 +9714,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "Anreise am {{stay.arrive.day_month}} ab {{practice.arrive_from}}. Abreise am {{stay.depart.day_month}} bis {{practice.leave_by}}."
+                  "Anreise am {{stay.arrive.day_month}} ab {{practice.arrive_from.time}}. Abreise am {{stay.depart.day_month}} bis {{practice.leave_by.time}}."
                 ]
               }
             },
@@ -9782,7 +9783,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "Stornierung ohne Kosten bis {{stay.cancel_by.time}} am {{stay.cancel_by.date}}.",
+                  "Eine Stornierung kostet nichts. Nach {{stay.cancel_by.time}} am {{stay.cancel_by.date}} wird sie als verspätet vermerkt.",
                   "Später oder früher? Schreiben Sie an {{practice.email}} oder rufen Sie uns an: {{practice.phone}}."
                 ]
               }
@@ -9826,7 +9827,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "Arrivée le {{stay.arrive.day_month}} à partir de {{practice.arrive_from}}. Départ le {{stay.depart.day_month}} avant {{practice.leave_by}}."
+                  "Arrivée le {{stay.arrive.day_month}} à partir de {{practice.arrive_from.time}}. Départ le {{stay.depart.day_month}} avant {{practice.leave_by.time}}."
                 ]
               }
             },
@@ -9895,7 +9896,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "Annulation sans frais jusqu'à {{stay.cancel_by.time}} le {{stay.cancel_by.date}}.",
+                  "Annuler ne coûte rien. Après {{stay.cancel_by.time}} le {{stay.cancel_by.date}}, une annulation est notée comme tardive.",
                   "En retard ou en avance ? Écrivez à {{practice.email}} ou appelez-nous au {{practice.phone}}."
                 ]
               }
@@ -9939,7 +9940,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "Ankomst {{stay.arrive.day_month}} fra kl. {{practice.arrive_from}}. Afrejse {{stay.depart.day_month}} senest kl. {{practice.leave_by}}."
+                  "Ankomst {{stay.arrive.day_month}} fra kl. {{practice.arrive_from.time}}. Afrejse {{stay.depart.day_month}} senest kl. {{practice.leave_by.time}}."
                 ]
               }
             },
@@ -10008,7 +10009,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "Afbestilling uden beregning indtil kl. {{stay.cancel_by.time}} den {{stay.cancel_by.date}}.",
+                  "Det koster intet at afbestille. Efter kl. {{stay.cancel_by.time}} den {{stay.cancel_by.date}} noteres en afbestilling som sen.",
                   "Sent eller tidligt? Skriv til {{practice.email}}, eller ring til os på {{practice.phone}}."
                 ]
               }
@@ -10052,7 +10053,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "Příjezd {{stay.arrive.day_month}} od {{practice.arrive_from}}. Odjezd {{stay.depart.day_month}} do {{practice.leave_by}}."
+                  "Příjezd {{stay.arrive.day_month}} od {{practice.arrive_from.time}}. Odjezd {{stay.depart.day_month}} do {{practice.leave_by.time}}."
                 ]
               }
             },
@@ -10121,7 +10122,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "Zrušení bez poplatku do {{stay.cancel_by.time}} dne {{stay.cancel_by.date}}.",
+                  "Zrušení nic nestojí. Po {{stay.cancel_by.time}} dne {{stay.cancel_by.date}} se zrušení zaznamená jako pozdní.",
                   "Přijedete později nebo dříve? Napište na {{practice.email}} nebo nám zavolejte na {{practice.phone}}."
                 ]
               }
@@ -10165,7 +10166,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "الوصول في {{stay.arrive.day_month}} ابتداءً من {{practice.arrive_from}}. المغادرة في {{stay.depart.day_month}} قبل {{practice.leave_by}}."
+                  "الوصول في {{stay.arrive.day_month}} ابتداءً من {{practice.arrive_from.time}}. المغادرة في {{stay.depart.day_month}} قبل {{practice.leave_by.time}}."
                 ]
               }
             },
@@ -10234,7 +10235,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "يمكنك الإلغاء دون رسوم حتى {{stay.cancel_by.time}} يوم {{stay.cancel_by.date}}.",
+                  "الإلغاء لا يكلّف شيئًا. بعد {{stay.cancel_by.time}} يوم {{stay.cancel_by.date}} يُسجَّل الإلغاء على أنه متأخر.",
                   "ستتأخر أو تصل مبكرًا؟ راسلنا على {{practice.email}} أو اتصل بنا على {{practice.phone}}."
                 ]
               }
@@ -10278,7 +10279,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "{{stay.arrive.day_month}} 入住，{{practice.arrive_from}} 起可办理。{{stay.depart.day_month}} 退房，请于 {{practice.leave_by}} 前离开。"
+                  "{{stay.arrive.day_month}} 入住，{{practice.arrive_from.time}} 起可办理。{{stay.depart.day_month}} 退房，请于 {{practice.leave_by.time}} 前离开。"
                 ]
               }
             },
@@ -10347,7 +10348,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "{{stay.cancel_by.date}} {{stay.cancel_by.time}} 前取消不收费。",
+                  "取消不收取任何费用。{{stay.cancel_by.date}} {{stay.cancel_by.time}} 之后取消，将记为逾期取消。",
                   "会晚到或早到？请发邮件至 {{practice.email}} 或致电 {{practice.phone}}。"
                 ]
               }
@@ -10391,7 +10392,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "{{stay.arrive.day_month}} 入住，{{practice.arrive_from}} 起可辦理。{{stay.depart.day_month}} 退房，請於 {{practice.leave_by}} 前離開。"
+                  "{{stay.arrive.day_month}} 入住，{{practice.arrive_from.time}} 起可辦理。{{stay.depart.day_month}} 退房，請於 {{practice.leave_by.time}} 前離開。"
                 ]
               }
             },
@@ -10460,7 +10461,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "{{stay.cancel_by.date}} {{stay.cancel_by.time}} 前取消不收費。",
+                  "取消不收取任何費用。{{stay.cancel_by.date}} {{stay.cancel_by.time}} 之後取消，將記為逾期取消。",
                   "會晚到或早到？請寄信至 {{practice.email}} 或來電 {{practice.phone}}。"
                 ]
               }
@@ -10492,9 +10493,9 @@
       },
       "vars": [
         "practice.address",
-        "practice.arrive_from",
+        "practice.arrive_from.time",
         "practice.email",
-        "practice.leave_by",
+        "practice.leave_by.time",
         "practice.phone",
         "recipient.first_name",
         "room_type.name",
@@ -10538,7 +10539,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "Arriving {{stay.arrive.day_month}}, from {{practice.arrive_from}}. Leaving {{stay.depart.day_month}}, by {{practice.leave_by}}."
+                  "Arriving {{stay.arrive.day_month}}, from {{practice.arrive_from.time}}. Leaving {{stay.depart.day_month}}, by {{practice.leave_by.time}}."
                 ]
               }
             },
@@ -10607,7 +10608,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "Cancel at no charge until {{stay.cancel_by.time}} on {{stay.cancel_by.date}}.",
+                  "Cancelling costs nothing. After {{stay.cancel_by.time}} on {{stay.cancel_by.date}}, a cancellation is marked as late.",
                   "Late or early? Write to {{practice.email}} or ring us on {{practice.phone}}."
                 ]
               }
@@ -10643,7 +10644,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "Anreise am {{stay.arrive.day_month}} ab {{practice.arrive_from}}. Abreise am {{stay.depart.day_month}} bis {{practice.leave_by}}."
+                  "Anreise am {{stay.arrive.day_month}} ab {{practice.arrive_from.time}}. Abreise am {{stay.depart.day_month}} bis {{practice.leave_by.time}}."
                 ]
               }
             },
@@ -10712,7 +10713,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "Stornierung ohne Kosten bis {{stay.cancel_by.time}} am {{stay.cancel_by.date}}.",
+                  "Eine Stornierung kostet nichts. Nach {{stay.cancel_by.time}} am {{stay.cancel_by.date}} wird sie als verspätet vermerkt.",
                   "Später oder früher? Schreiben Sie an {{practice.email}} oder rufen Sie uns an: {{practice.phone}}."
                 ]
               }
@@ -10748,7 +10749,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "Arrivée le {{stay.arrive.day_month}} à partir de {{practice.arrive_from}}. Départ le {{stay.depart.day_month}} avant {{practice.leave_by}}."
+                  "Arrivée le {{stay.arrive.day_month}} à partir de {{practice.arrive_from.time}}. Départ le {{stay.depart.day_month}} avant {{practice.leave_by.time}}."
                 ]
               }
             },
@@ -10817,7 +10818,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "Annulation sans frais jusqu'à {{stay.cancel_by.time}} le {{stay.cancel_by.date}}.",
+                  "Annuler ne coûte rien. Après {{stay.cancel_by.time}} le {{stay.cancel_by.date}}, une annulation est notée comme tardive.",
                   "En retard ou en avance ? Écrivez à {{practice.email}} ou appelez-nous au {{practice.phone}}."
                 ]
               }
@@ -10853,7 +10854,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "Ankomst {{stay.arrive.day_month}} fra kl. {{practice.arrive_from}}. Afrejse {{stay.depart.day_month}} senest kl. {{practice.leave_by}}."
+                  "Ankomst {{stay.arrive.day_month}} fra kl. {{practice.arrive_from.time}}. Afrejse {{stay.depart.day_month}} senest kl. {{practice.leave_by.time}}."
                 ]
               }
             },
@@ -10922,7 +10923,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "Afbestilling uden beregning indtil kl. {{stay.cancel_by.time}} den {{stay.cancel_by.date}}.",
+                  "Det koster intet at afbestille. Efter kl. {{stay.cancel_by.time}} den {{stay.cancel_by.date}} noteres en afbestilling som sen.",
                   "Sent eller tidligt? Skriv til {{practice.email}}, eller ring til os på {{practice.phone}}."
                 ]
               }
@@ -10958,7 +10959,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "Příjezd {{stay.arrive.day_month}} od {{practice.arrive_from}}. Odjezd {{stay.depart.day_month}} do {{practice.leave_by}}."
+                  "Příjezd {{stay.arrive.day_month}} od {{practice.arrive_from.time}}. Odjezd {{stay.depart.day_month}} do {{practice.leave_by.time}}."
                 ]
               }
             },
@@ -11027,7 +11028,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "Zrušení bez poplatku do {{stay.cancel_by.time}} dne {{stay.cancel_by.date}}.",
+                  "Zrušení nic nestojí. Po {{stay.cancel_by.time}} dne {{stay.cancel_by.date}} se zrušení zaznamená jako pozdní.",
                   "Přijedete později nebo dříve? Napište na {{practice.email}} nebo nám zavolejte na {{practice.phone}}."
                 ]
               }
@@ -11063,7 +11064,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "الوصول في {{stay.arrive.day_month}} ابتداءً من {{practice.arrive_from}}. المغادرة في {{stay.depart.day_month}} قبل {{practice.leave_by}}."
+                  "الوصول في {{stay.arrive.day_month}} ابتداءً من {{practice.arrive_from.time}}. المغادرة في {{stay.depart.day_month}} قبل {{practice.leave_by.time}}."
                 ]
               }
             },
@@ -11132,7 +11133,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "يمكنك الإلغاء دون رسوم حتى {{stay.cancel_by.time}} يوم {{stay.cancel_by.date}}.",
+                  "الإلغاء لا يكلّف شيئًا. بعد {{stay.cancel_by.time}} يوم {{stay.cancel_by.date}} يُسجَّل الإلغاء على أنه متأخر.",
                   "ستتأخر أو تصل مبكرًا؟ راسلنا على {{practice.email}} أو اتصل بنا على {{practice.phone}}."
                 ]
               }
@@ -11168,7 +11169,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "{{stay.arrive.day_month}} 入住，{{practice.arrive_from}} 起可办理。{{stay.depart.day_month}} 退房，请于 {{practice.leave_by}} 前离开。"
+                  "{{stay.arrive.day_month}} 入住，{{practice.arrive_from.time}} 起可办理。{{stay.depart.day_month}} 退房，请于 {{practice.leave_by.time}} 前离开。"
                 ]
               }
             },
@@ -11237,7 +11238,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "{{stay.cancel_by.date}} {{stay.cancel_by.time}} 前取消不收费。",
+                  "取消不收取任何费用。{{stay.cancel_by.date}} {{stay.cancel_by.time}} 之后取消，将记为逾期取消。",
                   "会晚到或早到？请发邮件至 {{practice.email}} 或致电 {{practice.phone}}。"
                 ]
               }
@@ -11273,7 +11274,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "{{stay.arrive.day_month}} 入住，{{practice.arrive_from}} 起可辦理。{{stay.depart.day_month}} 退房，請於 {{practice.leave_by}} 前離開。"
+                  "{{stay.arrive.day_month}} 入住，{{practice.arrive_from.time}} 起可辦理。{{stay.depart.day_month}} 退房，請於 {{practice.leave_by.time}} 前離開。"
                 ]
               }
             },
@@ -11342,7 +11343,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "{{stay.cancel_by.date}} {{stay.cancel_by.time}} 前取消不收費。",
+                  "取消不收取任何費用。{{stay.cancel_by.date}} {{stay.cancel_by.time}} 之後取消，將記為逾期取消。",
                   "會晚到或早到？請寄信至 {{practice.email}} 或來電 {{practice.phone}}。"
                 ]
               }
@@ -13303,7 +13304,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "Cancel at no charge until {{stay.cancel_by.time}} on {{stay.cancel_by.date}}.",
+                  "Cancelling costs nothing. After {{stay.cancel_by.time}} on {{stay.cancel_by.date}}, a cancellation is marked as late.",
                   "Late or early? Write to {{practice.email}} or ring us on {{practice.phone}}."
                 ]
               }
@@ -13370,7 +13371,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "Stornierung ohne Kosten bis {{stay.cancel_by.time}} am {{stay.cancel_by.date}}.",
+                  "Eine Stornierung kostet nichts. Nach {{stay.cancel_by.time}} am {{stay.cancel_by.date}} wird sie als verspätet vermerkt.",
                   "Später oder früher? Schreiben Sie an {{practice.email}} oder rufen Sie uns an: {{practice.phone}}."
                 ]
               }
@@ -13437,7 +13438,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "Annulation sans frais jusqu'à {{stay.cancel_by.time}} le {{stay.cancel_by.date}}.",
+                  "Annuler ne coûte rien. Après {{stay.cancel_by.time}} le {{stay.cancel_by.date}}, une annulation est notée comme tardive.",
                   "En retard ou en avance ? Écrivez à {{practice.email}} ou appelez-nous au {{practice.phone}}."
                 ]
               }
@@ -13504,7 +13505,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "Afbestilling uden beregning indtil kl. {{stay.cancel_by.time}} den {{stay.cancel_by.date}}.",
+                  "Det koster intet at afbestille. Efter kl. {{stay.cancel_by.time}} den {{stay.cancel_by.date}} noteres en afbestilling som sen.",
                   "Sent eller tidligt? Skriv til {{practice.email}}, eller ring til os på {{practice.phone}}."
                 ]
               }
@@ -13571,7 +13572,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "Zrušení bez poplatku do {{stay.cancel_by.time}} dne {{stay.cancel_by.date}}.",
+                  "Zrušení nic nestojí. Po {{stay.cancel_by.time}} dne {{stay.cancel_by.date}} se zrušení zaznamená jako pozdní.",
                   "Přijedete později nebo dříve? Napište na {{practice.email}} nebo nám zavolejte na {{practice.phone}}."
                 ]
               }
@@ -13638,7 +13639,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "يمكنك الإلغاء دون رسوم حتى {{stay.cancel_by.time}} يوم {{stay.cancel_by.date}}.",
+                  "الإلغاء لا يكلّف شيئًا. بعد {{stay.cancel_by.time}} يوم {{stay.cancel_by.date}} يُسجَّل الإلغاء على أنه متأخر.",
                   "ستتأخر أو تصل مبكرًا؟ راسلنا على {{practice.email}} أو اتصل بنا على {{practice.phone}}."
                 ]
               }
@@ -13705,7 +13706,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "{{stay.cancel_by.date}} {{stay.cancel_by.time}} 前取消不收费。",
+                  "取消不收取任何费用。{{stay.cancel_by.date}} {{stay.cancel_by.time}} 之后取消，将记为逾期取消。",
                   "会晚到或早到？请发邮件至 {{practice.email}} 或致电 {{practice.phone}}。"
                 ]
               }
@@ -13772,7 +13773,7 @@
               "id": "cancel",
               "data": {
                 "paras": [
-                  "{{stay.cancel_by.date}} {{stay.cancel_by.time}} 前取消不收費。",
+                  "取消不收取任何費用。{{stay.cancel_by.date}} {{stay.cancel_by.time}} 之後取消，將記為逾期取消。",
                   "會晚到或早到？請寄信至 {{practice.email}} 或來電 {{practice.phone}}。"
                 ]
               }

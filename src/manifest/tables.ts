@@ -696,6 +696,7 @@ export const TABLES: Table[] = [
       // What the folio calls the line: the house's words of the day it was recorded.
       text("label", 60, "Folio line", { ...opt, rules: { default: { from: setting("credit_label") } } }),
       // The first night not stayed, and the day after the last.
+      // Never before the stay began. (Leaving on the arrival day, the first night not stayed is tomorrow's.)
       date("from_date", "First night", { rules: { notBefore: { column: "arrive", via: "stay_id" } } }),
       date("to_date", "Until", { rules: { notBefore: { column: "from_date" } } }),
       fk("room_type_id", "room_types", "Room type", { ...opt, rules: { copy: { via: "stay_id", from: "room_type_id", mode: "always", follow: true } } }),

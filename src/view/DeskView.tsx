@@ -121,7 +121,7 @@ export function DeskView({ v }: { v: any }) {
               </button>
               {" "}
               <div style={st("position:relative;flex:0 0 auto")}>
-                <button onClick={v.toggleStaff} aria-haspopup="menu" aria-expanded={v.staffExpanded} aria-label={`Signed in as ${v.staffName}`} style={st("display:flex;align-items:center;gap:9px;padding-block:5px;padding-inline:6px 10px;border:1px solid var(--border);border-radius:999px;background:var(--surface-2);cursor:pointer")} className={fx("background:var(--surface-3)", null)}>
+                <button onClick={v.toggleStaff} aria-haspopup="menu" aria-expanded={v.staffExpanded} aria-label={tr("Signed in as {name}", { name: v.staffName })} style={st("display:flex;align-items:center;gap:9px;padding-block:5px;padding-inline:6px 10px;border:1px solid var(--border);border-radius:999px;background:var(--surface-2);cursor:pointer")} className={fx("background:var(--surface-3)", null)}>
                   <span style={st("inline-size:25px;block-size:25px;border-radius:999px;background:var(--accent);color:var(--accent-fg);display:grid;place-items:center;font-size:10.5px;font-weight:800")}>
                     {v.staffIni}
                   </span>
@@ -161,6 +161,13 @@ export function DeskView({ v }: { v: any }) {
             </div>
             {" "}
             <main style={st(`flex:1;padding:${v.deskPad}`)}>
+              {v.reconnecting ? (
+                <>
+                  <div role="status" style={st("margin-block-end:12px;padding:9px 13px;border:1px solid var(--warn);border-radius:10px;background:var(--warn-soft);color:var(--fg);font-size:12.5px")}>
+                    {tr("Reconnecting — the board may be a moment behind.")}
+                  </div>
+                </>
+              ) : null}
               {v.loading ? (
                 <>
                   <div style={st("display:flex;flex-direction:column;gap:16px")}>
@@ -909,7 +916,7 @@ export function DeskView({ v }: { v: any }) {
                             <div style={st("display:grid;grid-template-columns:repeat(auto-fill,minmax(146px,1fr));gap:10px")}>
                               {(f.rooms ?? []).map((r: any, i_r: number) => (
                                 <Fragment key={i_r}>
-                                  <div style={st(`background:var(--surface);border:1px solid ${r.border};border-radius:12px;overflow:hidden;opacity:${r.opacity};transition:transform .16s,box-shadow .16s`)} className={fx("transform:translateY(-3px);box-shadow:var(--shadow-lift)", null)}>
+                                  <div style={st(`background:${r.bg};border:1px solid ${r.border};border-radius:12px;overflow:hidden;opacity:${r.opacity};transition:transform .16s,box-shadow .16s`)} className={fx("transform:translateY(-3px);box-shadow:var(--shadow-lift)", null)}>
                                     <button onClick={r.open} aria-label={r.label} style={st(`display:block;inline-size:100%;padding:0;border:0;background:transparent;text-align:start;cursor:${r.tileCursor};color:inherit`)}>
                                       <span style={st(`display:block;block-size:5px;background:${r.tintFlat}`)}></span>
                                       {" "}

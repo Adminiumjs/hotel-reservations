@@ -192,14 +192,23 @@ describe("the real desk door", () => {
     ]);
   });
 
-  it("takes the nights not stayed off as a credit row, which Adminium prices", async () => {
+  it("takes the nights not stayed off as a credit row, which Adminium prices — once, however often it is sent", async () => {
+    const made: Record<string, unknown>[] = [];
     const { t, sent } = transport({
       [`GET ${D}/hotel_stays/41`]: () => ({ data: { id: 41, arrive: "2026-07-27", depart: "2026-07-31" } }),
-      [`POST ${D}/hotel_stay_credits`]: (s) => ({ data: { id: 3, ...(s.body as { values: object }).values, amount: "340.00" } }),
+      [`GET ${D}/hotel_stay_credits`]: () => ({ data: made }),
+      [`POST ${D}/hotel_stay_credits`]: (s) => {
+        const row = { id: 3, ...(s.body as { values: object }).values, voided: false, amount: "340.00" };
+        made.push(row);
+        return { data: row };
+      },
     });
     const desk = new AdminiumDesk(t, config());
     await desk.takeOffNights(41, "2026-07-29");
-    expect(sent.at(-1)!.body).toEqual({ values: { stay_id: 41, reason: "left_early", from_date: "2026-07-29", to_date: "2026-07-31" } });
+    expect(sent.filter((s) => s.method === "POST").map((s) => s.body)).toEqual([{ values: { stay_id: 41, reason: "left_early", from_date: "2026-07-29", to_date: "2026-07-31" } }]);
+    // Sent again after a reply that never came: the credit is found, and nothing more is written.
+    expect((await desk.takeOffNights(41, "2026-07-29")).id).toBe(3);
+    expect(sent.filter((s) => s.method === "POST")).toHaveLength(1);
     await expect(desk.takeOffNights(41, "2026-07-31")).rejects.toMatchObject({ code: "VALIDATION_FAILED" });
   });
 

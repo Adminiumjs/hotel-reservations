@@ -16,6 +16,7 @@ import type { DemoAdminium } from "./adminium.ts";
 import { PEOPLE } from "./desk.ts";
 import { DEMO_SIGN_IN } from "./guest.ts";
 import { DEMO_ZONE } from "./world.ts";
+import { blankNb, openCheckin, openFolio, openRoom, openSettle, saveNb, walkIn } from "../app/desk.ts";
 
 const PRIYA = "priya.raman@example.com";
 const SAMPLE_GUEST = { first: "Elin", last: "Marsh", email: "elin.marsh@example.com", mobile: "(207) 555-0150" };
@@ -107,9 +108,9 @@ export class Scenes {
         return app.openOne(own ? s.oneId! : this.stayId("WH-S3303"));
       }
       case "folio":
-        return app.openFolio(s.folioId ?? this.stayId("WH-S3283"), s.view !== null && s.view !== "folio" ? s.view : "today");
+        return openFolio(app, s.folioId ?? this.stayId("WH-S3283"), s.view !== null && s.view !== "folio" ? s.view : "today");
       case "newbooking":
-        return app.go("newbooking", { editId: null, nb: app.blankNb(), nbErr: "", nbTouched: false });
+        return app.go("newbooking", { editId: null, nb: blankNb(app), nbErr: "", nbTouched: false });
       default:
         return app.go(view);
     }
@@ -209,14 +210,14 @@ export class Scenes {
     },
 
     // ── the desk: today
-    "checkin-ren": () => this.app.openCheckin(this.stayId("WH-S3304")),
+    "checkin-ren": () => openCheckin(this.app, this.stayId("WH-S3304")),
     "checkout-teodor": () => this.app.setState({ checkoutId: this.stayId("WH-S3283"), coMode: "booked" }),
-    "walk-in": () => this.app.walkIn(),
+    "walk-in": () => walkIn(this.app),
     afternoon: () => this.afternoon(),
     "no-garden": async () => {
       for (const n of ["208", "211"]) await this.demo.desk.setRoom(this.roomId(n), { status: "cleaning" }).catch(() => undefined);
       this.app.forget("desk:");
-      this.whenReady(() => this.app.openCheckin(this.stayId("WH-S3303")));
+      this.whenReady(() => openCheckin(this.app, this.stayId("WH-S3303")));
     },
     "ottoline-rings": () => {
       const id = this.stayId("WH-S3301");
@@ -234,26 +235,26 @@ export class Scenes {
 
     // ── the desk: take a booking
     "known-guest": () => {
-      const nb = this.app.state.nb ?? this.app.blankNb();
+      const nb = this.app.state.nb ?? blankNb(this.app);
       this.app.go("newbooking", { editId: null, nb: { ...nb, email: PRIYA, link: null } });
     },
     "snug-three": () => {
-      const nb = this.app.state.nb ?? this.app.blankNb();
+      const nb = this.app.state.nb ?? blankNb(this.app);
       this.app.go("newbooking", { editId: null, nb: { ...nb, type: this.typeId("SNG"), guests: 3, arrive: "2026-08-03", depart: "2026-08-05" } });
     },
     "type-goes": () => {
-      const nb = { ...(this.app.state.nb ?? this.app.blankNb()) };
+      const nb = { ...(this.app.state.nb ?? blankNb(this.app)) };
       if (nb.type === null) nb.type = this.typeId("GDN");
       if (!nb.first.trim()) Object.assign(nb, { first: "Walter", last: "Penrose" });
       this.demo.desk.fault = "type-gone";
       this.app.go("newbooking", { editId: null, nb });
-      setTimeout(() => void this.app.saveNb(false, null, undefined), 300);
+      setTimeout(() => void saveNb(this.app, false, null, undefined), 300);
     },
 
     // ── the desk: rack
     "close-304": () => {
       this.app.go("rack");
-      this.app.openRoom("304");
+      openRoom(this.app, "304");
       this.app.setState({ oos: { from: "2026-08-01", to: "2026-08-01", reason: "" } });
     },
     housekeeping: () => {
@@ -265,10 +266,10 @@ export class Scenes {
 
     // ── the desk: folio
     "folio-afternoon": () => this.afternoon(),
-    "record-balance": () => this.app.openSettle(this.app.state.folioId ?? this.stayId("WH-S3283")),
+    "record-balance": () => openSettle(this.app, this.app.state.folioId ?? this.stayId("WH-S3283")),
     "leaving-early": () => {
       const id = this.stayId("WH-S3292");
-      this.app.openFolio(id, "today");
+      openFolio(this.app, id, "today");
       this.app.setState({ checkoutId: id, coMode: "booked" });
     },
     "as-manager": () => {
@@ -279,7 +280,7 @@ export class Scenes {
       this.app.setState({ rowMenu: null, tipKey: null });
       this.app.toast(tr("Signed in as {name}.", { name: desk.person.name }), "info");
     },
-    "late-cancel": () => this.app.openFolio(this.stayId("WH-S3278"), "reservations"),
+    "late-cancel": () => openFolio(this.app, this.stayId("WH-S3278"), "reservations"),
     "noshow-paid": async () => {
       const id = this.stayId("WH-S3279");
       const row = this.demo.world.get("stays", id)!;
@@ -289,16 +290,16 @@ export class Scenes {
         this.clockTo("11:05");
       }
       this.app.forget("desk:");
-      this.app.openFolio(id, "reservations");
+      openFolio(this.app, id, "reservations");
     },
     "another-desk": async () => {
       const id = this.app.state.folioId ?? this.stayId("WH-S3283");
-      if (this.app.state.folioId === null) this.app.openFolio(id, "today");
+      if (this.app.state.folioId === null) openFolio(this.app, id, "today");
       const st = this.app.stay(id);
       const owing = st === null ? 0 : st.m.balance;
       if (owing <= 0.004) return;
       // The sheet opens on what the account said; another desk records all of it a moment later.
-      this.app.openSettle(id, owing.toFixed(2), owing);
+      openSettle(this.app, id, owing.toFixed(2), owing);
       const desk = this.demo.desk;
       const was = desk.person;
       desk.person = PEOPLE.manager;

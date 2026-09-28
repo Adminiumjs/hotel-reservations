@@ -12,6 +12,7 @@ import { demoJsonIssues } from "./demo-types.ts";
 import { DemoAdminium } from "./demo/adminium.ts";
 import { Scenes } from "./demo/scenes.ts";
 import { DEMO_CARD_MESSAGES } from "./i18n/strings/demo-card.ts";
+import { offences } from "./testing/lexicon.ts";
 
 const VIEWS = ["home", "rooms", "find", "results", "type", "reserve", "conf", "signin", "list", "one", "404", "today", "newbooking", "rack", "calendar", "reservations", "folio"];
 
@@ -24,6 +25,13 @@ describe("the demo card", () => {
     personas: DEMO_PERSONAS,
     clock: DEMO_CLOCK,
     messages: DEMO_CARD_MESSAGES,
+  });
+
+  it("says nothing the release sweep refuses, in any of its eight languages (the card may say it is a demo)", () => {
+    const hits = Object.entries(DEMO_CARD_MESSAGES).flatMap(([tag, words]) =>
+      Object.values(words as Record<string, string>).flatMap((text) => offences(text, tag).filter((w) => !/demo|démo|演示|示範|تجريبي|ukázk|vorführ|demonstration/i.test(w)).map((w) => `${tag}: ${w} in ${JSON.stringify(text)}`)),
+    );
+    expect(hits).toEqual([]);
   });
 
   it("builds a demo.json the website accepts", () => {

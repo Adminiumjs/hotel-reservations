@@ -1640,7 +1640,8 @@ export const MANIFEST_RULES = {
         ],
         "stay_credits": [
           "read",
-          "create"
+          "create",
+          "update"
         ],
         "payments": [
           "read",
@@ -1648,6 +1649,11 @@ export const MANIFEST_RULES = {
         ]
       },
       "limits": {
+        "stay_credits": {
+          "writable": [
+            "void_reason"
+          ]
+        },
         "stays": {
           "writable": [
             "status",

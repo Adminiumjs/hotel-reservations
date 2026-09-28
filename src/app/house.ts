@@ -28,9 +28,11 @@ export interface Form {
   extras: Record<string, boolean>;
 }
 /** A retry key a form mints once: 48 random characters. */
-const mintKey = () => crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+export const mintKey = () => crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
 
 export interface Nb extends Form {
+  /** The form's retry key: a save sent again after a reply that never came lands on the same stay. */
+  key: string;
   arrive: string;
   depart: string;
   guests: number;
@@ -49,6 +51,8 @@ export interface Auth {
   tries: number;
   err: string;
   emailErr: string;
+  /** Why the guest is signing in again: their session was ended elsewhere. */
+  ended: string;
 }
 export interface Toast {
   id: string;
@@ -58,7 +62,7 @@ export interface Toast {
 
 const CODE0 = ["", "", "", "", "", ""];
 export const blankForm = (): Form => ({ first: "", last: "", email: "", mobile: "", arrivalTime: "15:00", note: "", extras: {} });
-export const blankAuth = (): Auth => ({ stage: "form", email: "", token: null, busy: false, sentAt: 0, code: CODE0.slice(), tries: 5, err: "", emailErr: "" });
+export const blankAuth = (): Auth => ({ stage: "form", email: "", token: null, busy: false, sentAt: 0, code: CODE0.slice(), tries: 5, err: "", emailErr: "", ended: "" });
 
 export function fresh(day: string) {
   return {
@@ -144,6 +148,10 @@ export function fresh(day: string) {
     oosTried: false,
     rackFilter: null as string | null,
     staffMenu: false,
+    /** The sheet whose write is on its way: its button waits. */
+    sheetBusy: null as string | null,
+    /** The desk's live stream is down and being opened again. */
+    reconnecting: false,
   };
 }
 export type State = ReturnType<typeof fresh> & {
@@ -234,6 +242,10 @@ export class HouseApp {
           if (this.cache.get(key) !== entry) return;
           entry.error = error;
           entry.loading = false;
+          // The desk's session is gone: nothing more can be read — sign in again and come back.
+          if (this.persona === "desk" && isApiError(error) && (error.status === 401 || error.code === "UNAUTHENTICATED")) this.ports.desk?.signInAgain?.();
+          // The guest's list is gone with their session (it timed out): sign in again, and say so.
+          if (this.persona === "guest" && key.startsWith("guest:mine") && isApiError(error) && error.code === "PUBLIC_REF_NOT_FOUND") setTimeout(() => this.sessionEnded("idle"), 0);
           this.bump();
         },
       );
@@ -245,12 +257,19 @@ export class HouseApp {
     for (const key of [...this.cache.keys()]) if (key.startsWith(prefix)) this.cache.delete(key);
     this.bump();
   }
-  /** After a write: ask everything again, keeping what is on screen until the answers come. */
-  private refresh(): void {
-    const keep = new Map(this.cache);
-    this.cache.clear();
+  /** Forget answers and the last ones kept on screen: what was signed out of must not linger. */
+  drop(prefix: string): void {
+    for (const key of [...this.stale.keys()]) if (key.startsWith(prefix)) this.stale.delete(key);
+    this.forget(prefix);
+  }
+  /** After a write: ask again (everything, or the answers `which` names), keeping what is on screen until the answers come. */
+  private refresh(which: (key: string) => boolean = () => true): void {
     // Keep the last answer on screen while the new one comes: a list never flashes empty.
-    for (const [key, c] of keep) if (!c.loading && c.value !== undefined) this.stale.set(key, c.value);
+    for (const [key, c] of [...this.cache]) {
+      if (!which(key)) continue;
+      this.cache.delete(key);
+      if (!c.loading && c.value !== undefined) this.stale.set(key, c.value);
+    }
     this.bump();
   }
   private stale = new Map<string, unknown>();
@@ -264,6 +283,12 @@ export class HouseApp {
     return this.stale.get(key) as T | undefined;
   }
 
+  /** What Adminium last answered to a question, without asking it. */
+  peek<T>(key: string): T | undefined {
+    const c = this.cache.get(key);
+    return (c?.value ?? this.stale.get(key)) as T | undefined;
+  }
+
   // ── the clock and the house ─────────────────────────────────────────────
 
   async start(): Promise<void> {
@@ -275,14 +300,38 @@ export class HouseApp {
       if (config.now) this.skew = Date.parse(config.now) - Date.now();
       this.now = Date.now() + this.skew;
       const today = this.day;
-      const view: View = this.persona === "desk" ? "today" : "home";
+      const roles = this.persona === "desk" ? (await this.ports.desk!.me()).roles : [];
+      const view: View = this.persona === "desk" ? (onlyHousekeeping(roles) ? "rack" : "today") : "home";
       this.setState({ ...fresh(today), view, loadError: false });
     } catch {
       this.setState({ loadError: true });
     }
+    // The clock and the stream start once, however many times the house is loaded again.
+    if (this.ticking) return;
+    this.ticking = true;
     if (this.demo?.onClock) this.demo.onClock((now) => this.setClock(now));
+    // The desk hears every change on its stream: its clock only moves the time, and the day's answers at midnight.
+    else if (this.persona === "desk") setInterval(() => this.tick(Date.now() + this.skew), 30_000);
     else setInterval(() => this.setClock(Date.now() + this.skew), 30_000);
-    if (this.persona === "desk" && this.ports.desk) this.ports.desk.subscribe((frame: LiveFrame) => this.onFrame(frame));
+    // Signed out elsewhere (or the details deleted): nothing of theirs stays on this screen.
+    if (this.persona === "guest") this.ports.guest?.onSessionEnded?.((reason) => this.sessionEnded(reason));
+    if (this.persona === "desk" && this.ports.desk)
+      this.ports.desk.subscribe(
+        (frame: LiveFrame) => this.onFrame(frame),
+        (state) => {
+          if ((state === "reconnecting") !== this.state.reconnecting) this.setState({ reconnecting: state === "reconnecting" });
+        },
+      );
+  }
+  private ticking = false;
+  /** The desk's clock: the time moves on; at a new day, every answer is asked again. */
+  private tick(now: number): void {
+    const dayBefore = this.day;
+    this.now = now;
+    if (this.day !== dayBefore) {
+      this.refresh();
+      this.setState({ calDay: null });
+    } else this.bump();
   }
   /** The clock moved (the demo card, or time passing): what Adminium answered may have moved with it. */
   setClock(now: number): void {
@@ -291,8 +340,18 @@ export class HouseApp {
     this.refresh();
     if (this.day !== dayBefore) this.setState({ calDay: null });
   }
-  private onFrame(_frame: LiveFrame): void {
-    this.refresh();
+  /** Changes heard on the stream, gathered for a moment: a check-in is a stay and a room at once. */
+  private heard = new Set<string>();
+  private hearing: ReturnType<typeof setTimeout> | null = null;
+  private onFrame(frame: LiveFrame): void {
+    this.heard.add(frame.table);
+    if (this.hearing !== null) return;
+    this.hearing = setTimeout(() => {
+      const tables = [...this.heard];
+      this.heard.clear();
+      this.hearing = null;
+      this.refresh((key) => answersOf(key, tables));
+    }, 250);
   }
   get day(): string {
     return venueDay(this.now, this.zone);
@@ -316,7 +375,8 @@ export class HouseApp {
     if (house === undefined) return null;
     let stays: StayWithLines[] = [];
     if (this.persona === "desk") {
-      const all = this.me().roles.includes("housekeeping") ? [] : this.get("desk:stays", () => this.ports.desk!.stays());
+      // The door reads only what the person may: housekeeping, a stay's room, dates and status.
+      const all = this.get("desk:stays", () => this.ports.desk!.stays());
       if (all === undefined) return null;
       stays = all;
     } else {
@@ -347,8 +407,23 @@ export class HouseApp {
   isManager(): boolean {
     return this.me().roles.includes("manager");
   }
+  /** Housekeeping and nothing else: a person who also holds the desk works the desk. */
   isHousekeeping(): boolean {
-    return this.me().roles.includes("housekeeping");
+    return onlyHousekeeping(this.me().roles);
+  }
+  /** Whether this person may open a printed document: a screens-only role cannot yet. */
+  canPrint(): boolean {
+    return this.folioOn && this.isManager();
+  }
+  /** One write at a time from a sheet: a second press while the first is on its way does nothing. */
+  async once(name: string, run: () => Promise<unknown>): Promise<void> {
+    if (this.state.sheetBusy !== null) return;
+    this.setState({ sheetBusy: name });
+    try {
+      await run();
+    } finally {
+      this.setState({ sheetBusy: null });
+    }
   }
   private mine(): StayWithLines[] | undefined {
     if (this.state.signedIn === null) return [];
@@ -424,22 +499,46 @@ export class HouseApp {
     switch (error.code) {
       case "WRITE_CONFLICT":
       case "STATE_UNCHANGED":
+      case "RECORD_LOCKED":
+        return tr("Someone changed this a moment ago — here it is now.");
+      case "STATE_MOVE_REFUSED":
+        if (p["roles"] !== undefined) return tr("That is not for your role.");
+        if (p["requires"] === "time") return tr("Not yet — that can be done later in the day.");
+        if (p["requires"] === "balance") return tr("Not while money is owing.");
         return tr("Someone changed this a moment ago — here it is now.");
       case "BALANCE_EXCEEDED":
         return tr("That would leave more paid than the stay costs.");
       case "CAPACITY_FULL":
       case "PUBLIC_NO_ROOM":
         return p["column"] === "room_id" ? tr("That room is taken on those nights.") : tr("There is no room of that type on those nights.");
+      case "PRICE_CHANGED":
+      case "PUBLIC_PRICE_CHANGED":
+        return tr("The price has changed since it was shown — look at it again.");
       case "PUBLIC_TOO_LATE":
         return tr("Changes are made at the desk now.");
       case "FORBIDDEN":
       case "COLUMN_FORBIDDEN":
-      case "STATE_MOVE_FORBIDDEN":
+      case "TABLE_FORBIDDEN":
+      case "APP_SCREENS_ONLY":
         return tr("That is not for your role.");
+      case "UNIQUE_VIOLATION":
+        return tr("That is recorded already.");
+      case "VALIDATION_FAILED":
+      case "PUBLIC_WRITE_REFUSED":
+        return tr("Some of that is not something the house can take — look at it again.");
+      case "RATE_LIMITED":
+      case "PUBLIC_RATE_LIMITED":
+        return tr("Too many tries at once — wait a moment and try again.");
+      case "UNAUTHENTICATED":
+      case "PUBLIC_REF_NOT_FOUND":
+        return this.persona === "desk" ? tr("You are signed out — sign in again.") : tr("Please sign in again.");
       case "PUBLIC_NETWORK_UNAVAILABLE":
+      case "PUBLIC_UPSTREAM_UNAVAILABLE":
         return tr("The house did not answer. Try again in a moment.");
       default:
-        return error.message;
+        // Adminium's own words are for the console, never the screen: they are English and name its tables.
+        if (typeof console !== "undefined") console.warn(error.code, error.message);
+        return tr("That did not go through. Try again in a moment.");
     }
   }
   /** Until every answer on its way has come. */
@@ -501,8 +600,6 @@ export class HouseApp {
     void this.reserve(false);
   }
   private clientKey = "";
-  /** The desk's booking form's retry key, kept until the booking is made or refused. */
-  private deskKey = "";
   async reserve(accepted: boolean): Promise<void> {
     const s = this.state;
     const t = s.pickedType;
@@ -535,18 +632,19 @@ export class HouseApp {
       const guests = s.pair === null ? s.search.guests : s.pair.guests[s.pair.step];
       const quote = this.quote(t, s.search.arrive, s.search.depart, guests, this.pickedExtras(f)).value;
       const ref = String(reply.data["ref"]);
-      if (reply.link !== undefined) await this.ports.guest!.openLink(reply.link.token);
+      // The stay is made whatever happens next: its own link opens here if it can, and the email carries it anyway.
+      const linked = reply.link === undefined ? false : await this.ports.guest!.openLink(reply.link.token).then(() => true, () => false);
       this.forget("guest:linked");
       this.forget("avail:");
       if (s.pair !== null && s.pair.step === 0) {
         // The first of two rooms: the same details go on the second.
-        this.setState({ linkStay: reply.data.id, rvBusy: false, rvShown: null, pair: { ...s.pair, step: 1, refs: [ref] }, pickedType: s.pair.types[1] });
+        this.setState({ linkStay: linked ? reply.data.id : this.state.linkStay, rvBusy: false, rvShown: null, pair: { ...s.pair, step: 1, refs: [ref] }, pickedType: s.pair.types[1] });
         this.go("reserve");
         this.toast(tr("Reserved — {ref}. Now the second room.", { ref }));
         return;
       }
       const refs = s.pair === null ? [ref] : [...s.pair.refs, ref];
-      this.setState({ linkStay: reply.data.id, rvBusy: false, booking: { id: reply.data.id, nights: quote?.nights ?? [], email: f.email.trim(), first: f.first.trim(), refs }, form: blankForm(), rvShown: null, pair: null });
+      this.setState({ linkStay: linked ? reply.data.id : this.state.linkStay, rvBusy: false, booking: { id: reply.data.id, nights: quote?.nights ?? [], email: f.email.trim(), first: f.first.trim(), refs }, form: blankForm(), rvShown: null, pair: null });
       this.go("conf");
       this.toast(tr("Reserved — {ref}.", { ref: refs.join(" · ") }));
     } catch (error) {
@@ -698,10 +796,20 @@ export class HouseApp {
     this.forget("guest:mine");
     this.go("list");
   }
+  /** Adminium ended this browser's session: back to signing in, with a line saying why. */
+  sessionEnded(reason: "elsewhere" | "forgotten" | "idle"): void {
+    if (this.state.signedIn === null && this.state.linkStay === null) return;
+    const why = reason === "forgotten" ? tr("Your details were deleted, so you were signed out.") : reason === "idle" ? tr("You were signed out after a while away.") : tr("You were signed out on every device.");
+    // A link-opened stay outlives a timed-out sign-in: only the signed-in half goes.
+    const linkStay = reason === "idle" ? this.state.linkStay : null;
+    this.setState({ signedIn: null, linkStay, listMenu: false, ddOpen: false, chg: null, auth: { ...blankAuth(), ended: why } });
+    this.drop("guest:");
+    if (this.state.view === "list" || this.state.view === "one") this.go("signin");
+  }
   async signOut(all: boolean): Promise<void> {
     await (all ? this.ports.guest!.signOutEverywhere() : this.ports.guest!.signOut());
     this.setState({ signedIn: null, linkStay: null, listMenu: false, auth: blankAuth() });
-    this.forget("guest:");
+    this.drop("guest:");
     this.go("signin");
     this.toast(all ? tr("Signed out on every device.") : tr("Signed out."), "info");
   }
@@ -709,7 +817,7 @@ export class HouseApp {
     try {
       await this.ports.guest!.forget();
       this.setState({ ddOpen: false, signedIn: null, signedAt: 0, linkStay: null, auth: blankAuth() });
-      this.forget("guest:");
+      this.drop("guest:");
       this.go("signin");
       this.toast(tr("Your account is deleted. You are signed out everywhere, and your confirmation links have stopped."), "info");
     } catch (error) {
@@ -731,7 +839,7 @@ export class HouseApp {
     const before = st.m.total;
     const line = st.lines.find((l) => l.extra === extraId);
     await this.write(
-      () => (line !== undefined ? this.ports.guest!.setExtra(line.id, on ? "off" : "on") : this.ports.guest!.addExtra(st.id, Number(extraId))),
+      () => (line !== undefined ? this.ports.guest!.setExtra(line.id, on ? "off" : "on", st.id) : this.ports.guest!.addExtra(st.id, Number(extraId))),
       async () => {
         this.setState({ extraBusy: null });
         const after = this.stay(st.id)?.m.total ?? before;
@@ -782,263 +890,30 @@ export class HouseApp {
       this.toast(this.refused(error), "warn");
     });
   }
-  /** The folio drawn by Invoices & Receipts, opened to print. */
-  async printFolio(st: StV): Promise<void> {
-    await this.write(
-      () => this.ports.desk!.printFolio(st.id),
-      (r) => {
-        if (r.url !== null && typeof window !== "undefined") window.open(r.url, "_blank", "noopener");
-        this.toast(tr("The folio for {ref} is open to print.", { ref: st.ref }), "info");
-      },
-    );
-  }
-  /** The folio emailed with the document: settled, or so far while money is owing (Adminium's balance decides). */
-  async emailFolio(st: StV): Promise<void> {
-    if (!st.email) {
-      this.toast(tr("There is no email on this stay."), "warn");
-      return;
-    }
-    const soFar = st.state === "in" && st.m.balance > 0.004;
-    await this.write(
-      () => this.ports.desk!.emailFolio(st.id, soFar),
-      () => this.toast(tr("The folio is on its way to {email}.", { email: st.email })),
-    );
-  }
   async relink(st: StV): Promise<void> {
     await this.write(() => this.ports.guest!.newLink(st.id), (r) => this.toast(tr("A new link is on its way to {email}.", { email: r.sentTo || (this.state.signedIn ?? "") }), "info"));
   }
 
   // ── the desk ───────────────────────────────────────────────────────────
 
-  openFolio(id: Id, from?: View): void {
-    this.go("folio", { folioId: id, folioBack: from ?? this.state.view ?? "today", blockId: null, settleOpen: false, chargeOpen: false });
-  }
-  /** A stay's nights, each priced as Adminium prices it (the folio's). */
-  folio(id: Id) {
-    return this.get(`desk:folio:${String(id)}`, () => this.ports.desk!.folio(id));
-  }
-  counts() {
-    return this.get(`desk:counts:${this.day}`, () => this.ports.desk!.counts(plus(this.day, -1), 16));
-  }
-  async doCheckOut(st: StV, credit: string | null): Promise<void> {
-    this.setState({ coBusy: true });
-    if (credit !== null) {
-      const ok = await this.write(() => this.ports.desk!.takeOffNights(st.id, credit));
-      if (ok === undefined) return this.setState({ coBusy: false });
-    }
-    await this.write(
-      () => this.ports.desk!.checkOut(st.id),
-      () => {
-        this.setState({ checkoutId: null, coMode: "booked", coBusy: false, blockId: null });
-        this.toast(tr("{name} checked out. Room {room} is being cleaned.", { name: st.name, room: st.room ?? "" }));
-      },
-      (error) => {
-        this.setState({ coBusy: false });
-        if (isApiError(error) && error.params["requires"] === "balance") {
-          this.go("folio", { blockId: st.id, folioId: st.id, checkoutId: null });
-          this.toast(tr("Cannot check out — {amount} still on the account.", { amount: strip(money(this.stay(st.id)?.m.balance ?? st.m.balance)) }), "warn");
-        } else this.toast(this.refused(error), "warn");
-      },
-    );
-  }
-  openSettle(id: Id, amount?: string, cap?: number, kind: "taken" | "given_back" = "taken"): void {
-    const st = this.stay(id);
-    const bal = st === null ? 0 : Math.max(0, st.m.balance);
-    this.setState({
-      settleOpen: true,
-      settleId: id,
-      settleCap: cap ?? null,
-      settleAmount: amount ?? (kind === "given_back" ? (st?.m.paid ?? 0).toFixed(2) : bal.toFixed(2)),
-      settleMethod: "card",
-      settleRefNo: "",
-      settleTouched: false,
-      settleKind: kind,
-      settleNote: "",
-    });
-  }
-  openCheckin(id: Id): void {
-    this.setState({ checkinId: id, pickedRoom: null, ciAlt: false, ciType: null, ciUp: false, ciErr: "", ciBusy: false, ciMissed: "charge" });
-  }
-  async confirmCheckin(): Promise<void> {
-    const s = this.state;
-    const cs = this.stay(s.checkinId);
-    const w = this.world();
-    const n = s.pickedRoom;
-    if (cs === null || n === null || s.ciBusy || w === null) return;
-    const room = w.rooms.find((r) => r.n === n)!;
-    this.setState({ ciBusy: true, ciErr: "" });
-    const desk = this.ports.desk!;
-    await this.write(
-      async () => {
-        // Another type priced at its own rate is a change of the stay first; a better room at the booked price is only the room.
-        if (s.ciType !== null && !s.ciUp && s.ciType !== cs.type) await desk.edit(cs.id, { room_type_id: Number(s.ciType) });
-        if (cs.state === "noshow") return desk.cameAfterAll(cs.id, { roomId: room.id, chargeMissed: s.ciMissed === "charge" });
-        return desk.checkIn(cs.id, room.id);
-      },
-      () => {
-        this.setState({ checkinId: null, pickedRoom: null, ciAlt: false, ciType: null, ciUp: false, ciBusy: false });
-        this.openFolio(cs.id, s.view === "folio" ? s.folioBack : s.view ?? "today");
-        this.toast(tr("{first} is in room {room}.", { first: cs.first, room: n }));
-      },
-      (error) => this.setState({ ciBusy: false, pickedRoom: null, ciErr: isApiError(error) && (error.code === "CAPACITY_FULL" || error.params["requires"] === "linked") ? tr("Room {room} has just been given to another guest — pick another.", { room: n }) : this.refused(error) }),
-    );
-  }
-  async markNoShow(st: StV): Promise<void> {
-    await this.write(() => this.ports.desk!.noShow(st.id), () => this.toast(tr("{ref} is marked as a no-show.", { ref: st.ref }), "info"));
-  }
-  async cameAfterAll(st: StV): Promise<void> {
-    const w = this.world()!;
-    // After the no-show time the guest is checked in straight away (the check-in sheet asks about the missed night).
-    const deadline = this.mins(plus(st.expectBy ?? st.arrive, 1), w.H.noShowAt);
-    if (this.nowMin() >= deadline || st.arrive < this.day) {
-      this.openCheckin(st.id);
-      return;
-    }
-    await this.write(() => this.ports.desk!.cameAfterAll(st.id, null), () => this.toast(tr("{ref} is back in the book.", { ref: st.ref })));
-  }
-  openEdit(st: StV): void {
-    const extras: Record<string, boolean> = {};
-    for (const id of st.extras) extras[id] = true;
-    this.go("newbooking", {
-      editId: st.id,
-      nbErr: "",
-      nbTouched: false,
-      nb: {
-        link: null,
-        arrive: st.arrive,
-        depart: st.depart,
-        guests: st.guests,
-        type: st.type,
-        first: st.first,
-        last: st.last,
-        email: st.email,
-        mobile: st.mobile,
-        arrivalTime: st.arrivalTime || "15:00",
-        note: st.note,
-        extras,
-        language: st.language ?? "en-US",
-      },
-    });
-  }
-  blankNb(): Nb {
-    const d = this.day;
-    return { ...blankForm(), arrive: plus(d, 6), depart: plus(d, 8), guests: 2, type: null, link: null, language: "en-US" };
-  }
-  walkIn(): void {
-    const d = this.day;
-    this.go("newbooking", { editId: null, nbErr: "", nbTouched: false, nb: { ...this.blankNb(), arrive: d, depart: plus(d, 1) } });
-  }
-  nbValues(nb: Nb): Record<string, unknown> {
-    return {
-      room_type_id: nb.type === null ? null : Number(nb.type),
-      arrive: nb.arrive,
-      depart: nb.depart,
-      guests: nb.guests,
-      first_name: nb.first.trim(),
-      last_name: nb.last.trim() === "" ? null : nb.last.trim(),
-      email: nb.email.trim() === "" ? null : nb.email.trim(),
-      mobile: nb.mobile.trim() === "" ? null : nb.mobile.trim(),
-      arrival_time: nb.arrivalTime,
-      note: nb.note.trim() === "" ? null : nb.note.trim(),
-      language: nb.language,
-    };
-  }
-  /** The columns a change to a stay writes: only what the form moved. */
-  nbChanged(old: StV, nb: Nb): Record<string, unknown> {
-    const was: Record<string, unknown> = {
-      room_type_id: Number(old.type),
-      arrive: old.arrive,
-      depart: old.depart,
-      guests: old.guests,
-      first_name: old.first,
-      last_name: old.last || null,
-      email: old.email || null,
-      mobile: old.mobile || null,
-      arrival_time: old.arrivalTime,
-      note: old.note || null,
-      language: old.language ?? "en-US",
-    };
-    return Object.fromEntries(Object.entries(this.nbValues(nb)).filter(([k, v]) => v !== was[k]));
-  }
-  openRoom(n: string): void {
-    this.setState({ roomN: n, rmMsg: "", oos: { from: this.day, to: "", reason: "" }, oosTried: false });
-  }
-  signOutStaff(): void {
-    this.setState({ staffMenu: false });
-    if (this.ports.desk?.signOut) void this.ports.desk.signOut();
-    else this.toast(tr("Signed out of the desk."), "info");
-  }
-  async saveNb(andCheckIn: boolean, known: { customerId: Id } | null, expectTotal: string | undefined): Promise<void> {
-    const s = this.state;
-    const nb = s.nb;
-    if (nb === null || s.nbBusy) return;
-    if (!nb.first.trim() || !nb.last.trim()) {
-      this.setState({ nbTouched: true });
-      this.focusSoon(!nb.first.trim() ? "#nb-first" : "#nb-last");
-      return;
-    }
-    this.setState({ nbBusy: true, nbErr: "", nbTouched: false });
-    const desk = this.ports.desk!;
-    const values = this.nbValues(nb);
-    if (s.editId !== null) {
-      const old = this.stay(s.editId)!;
-      const changed = this.nbChanged(old, nb);
-      // The stay and its extras, each put on or dropped as the form says, in one write.
-      const toggles = this.world()!
-        .extras.filter((e) => !!nb.extras[e.id] !== old.extras.includes(e.id))
-        .map((e) => ({ extraId: Number(e.id), on: !!nb.extras[e.id] }));
-      await this.write(
-        async () => {
-          if (Object.keys(changed).length > 0 || toggles.length > 0) await desk.edit(old.id, changed, expectTotal, toggles);
-          return old;
-        },
-        () => {
-          this.setState({ nbBusy: false, editId: null, nb: null });
-          this.openFolio(old.id, s.folioBack);
-          this.toast(tr("{ref} is changed.", { ref: old.ref }));
-        },
-        (error) => this.setState({ nbBusy: false, nbErr: this.refused(error) }),
-      );
-      return;
-    }
-    // One key per booking form: a save sent again after a reply that never came lands on the same stay.
-    if (!this.deskKey) this.deskKey = mintKey();
-    const body: StayBody = {
-      values: { ...values, ...(known !== null && nb.link === "yes" ? { customer_id: known.customerId } : {}) },
-      children: { stay_extras: this.pickedExtras(nb).map((extra_id) => ({ values: { extra_id: Number(extra_id) } })) },
-      ...(expectTotal ? { expect: { total: expectTotal } } : {}),
-      clientKey: this.deskKey,
-    };
-    await this.write(
-      () => desk.book(body),
-      (reply) => {
-        this.deskKey = "";
-        const id = reply.data.id;
-        const ref = String(reply.data["ref"]);
-        this.setState({ nbBusy: false, nb: null });
-        this.toast(tr("{ref} · {name} · {nights} in the book.", { ref, name: `${nb.first.trim()} ${nb.last.trim()}`.trim(), nights: strip(tr("{n} night|{n} nights", { n: nightsOf(nb.arrive, nb.depart) })) }));
-        if (andCheckIn) {
-          this.go("today", { newId: id });
-          this.openCheckin(id);
-        } else this.go(nb.arrive === this.day ? "today" : "reservations", { newId: id });
-      },
-      (error) => {
-        // Refused for good: the next save is a new booking. Unanswered: the same key tries again.
-        if (isApiError(error) && error.code !== "PUBLIC_NETWORK_UNAVAILABLE") this.deskKey = "";
-        const t = this.world()?.typeById[nb.type ?? ""];
-        this.setState({ nbBusy: false, nbErr: isApiError(error) && error.code === "CAPACITY_FULL" ? tr("The last {type} went while you were typing — pick another type.", { type: t?.name ?? "" }) : this.refused(error) });
-      },
-    );
-  }
-  async setRoomStatus(n: string, status: "ready" | "cleaning"): Promise<void> {
-    const r = this.world()?.rooms.find((x) => x.n === n);
-    if (r === undefined) return;
-    await this.write(
-      () => this.ports.desk!.setRoom(r.id, { status }),
-      () => this.toast(status === "ready" ? tr("Room {room} is ready.", { room: n }) : tr("Room {room} is being cleaned.", { room: n })),
-      (error) => this.setState({ rmMsg: this.refused(error) }),
-    );
-  }
+}
+
+/** Housekeeping and no desk role. */
+export function onlyHousekeeping(roles: readonly string[]): boolean {
+  return roles.includes("housekeeping") && !roles.includes("front-desk") && !roles.includes("manager");
+}
+
+/** The tables whose rows each answer is made of: a change heard on one of them asks that answer again. */
+const BOOK = ["stays", "stay_extras", "charges", "stay_credits", "payments", "customers"];
+const HOUSE = ["rooms", "room_closures", "room_types", "rate_rules", "extras"];
+function answersOf(key: string, tables: readonly string[]): boolean {
+  if (tables.includes("*")) return true;
+  const book = tables.some((t) => BOOK.includes(t));
+  const house = tables.some((t) => HOUSE.includes(t));
+  if (key === "desk:me") return false;
+  if (key === "desk:house") return house;
+  // Counts, the book, a folio and every quote read both: a stay's rows and the rooms and rates that price them.
+  return book || house;
 }
 
 export const okEmail = (e: string): boolean => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(e || "").trim());

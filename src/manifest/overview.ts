@@ -170,7 +170,7 @@ export const OVERVIEW_LAYOUT = {
       "leaving-owing",
       "mini-table",
       [0, 14, 6, 7],
-      "Leaving today with money owing",
+      "Leaving with money owing",
       {
         limit: 6,
         columns: [
@@ -178,16 +178,17 @@ export const OVERVIEW_LAYOUT = {
           { name: "balance", label: "Owing", logicalType: "decimal", semantic: "money" },
         ],
         secondary: ["ref", "room_type"],
-        viewAllHref: "/p/hotel-reservations?f.status=eq:in_house&f.depart=gte:today&f.depart=lte:today&f.balance=gt:0",
+        viewAllHref: "/p/hotel-reservations?f.status=eq:in_house&f.depart=lte:today&f.balance=gt:0",
         binding: list({
           select: ["id", "ref", "guest_name", "balance"],
           lookups: [ROOM_TYPE],
-          filters: [eq("status", "in_house"), day("depart", "eq", "today"), { column: "balance", op: "gt", value: 0 }],
+          // Today's leavers and anyone still here past their day.
+          filters: [eq("status", "in_house"), day("depart", "lte", "today"), { column: "balance", op: "gt", value: 0 }],
           orderBy: [{ column: "balance", dir: "desc" }],
           limit: 6,
         }),
       },
-      { subtitle: "Leaving today · balance above zero", empty: "Nobody leaving with money owing." },
+      { subtitle: "Leaving today or overdue · balance above zero", empty: "Nobody leaving with money owing." },
     ),
     card(
       "next-arrivals",

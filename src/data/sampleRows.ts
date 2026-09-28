@@ -785,12 +785,17 @@ export function resolveSample(bundle: SampleBundleRows, options: ResolveOptions)
   return out;
 }
 
+/** The columns a row's nightly price is worked out from: writing one of them prices it again. */
+export function priceInputs(table: string): string[] {
+  return RULES.perNights.filter((rule) => rule.table === table).flatMap((rule) => [rule.from, rule.to, rule.rateVia]);
+}
+
 /**
  * Every total, from every row that feeds it — last, as the loader does. A
  * document's tax reads its subtotal, a stage line's rate reads its proposal's
  * total, so the rules run again until nothing moves (a handful of passes).
  */
-export function settle(out: ResolvedSample, options: Pick<ResolveOptions, "currency">): void {
+export function settle(out: ResolvedSample, options: Pick<ResolveOptions, "currency"> & { reprice?: (table: string, row: ResolvedRow) => boolean }): void {
   const order = [...Object.keys(COLUMNS)];
   for (let pass = 0; pass < 12; pass += 1) {
     let moved = false;
@@ -811,6 +816,8 @@ export function settle(out: ResolvedSample, options: Pick<ResolveOptions, "curre
         }
         for (const rule of RULES.perNights) {
           if (rule.table !== table) continue;
+          // Priced once, by the night, as Adminium does: again only when its nights or its type are written.
+          if (options.reprice !== undefined && row[rule.column] !== undefined && row[rule.column] !== null && !options.reprice(table, row)) continue;
           const places = placesOf(rule.scale, row, options.currency);
           const nights = pricedNights(rule, row, out, places);
           put(row, rule.column, nights === null ? null : nights.reduce((sum, night) => toNumber(add(toRatio(sum)!, toRatio(night.rate)!), places), 0));

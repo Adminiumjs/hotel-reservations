@@ -86,9 +86,9 @@ export function GuestView({ v }: { v: any }) {
                     </span>
                     {" "}
                     <div style={st("position:relative")}>
-                      <div style={st(`font-size:${v.heroSize};font-weight:800;letter-spacing:-.03em;line-height:1;color:#fff`)}>
+                      <h1 style={st(`margin:0;font-size:${v.heroSize};font-weight:800;letter-spacing:-.03em;line-height:1;color:#fff`)}>
                         {v.houseName}
-                      </div>
+                      </h1>
                       {" "}
                       <p style={st("margin:12px 0 30px;max-inline-size:44ch;font-size:15.5px;line-height:1.55;color:rgba(255,255,255,.86);text-wrap:pretty")}>
                         {v.heroLine}
@@ -1622,6 +1622,13 @@ export function GuestView({ v }: { v: any }) {
                     {tr("Type the email you reserved with. We will send you a link to your reservations — it works for 20 minutes, once.")}
                   </p>
                   {" "}
+                  {v.au.endedOn ? (
+                    <>
+                      <p role="status" style={st("margin:0 0 14px;padding:10px 13px;border:1px solid var(--warn);border-radius:10px;background:var(--warn-soft);font-size:13.5px;line-height:1.5")}>
+                        {v.au.ended}
+                      </p>
+                    </>
+                  ) : null}
                   {v.au.formOn ? (
                     <>
                       <div style={st("background:var(--surface);border:1px solid var(--border-strong);border-radius:15px;padding:18px")}>
@@ -2073,7 +2080,7 @@ export function GuestView({ v }: { v: any }) {
                     {v.on.dead ? (
                       <>
                         <div style={st("padding:18px 20px;border-block-start:1px solid var(--border);background:var(--surface-2);font-size:13.5px;color:var(--fg-muted);line-height:1.6")}>
-                          {v.on.deadPhone ? trx(v.on.deadNote, { phone: <a href={v.telHref} style={st("font-family:var(--mono)")}>{v.phone}</a> }) : v.on.deadNote}
+                          {v.on.deadPhone ? trx(v.on.deadNote, { phone: <a href={v.telHref} style={st("font-family:var(--mono)")}>{v.phone}</a>, day: v.on.deadDay }) : v.on.deadNote}
                         </div>
                       </>
                     ) : null}

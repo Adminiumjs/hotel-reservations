@@ -11,6 +11,7 @@
 import type { DeskHouse, House, StayWithLines } from "../data/ports.ts";
 import type { Id, Row } from "../data/wire.ts";
 import { venueDay, venueMinutes } from "../lib/venueTime.ts";
+import { tr } from "../i18n/tr.ts";
 import { fsi } from "./fmt.ts";
 
 /** The house's own words, as it wrote them: one run in their own direction wherever the page reads right to left. */
@@ -325,7 +326,8 @@ export function worldOf(house: House | DeskHouse, stays: StayWithLines[], zone: 
       note: str(s["note"]),
       language: s["language"] === null || s["language"] === undefined ? null : str(s["language"]),
       state,
-      late: s["late_cancel"] === true,
+      // A cancellation by the house is never late (the house moved, not the guest).
+      late: s["late_cancel"] === true && s["cancel_code"] !== "house",
       cancelCode: s["cancel_code"] === null || s["cancel_code"] === undefined ? null : str(s["cancel_code"]),
       expectBy: s["expect_by"] === null || s["expect_by"] === undefined ? null : ymd(s["expect_by"]),
       channel: str(s["channel"]) || "online",
@@ -387,6 +389,8 @@ export function worldOf(house: House | DeskHouse, stays: StayWithLines[], zone: 
     };
   });
   const byId: Record<string, TypeV> = Object.fromEntries(types.map((t) => [t.id, t]));
+  // A stay of a type the house no longer offers (a guest reads only offered types) is still drawn: as a plain room.
+  for (const st of staysV) if (byId[st.type] === undefined) byId[st.type] = { id: st.type, code: "", name: tr("Room"), sleeps: st.guests, base: 0, flat: "#6b6b76", tint: tintOf("#6b6b76"), icon: "bed-double", line: "", long: "", has: [] };
   return {
     H: houseOf(house.settings),
     types,

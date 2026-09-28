@@ -32,7 +32,8 @@ const all: { tag: string | null; text: string }[] = [];
 for (const part of ["requiredSchema", "pages", "navGroups", "emailTemplates", "description", "addOns", "documents", "roles"] as const) {
   strings(manifest[part], null, all);
 }
-const readable = all.filter(({ text }) => /\s/.test(text) || /[A-Z]/.test(text.charAt(0)) || /[^\x00-\x7F]/.test(text));
+// A string in a set of labels is always read, however short; outside one, a lone lowercase token is a ref or a code.
+const readable = all.filter(({ tag, text }) => tag !== null || /\s/.test(text) || /[A-Z]/.test(text.charAt(0)) || /[^\x00-\x7F]/.test(text));
 
 describe("the manifest's words pass the release sweep's word list", () => {
   it("reads enough words to mean something", () => {

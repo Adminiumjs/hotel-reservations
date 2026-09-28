@@ -92,7 +92,9 @@ export interface GuestPort {
   changeStay(id: Id, values: { arrival_time?: string; status?: "cancelled"; cancel_code?: "self" }): Promise<Row>;
   /** An extra added to the stay, or dropped and put back. */
   addExtra(stayId: Id, extraId: Id): Promise<Row>;
-  setExtra(lineId: Id, state: "on" | "off"): Promise<Row>;
+  setExtra(lineId: Id, state: "on" | "off", stayId?: Id): Promise<Row>;
+  /** Told when Adminium ends this browser's session (signed out on another device, or the details deleted). */
+  onSessionEnded?(listener: (reason: "elsewhere" | "forgotten") => void): void;
   /** The stay's new dates priced (a signed-in guest, while they may still cancel at no charge). */
   quoteDates(id: Id, arrive: string, depart: string): Promise<QuoteReply>;
   moveDates(id: Id, arrive: string, depart: string, expectTotal: string): Promise<Row>;
@@ -154,7 +156,7 @@ export interface DeskPort {
    */
   takeOffNights(id: Id, from: string): Promise<Row>;
   /** What the stay would come to with the nights from `from` taken off, written nowhere. */
-  quoteTakeOff(id: Id, from: string): Promise<{ total: number; refused: boolean; data: Record<string, unknown>; credit: number }>;
+  quoteTakeOff(id: Id, from: string): Promise<{ total: number; refused: boolean; data: Record<string, unknown>; credit: number; stale?: boolean }>;
   cancel(id: Id, code: "guest_asked" | "house"): Promise<Row>;
   noShow(id: Id): Promise<Row>;
   /** They came after all: back to booked, or checked in to a room, the missed night charged or not. */
@@ -181,6 +183,8 @@ export interface DeskPort {
 
   /** Ends the desk session (Adminium's own sign-out); the demo has none. */
   signOut?(): Promise<void>;
+  /** The session is gone (signed out elsewhere, or timed out): off to Adminium's sign-in, back here after. */
+  signInAgain?(): void;
 
   /** Every change the live stream announces; returns the unsubscribe. */
   subscribe(listener: (frame: LiveFrame) => void, onState?: (state: "live" | "reconnecting") => void): () => void;

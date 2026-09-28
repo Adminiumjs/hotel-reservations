@@ -64,13 +64,16 @@ export async function bootAdminium(mount: HTMLElement, fail: StartupFailure): Pr
   }
 
   await app.start();
-  if (app.persona === "guest") {
-    const entry = entryOf(window.location.pathname, window.location.hash);
-    // The link's code leaves the address bar at once: a reload must not spend it again.
-    if (entry.place !== null) window.history.replaceState(window.history.state, "", window.location.pathname.replace(/\/(c|r)\/?$/, "/"));
-    await app.arrive(entry.place, entry.token);
-  }
+  const entry = app.persona === "guest" ? entryOf(window.location.pathname, window.location.hash) : { place: null, token: null };
+  // The link's code leaves the address bar at once: a reload must not spend it again.
+  if (entry.place !== null) window.history.replaceState(window.history.state, "", window.location.pathname.replace(/\/(c|r)\/?$/, "/"));
+  // The address bar's screen first, then where the guest's link or kept session takes them: the link wins.
   if (HOSTED) await attachToHost(app);
+  if (app.persona === "guest") {
+    await app.arrive(entry.place, entry.token);
+    // "Your reservation" is the list for a guest already signed in.
+    if (app.state.view === "signin" && app.state.signedIn !== null && entry.place === null) app.go("list");
+  }
 
   createRoot(mount).render(
     <StrictMode>

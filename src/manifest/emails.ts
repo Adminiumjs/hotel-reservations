@@ -60,7 +60,7 @@ export const EMAIL_EN: EmailWords = {
   theRoom: "{{room_type.name}}, {{stay.arrive.day_month}} to {{stay.depart.day_month}}",
   total: "Total",
   settle: "Nothing is taken online. You settle at the desk.",
-  cancelBy: "Cancel at no charge until {{stay.cancel_by.time}} on {{stay.cancel_by.date}}.",
+  cancelBy: "Cancelling costs nothing. After {{stay.cancel_by.time}} on {{stay.cancel_by.date}}, a cancellation is marked as late.",
   lateOrEarly: "Late or early? Write to {{practice.email}} or ring us on {{practice.phone}}.",
   totalWas: "Total, was {{was.total.money}}",
   taxLine: "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
@@ -73,7 +73,7 @@ export const EMAIL_EN: EmailWords = {
     subject: "Your room at {{appName}}, {{stay.ref}}",
     preheader: "{{stay.arrive.day_month}} to {{stay.depart.day_month}} · {{stay.total.money}} · nothing is taken online",
     heading: "You have a room, {{recipient.first_name}}.",
-    paras: ["Arriving {{stay.arrive.day_month}}, from {{practice.arrive_from}}. Leaving {{stay.depart.day_month}}, by {{practice.leave_by}}."],
+    paras: ["Arriving {{stay.arrive.day_month}}, from {{practice.arrive_from.time}}. Leaving {{stay.depart.day_month}}, by {{practice.leave_by.time}}."],
     button: "See your reservation",
   },
   "stay-made-desk": {
@@ -81,7 +81,7 @@ export const EMAIL_EN: EmailWords = {
     subject: "Your room at {{appName}}, {{stay.ref}}",
     preheader: "{{stay.arrive.day_month}} to {{stay.depart.day_month}} · {{stay.total.money}}",
     heading: "You have a room, {{recipient.first_name}}.",
-    paras: ["Arriving {{stay.arrive.day_month}}, from {{practice.arrive_from}}. Leaving {{stay.depart.day_month}}, by {{practice.leave_by}}."],
+    paras: ["Arriving {{stay.arrive.day_month}}, from {{practice.arrive_from.time}}. Leaving {{stay.depart.day_month}}, by {{practice.leave_by.time}}."],
   },
   "stay-cancelled-self": {
     name: "Cancelled by the guest",

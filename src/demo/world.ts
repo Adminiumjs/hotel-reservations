@@ -10,7 +10,7 @@
  * DEMO BUILD ONLY — nothing in a real build imports it.
  */
 import bundleJson from "../../seeds/hotel.sample.json" with { type: "json" };
-import { resolveSample, settle, type SampleBundleRows } from "../data/sampleRows.ts";
+import { priceInputs, resolveSample, settle, type SampleBundleRows } from "../data/sampleRows.ts";
 import type { Id, LiveFrame, Row } from "../data/wire.ts";
 import { randomCode } from "./engine.ts";
 
@@ -83,9 +83,13 @@ export class World {
     return this.rows.settings[0]!;
   }
 
+  /** Rows made, or whose nights or type were written, since the last settle: only they are priced by the night again. */
+  private touched = new Set<Row>();
+
   insert(table: Table, values: Record<string, unknown>): Row {
     const row = { ...values, id: this.nextIds[table]++ } as Row;
     this.rows[table].push(row);
+    this.touched.add(row);
     this.emit({ table, id: row.id, op: "insert" });
     return row;
   }
@@ -93,6 +97,7 @@ export class World {
   update(table: Table, id: Id, values: Record<string, unknown>): Row {
     const row = this.get(table, id);
     if (row === undefined) throw new Error(`no ${table} ${String(id)}`);
+    if (priceInputs(table).some((column) => column in values && values[column] !== row[column])) this.touched.add(row);
     Object.assign(row, values);
     this.emit({ table, id, op: "update" });
     return row;
@@ -105,7 +110,9 @@ export class World {
 
   /** Every figure Adminium works out, worked out again from the rows that feed it. */
   settle(): void {
-    settle(this.rows as unknown as Record<string, Row[]>, { currency: this.currency });
+    // A rate moved since a stay was priced leaves the stay as it was priced: Adminium never re-prices a stored night.
+    settle(this.rows as unknown as Record<string, Row[]>, { currency: this.currency, reprice: (_table, row) => this.touched.has(row as unknown as Row) });
+    this.touched.clear();
   }
 
   /** A copy of every row, to put back when a write is refused half way. */
@@ -133,6 +140,7 @@ export class World {
       this.held = outer;
       this.rows = before;
       this.nextIds = ids;
+      this.touched.clear();
       throw error;
     }
   }

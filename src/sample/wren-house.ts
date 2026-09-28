@@ -43,7 +43,7 @@ export const SETTINGS = {
   phone: "(207) 555-0142",
   email: "stay@wrenhouse.example",
   since: 1974,
-  about: "Breakfast when you want it and nobody rushing you out.",
+  about: "Rooms above the harbour, breakfast when you want it, and nobody rushing you out.",
   finding: "Two doors up from the harbour steps. Eight minutes on foot from the station; parking behind the house if you need it.",
   morning: "House coffee and a pot of tea from seven, the papers on the hall table, and WiFi throughout — all included in the room.",
   directions_train: "Bellhaven station, then eight minutes on foot: down Fore Street, left at the chandlery, up the quay steps. Tell us your train and someone will watch for you.",

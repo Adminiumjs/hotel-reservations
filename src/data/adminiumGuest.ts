@@ -137,11 +137,21 @@ export class AdminiumGuest implements GuestPort {
       }
       return res;
     };
-    const customer = createPublicClient({ baseUrl: config.baseUrl, publishableKey: config.publishableKey, fetch: tapped });
+    // A session ended elsewhere (signed out on every device, the details deleted): the tab lets go of it at once.
+    const ended = (kept: () => KeptSession | null) => (reason: "elsewhere" | "forgotten") => {
+      kept()?.drop();
+      if (kept() === this.linkSession) this.linkedId = null;
+      for (const listener of this.endedListeners) listener(reason);
+    };
+    const customer = createPublicClient({ baseUrl: config.baseUrl, publishableKey: config.publishableKey, fetch: tapped, onSessionEnded: ended(() => this.customerSession) });
     if (customer === null) throw new Error("the guest site needs Adminium's address and the house's browser key");
     this.customer = customer;
     this.linkSession = linkKey === null ? null : keptSession("link", storage, base, options.clock);
-    this.link = linkKey === null || this.linkSession === null ? null : createPublicClient({ baseUrl: config.baseUrl, publishableKey: linkKey, fetch: this.linkSession.fetch });
+    this.link = linkKey === null || this.linkSession === null ? null : createPublicClient({ baseUrl: config.baseUrl, publishableKey: linkKey, fetch: this.linkSession.fetch, onSessionEnded: ended(() => this.linkSession) });
+  }
+  private endedListeners: ((reason: "elsewhere" | "forgotten") => void)[] = [];
+  onSessionEnded(listener: (reason: "elsewhere" | "forgotten") => void): void {
+    this.endedListeners.push(listener);
   }
 
   // ── the house ──────────────────────────────────────────────────────────────
@@ -321,13 +331,18 @@ export class AdminiumGuest implements GuestPort {
   myStays(): Promise<StayWithLines[]> {
     return answer(async () => {
       const r = this.refs;
-      const [stays, extras, charges, credits, payments] = await Promise.all([
+      const lists = Promise.all([
         all(this.customer, r.myStays),
         all(this.customer, r.myExtras),
         all(this.customer, r.myCharges),
         all(this.customer, r.myCredits),
         all(this.customer, r.myPayments),
       ]);
+      const [stays, extras, charges, credits, payments] = await lists.catch((error: unknown) => {
+        // The session this tab kept has ended (timed out): let go of it here too.
+        if (error instanceof PublicApiError && error.code === "PUBLIC_REF_NOT_FOUND") this.customerSession.drop();
+        throw error;
+      });
       const of = (rows: Row[], id: Id) => rows.filter((row) => row["stay_id"] === id);
       return stays
         .sort((a, b) => String(a["arrive"]).localeCompare(String(b["arrive"])))
@@ -337,9 +352,12 @@ export class AdminiumGuest implements GuestPort {
 
   // ── the guest's changes ─────────────────────────────────────────────────────
 
-  /** Whose door a change to a stay goes through: the link that opened it, or the signed-in guest. */
+  /**
+   * Whose door a change to a stay goes through: the link that opened it, for that stay, whoever else is signed in
+   * here (a partner's reservation opened by its link is changed by its link); any other stay, the signed-in guest.
+   */
   private byLink(id: Id): boolean {
-    return this.link !== null && this.linkedId === id && !this.customer.isClaimed() && this.customerSession.kept() === null;
+    return this.link !== null && this.linkedId !== null && String(this.linkedId) === String(id);
   }
 
   changeStay(id: Id, values: { arrival_time?: string; status?: "cancelled"; cancel_code?: "self" }): Promise<Row> {
@@ -354,10 +372,10 @@ export class AdminiumGuest implements GuestPort {
     );
   }
 
-  setExtra(lineId: Id, state: "on" | "off"): Promise<Row> {
+  setExtra(lineId: Id, state: "on" | "off", stayId?: Id): Promise<Row> {
     return answer(async () => {
-      // The line is the linked stay's when a link opened it and nobody is signed in.
-      const viaLink = this.link !== null && this.linkedId !== null && this.byLink(this.linkedId);
+      // The line goes through the door its stay goes through.
+      const viaLink = stayId !== undefined ? this.byLink(stayId) : this.link !== null && this.linkedId !== null && !this.customer.isClaimed() && this.customerSession.kept() === null;
       return viaLink ? this.link!.update<Row>(this.refs.linkExtraState, String(lineId), { state }) : this.customer.update<Row>(this.refs.myExtraState, String(lineId), { state });
     });
   }
@@ -408,13 +426,15 @@ export class AdminiumGuest implements GuestPort {
     }
   }
 
-  /** Signed out on every device, this one too; a stay open by its own link stays open. */
+  /** Signed out on every device, this one too — and the stay this tab opened by its own link is closed here as well. */
   signOutEverywhere(): Promise<void> {
     return answer(async () => {
       try {
         await this.customer.signOutEverywhere();
       } finally {
         this.customerSession.drop();
+        if (this.link !== null && this.linkSession !== null && this.keys.link !== null) await this.endSession(this.link, this.linkSession, this.keys.link).catch(() => undefined);
+        this.linkedId = null;
       }
     });
   }

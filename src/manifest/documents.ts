@@ -29,7 +29,8 @@ export const DOCUMENTS = [
           { nightly: "room_total", columns: { desc: "room_type_id.name", date: "date", rate: "rate", qty: "qty" } },
           { table: "stay_extras", via: "stay_id", orderBy: "id", where: { column: "state", in: ["on"] }, columns: { desc: "label", rate: "amount", amount: "amount" } },
           { table: "charges", via: "stay_id", orderBy: "id", unless: "voided", columns: { desc: "label", date: "charged_on", rate: "amount", amount: "amount" } },
-          { table: "stay_credits", via: "stay_id", orderBy: "id", unless: "voided", columns: { desc: "label", date: "from_date", qty: "nights", rate: "line_amount", amount: "line_amount" } },
+          // One line a credit: its amount is the nights' together (they may each have had their own rate).
+          { table: "stay_credits", via: "stay_id", orderBy: "id", unless: "voided", columns: { desc: "label", date: "from_date", rate: "line_amount", amount: "line_amount" } },
         ],
       },
       subtotal: { column: "subtotal" },
@@ -59,7 +60,7 @@ export const DOCUMENTS = [
       reference: { via: "stay_id", column: "ref" },
       customerName: { via: "stay_id", column: "guest_name" },
       attendedBy: { column: "recorded_by" },
-      balanceAfter: { via: "stay_id", column: "balance" },
+      // No "balance left": the stay's balance is today's, not the one after this payment, once another is recorded.
     },
   },
 ];

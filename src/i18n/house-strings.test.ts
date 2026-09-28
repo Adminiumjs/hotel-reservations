@@ -21,8 +21,17 @@ const OTHERS = Object.keys(HOUSE) as LocaleTag[];
 const holes = (s: string) => [...s.matchAll(/\{(\w+)\}/g)].map((m) => m[1]!).sort();
 
 describe("the screens' words", () => {
-  it("keys.json holds every sentence the screens translate", () => {
+  it("keys.json holds every sentence the screens translate, and each side's words are the languages' own", () => {
     execFileSync("npx", ["vite-node", "scripts/write-strings.ts", "--", "--check"], { cwd: ROOT, stdio: "pipe" });
+  });
+
+  it("gives a guest's build none of the desk's words", () => {
+    const side = (name: string) => JSON.parse(readFileSync(join(ROOT, `src/i18n/strings/house/sides/${name}.json`), "utf8")) as Record<string, Record<string, string>>;
+    const guestSees = new Set([...Object.keys(side("shared")["de-DE"]!), ...Object.keys(side("guest")["de-DE"]!)]);
+    const deskOnly = Object.keys(side("desk")["de-DE"]!);
+    expect(deskOnly.length).toBeGreaterThan(300);
+    expect(deskOnly.filter((k) => guestSees.has(k))).toEqual([]);
+    for (const k of ["Occupancy tonight", "Take a booking", "Record a payment"]) expect(guestSees.has(k), k).toBe(false);
   });
 
   it("reads enough sentences to mean something", () => {

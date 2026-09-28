@@ -360,7 +360,7 @@ export class DemoGuest implements GuestPort {
     return project(this.world.get("stay_extras", line.id)!, selectOf(entry("stay_extras", "GET")));
   }
 
-  async setExtra(lineId: Id, state: "on" | "off"): Promise<Row> {
+  async setExtra(lineId: Id, state: "on" | "off", _stayId?: Id): Promise<Row> {
     await this.wait(this.latency.write);
     const line = this.world.get("stay_extras", lineId);
     if (line === undefined) throw notFound("public");
