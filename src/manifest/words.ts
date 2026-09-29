@@ -184,7 +184,7 @@ export const WORDS: Record<string, Translation> = {
   "Print a guest's folio at the desk and email it at check-out, with a receipt for each payment.": w(
     "Die Gastrechnung an der Rezeption drucken und beim Check-out per E-Mail senden, mit einem Beleg für jede Zahlung.",
     "Imprimer la note d'un client à la réception et l'envoyer par e-mail au départ, avec un reçu pour chaque paiement.",
-    "Udskriv en gæsts opholdsregning i receptionen, og send den på e-mail ved udtjekning, med en kvittering for hver betaling.",
+    "Udskriv en gæsts opholdsregning i receptionen og send den på mail ved udtjekning, med kvittering for hver betaling.",
     "Vytisknout účet pobytu hosta na recepci a poslat ho e-mailem při odjezdu, se stvrzenkou ke každé platbě.",
     "اطبع حساب إقامة الضيف في الاستقبال وأرسله بالبريد عند المغادرة، مع إيصال لكل دفعة.",
     "在前台打印客人的住宿结算单，退房时通过邮件发送，并为每笔付款附上收据。",
