@@ -192,8 +192,8 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         };
         const quote = ok(await guest.post<{ data: Record<string, unknown> }>(`/api/v1/public/records/${door}/dry-run`, body)).data;
         expect(money(quote["total"])).toBe("440.36");
-        // A mobile no phone could ring, and a name with a digit in it: refused, each naming its column.
-        for (const [column, value] of [["mobile", "ring me at the desk"], ["last_name", "Marsh 3"]] as const) {
+        // A mobile no phone could ring, a name with a digit in it, and one carrying a web address: refused, each naming its column.
+        for (const [column, value] of [["mobile", "ring me at the desk"], ["last_name", "Marsh 3"], ["first_name", "Elin wrenhouse.com"]] as const) {
           const refused = await guest.post<{ error: { code: string; params?: { column?: string } } }>(`/api/v1/public/records/${door}/dry-run`, { ...body, values: { ...body.values, [column]: value } });
           expect([refused.status, refused.body.error?.code, refused.body.error?.params?.column], `${column}: ${JSON.stringify(refused.body).slice(0, 300)}`).toEqual([400, "PUBLIC_WRITE_REFUSED", column]);
         }
