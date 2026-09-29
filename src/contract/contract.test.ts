@@ -425,11 +425,13 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
 
       /** The next email to an address the server's mail sink holds, after the `after`-th it held. */
       const sinkCount = async () => ((await (await fetch(`${server.sink}/messages`)).json()) as unknown[]).length;
-      const mailTo = async (to: string, after: number) =>
+      /** The first email to `to` since `after` whose subject matches: a mail queued by an earlier step may land late. */
+      const mailTo = async (to: string, after: number, subject: RegExp) =>
         until(async () => {
           const all = (await (await fetch(`${server.sink}/messages`)).json()) as { to: string[]; subject: string; text: string }[];
-          return all.slice(after).find((m) => m.to.includes(to));
-        }, `an email to ${to}`, 150_000);
+          return all.slice(after).find((m) => m.to.includes(to) && subject.test(m.subject));
+        }, `an email to ${to} (${subject.source})`, 150_000);
+      const SIGN_IN = /sign-in link|lien de connexion/;
       const codeIn = (text: string) => /\b(\d{6})\b/.exec(text)?.[1] ?? "";
       /** Two guests with a stay each, made online, and their own links. */
       const pair = { a: { email: `ines.${engine}@wrenhouse.dev`, id: 0, token: "" }, b: { email: `piet.${engine}@wrenhouse.dev`, id: 0, token: "" } };
@@ -456,10 +458,9 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         const a = await guestOf(aSent);
         const before = await sinkCount();
         await a.requestSignIn(pair.a.email, "fr-FR");
-        const signIn = await mailTo(pair.a.email, before);
+        const signIn = await mailTo(pair.a.email, before, SIGN_IN);
         expect(signIn.subject).toContain("Wren House");
-        // Until the core reads a person their own details, the door says so after the session is made (checked below).
-        await a.verifyCode(pair.a.email, codeIn(signIn.text)).catch((error: { code?: string }) => expect(["PUBLIC_UPSTREAM_UNAVAILABLE", "PUBLIC_QUERY_REFUSED"]).toContain(error.code));
+        await a.verifyCode(pair.a.email, codeIn(signIn.text));
         expect((await a.myStays()).map((s) => s.stay.id)).toEqual([pair.a.id]);
         // B's stay, as A, by every door: as if it were not there.
         expect(await refusalOf(() => a.changeStay(pair.b.id, { arrival_time: "18:00" }))).toBe("PUBLIC_REF_NOT_FOUND");
@@ -520,7 +521,7 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         const b = await guestOf();
         const before = await sinkCount();
         await b.requestSignIn(pair.b.email);
-        await b.verifyCode(pair.b.email, codeIn((await mailTo(pair.b.email, before)).text)).catch(() => undefined);
+        await b.verifyCode(pair.b.email, codeIn((await mailTo(pair.b.email, before, SIGN_IN)).text));
         signedB = b;
         return b;
       };
@@ -552,7 +553,7 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         // Ines's stay (made online, in French), its folio so far.
         const before = await sinkCount();
         await desk.emailFolio(pair.a.id, true);
-        const mail = await mailTo(pair.a.email, before);
+        const mail = await mailTo(pair.a.email, before, /note du séjour/);
         expect(mail.subject).toContain("note du séjour");
         expect((mail as unknown as { attachments: { contentType: string }[] }).attachments.length).toBeGreaterThan(0);
       }, 240_000);
