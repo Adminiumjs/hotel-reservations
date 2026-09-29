@@ -704,5 +704,8 @@
   "You were signed out after a while away.": "Sie wurden nach einer Weile ohne Aktivität abgemeldet.",
   "You were signed out on every device.": "Sie wurden auf allen Geräten abgemeldet.",
   "You would be inside the notice we ask for: you can cancel until {time} on {day}; it is marked as a late cancellation. Nothing is charged.": "Sie wären innerhalb der von uns gewünschten Frist: Sie könnten bis {time} am {day} stornieren; das gilt als späte Stornierung. Es wird nichts berechnet.",
-  "Your details were deleted, so you were signed out.": "Ihre Daten wurden gelöscht, daher wurden Sie abgemeldet."
+  "Your details were deleted, so you were signed out.": "Ihre Daten wurden gelöscht, daher wurden Sie abgemeldet.",
+  "Please shorten your note.": "Bitte kürzen Sie Ihre Nachricht.",
+  "Please write your name in letters only.": "Bitte schreiben Sie Ihren Namen nur mit Buchstaben.",
+  "That does not look like a mobile number — check it, or leave it empty.": "Das sieht nicht nach einer Mobilnummer aus – bitte prüfen Sie sie oder lassen Sie das Feld leer."
 }

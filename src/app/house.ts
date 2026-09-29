@@ -669,6 +669,11 @@ export class HouseApp {
   ruleWords(error: unknown): string {
     const p = isApiError(error) ? (error.params as Record<string, unknown>) : {};
     if (p["column"] === "guests") return tr("That room type does not sleep that many.");
+    // A column the guest typed: said about that field, never as the dates.
+    if (p["column"] === "first_name" || p["column"] === "last_name") return tr("Please write your name in letters only.");
+    if (p["column"] === "email") return tr("An email we can write to");
+    if (p["column"] === "mobile") return tr("That does not look like a mobile number — check it, or leave it empty.");
+    if (p["column"] === "note") return tr("Please shorten your note.");
     const s = this.state.search;
     return this.problemOf(s.arrive, s.depart)?.msg ?? tr("Those dates are not ones we can take.");
   }

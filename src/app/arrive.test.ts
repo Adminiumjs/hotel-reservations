@@ -76,3 +76,15 @@ describe("where a guest's page was opened from", () => {
     expect(stranger.state.linkStay).toBeNull();
   });
 });
+
+describe("a value the house refuses on the reservation form", () => {
+  const refused = (column: string) => new ApiError(400, "PUBLIC_WRITE_REFUSED", "refused", { column });
+  it("is said about the field the guest typed, never as the dates", () => {
+    const app = new HouseApp({ guest: door({}) }, "guest");
+    expect(app.ruleWords(refused("mobile"))).toBe("That does not look like a mobile number — check it, or leave it empty.");
+    expect(app.ruleWords(refused("last_name"))).toBe("Please write your name in letters only.");
+    expect(app.ruleWords(refused("first_name"))).toBe("Please write your name in letters only.");
+    expect(app.ruleWords(refused("email"))).toBe("An email we can write to");
+    expect(app.ruleWords(refused("guests"))).toBe("That room type does not sleep that many.");
+  });
+});

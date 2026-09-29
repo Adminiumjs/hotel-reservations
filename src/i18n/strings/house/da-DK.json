@@ -704,5 +704,8 @@
   "You were signed out after a while away.": "Du blev logget ud, efter du havde været væk et stykke tid.",
   "You were signed out on every device.": "Du blev logget ud på alle enheder.",
   "You would be inside the notice we ask for: you can cancel until {time} on {day}; it is marked as a late cancellation. Nothing is charged.": "Så ville du være inden for det varsel, vi beder om: du kan afbestille indtil {day} kl. {time}; det registreres som en sen afbestilling. Der opkræves intet.",
-  "Your details were deleted, so you were signed out.": "Dine oplysninger blev slettet, så du blev logget ud."
+  "Your details were deleted, so you were signed out.": "Dine oplysninger blev slettet, så du blev logget ud.",
+  "Please shorten your note.": "Gør venligst din besked kortere.",
+  "Please write your name in letters only.": "Skriv venligst dit navn kun med bogstaver.",
+  "That does not look like a mobile number — check it, or leave it empty.": "Det ligner ikke et mobilnummer – tjek det, eller lad feltet stå tomt."
 }

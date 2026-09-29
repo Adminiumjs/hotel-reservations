@@ -704,5 +704,8 @@
   "You were signed out after a while away.": "您因长时间离开已被自动登出。",
   "You were signed out on every device.": "您已在所有设备上退出登录。",
   "You would be inside the notice we ask for: you can cancel until {time} on {day}; it is marked as a late cancellation. Nothing is charged.": "这将落入我们要求的通知期内：您可以在 {day} {time} 前取消；这会记为逾期取消。不收取任何费用。",
-  "Your details were deleted, so you were signed out.": "您的资料已被删除，因此您已被登出。"
+  "Your details were deleted, so you were signed out.": "您的资料已被删除，因此您已被登出。",
+  "Please shorten your note.": "请缩短您的留言。",
+  "Please write your name in letters only.": "请只用字母或文字填写您的姓名。",
+  "That does not look like a mobile number — check it, or leave it empty.": "这看起来不像手机号——请检查，或留空。"
 }

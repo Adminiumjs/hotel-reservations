@@ -704,5 +704,8 @@
   "{type}, {day}: no room to sell": "{type}，{day}：無房可售",
   "{type}, {day}: {sold} of {n} sold": "{type}，{day}：已售出 {sold} / {n}",
   "{type}: over-sold by {by} on {day} and {n} more night — someone will need moving.|{type}: over-sold by {by} on {day} and {n} more nights — someone will need moving.": "{type}：{day} 及之後 {n} 晚超賣 {by} 間 — 需要有人換房。",
-  "{type}: over-sold by {n} on {day} — someone will need moving.": "{type}：{day} 超賣 {n} 間 — 需要有人換房。"
+  "{type}: over-sold by {n} on {day} — someone will need moving.": "{type}：{day} 超賣 {n} 間 — 需要有人換房。",
+  "Please shorten your note.": "請縮短您的留言。",
+  "Please write your name in letters only.": "請只用字母或文字填寫您的姓名。",
+  "That does not look like a mobile number — check it, or leave it empty.": "這看起來不像手機號碼——請檢查，或留空。"
 }

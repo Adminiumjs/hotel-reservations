@@ -704,5 +704,8 @@
   "You were signed out after a while away.": "سُجِّل خروجك بعد فترة من عدم النشاط.",
   "You were signed out on every device.": "سُجِّل خروجك من كل الأجهزة.",
   "You would be inside the notice we ask for: you can cancel until {time} on {day}; it is marked as a late cancellation. Nothing is charged.": "ستكون ضمن المهلة التي نطلبها: يمكنك الإلغاء حتى {time} يوم {day}؛ ويُسجَّل إلغاءً متأخرًا. لا تُحتسب أي رسوم.",
-  "Your details were deleted, so you were signed out.": "حُذفت بياناتك، لذا سُجِّل خروجك."
+  "Your details were deleted, so you were signed out.": "حُذفت بياناتك، لذا سُجِّل خروجك.",
+  "Please shorten your note.": "يُرجى اختصار ملاحظتك.",
+  "Please write your name in letters only.": "يُرجى كتابة اسمك بالحروف فقط.",
+  "That does not look like a mobile number — check it, or leave it empty.": "لا يبدو هذا رقم هاتف محمول — تحقّق منه أو اتركه فارغًا."
 }
