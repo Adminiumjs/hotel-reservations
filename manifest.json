@@ -87,13 +87,13 @@
         "checked": true,
         "reason": {
           "en-US": "Print a guest's folio at the desk and email it at check-out, with a receipt for each payment.",
-          "de-DE": "Das Folio eines Gastes an der Rezeption drucken und beim Check-out per E-Mail senden, mit einem Beleg für jede Zahlung.",
+          "de-DE": "Die Gastrechnung an der Rezeption drucken und beim Check-out per E-Mail senden, mit einem Beleg für jede Zahlung.",
           "fr-FR": "Imprimer la note d'un client à la réception et l'envoyer par e-mail au départ, avec un reçu pour chaque paiement.",
-          "da-DK": "Udskriv en gæsts folio i receptionen, og send den på e-mail ved udtjekning, med en kvittering for hver betaling.",
+          "da-DK": "Udskriv en gæsts opholdsregning i receptionen, og send den på e-mail ved udtjekning, med en kvittering for hver betaling.",
           "cs-CZ": "Vytisknout účet pobytu hosta na recepci a poslat ho e-mailem při odjezdu, se stvrzenkou ke každé platbě.",
-          "ar-EG": "اطبع كشف حساب الضيف في الاستقبال وأرسله بالبريد عند المغادرة، مع إيصال لكل دفعة.",
-          "zh-CN": "在前台打印客人的消费明细，退房时通过邮件发送，并为每笔付款附上收据。",
-          "zh-TW": "在櫃檯列印客人的消費明細，退房時以郵件寄出，並為每筆付款附上收據。"
+          "ar-EG": "اطبع حساب إقامة الضيف في الاستقبال وأرسله بالبريد عند المغادرة، مع إيصال لكل دفعة.",
+          "zh-CN": "在前台打印客人的住宿结算单，退房时通过邮件发送，并为每笔付款附上收据。",
+          "zh-TW": "在櫃檯列印客人的住宿結算單，退房時以郵件寄出，並為每筆付款附上收據。"
         }
       }
     ],
@@ -102,13 +102,13 @@
         "id": "folio",
         "label": {
           "en-US": "Folio and receipts",
-          "de-DE": "Folio und Belege",
+          "de-DE": "Gastrechnung und Belege",
           "fr-FR": "Note du séjour et reçus",
-          "da-DK": "Folio og kvitteringer",
+          "da-DK": "Opholdsregning og kvitteringer",
           "cs-CZ": "Účet pobytu a stvrzenky",
-          "ar-EG": "كشف الحساب والإيصالات",
-          "zh-CN": "消费明细与收据",
-          "zh-TW": "消費明細與收據"
+          "ar-EG": "حساب الإقامة والإيصالات",
+          "zh-CN": "住宿结算单与收据",
+          "zh-TW": "住宿結算單與收據"
         },
         "requires": [
           "invoices"
@@ -124,13 +124,13 @@
       "feature": "folio",
       "name": {
         "en-US": "Folio",
-        "de-DE": "Folio",
+        "de-DE": "Gastrechnung",
         "fr-FR": "Note du séjour",
-        "da-DK": "Folio",
+        "da-DK": "Opholdsregning",
         "cs-CZ": "Účet pobytu",
-        "ar-EG": "كشف الحساب",
-        "zh-CN": "消费明细",
-        "zh-TW": "消費明細"
+        "ar-EG": "حساب الإقامة",
+        "zh-CN": "住宿结算单",
+        "zh-TW": "住宿結算單"
       },
       "mapping": {
         "number": {
@@ -324,7 +324,7 @@
           "de-DE": "Hauseinstellungen",
           "fr-FR": "Réglages de la maison",
           "da-DK": "Husindstillinger",
-          "cs-CZ": "Nastavení domu",
+          "cs-CZ": "Nastavení hotelu",
           "ar-EG": "إعدادات الفندق",
           "zh-CN": "酒店设置",
           "zh-TW": "飯店設定"
@@ -334,7 +334,7 @@
           "de-DE": "Hauseinstellungen",
           "fr-FR": "Réglages de la maison",
           "da-DK": "Husindstillinger",
-          "cs-CZ": "Nastavení domu",
+          "cs-CZ": "Nastavení hotelu",
           "ar-EG": "إعدادات الفندق",
           "zh-CN": "酒店设置",
           "zh-TW": "飯店設定"
@@ -488,7 +488,7 @@
               "de-DE": "Anfahrt",
               "fr-FR": "Nous trouver",
               "da-DK": "Find vej",
-              "cs-CZ": "Jak nás najít",
+              "cs-CZ": "Jak k nám",
               "ar-EG": "كيف تصل إلينا",
               "zh-CN": "如何找到我们",
               "zh-TW": "如何找到我們"
@@ -635,11 +635,11 @@
             "maxLength": 60,
             "label": {
               "en-US": "Folio line for nights not stayed",
-              "de-DE": "Folio-Zeile für nicht genutzte Nächte",
-              "fr-FR": "Ligne de la note pour les nuits non effectuées",
-              "da-DK": "Foliolinje for nætter ikke brugt",
-              "cs-CZ": "Řádek účtu pobytu za nevyužité noci",
-              "ar-EG": "سطر كشف الحساب للّيالي التي لم تُقضَ",
+              "de-DE": "Rechnungsposten für nicht genutzte Nächte",
+              "fr-FR": "Ligne de la note pour les nuits non passées",
+              "da-DK": "Linje på opholdsregningen for ubrugte nætter",
+              "cs-CZ": "Řádek účtu pobytu za nestrávené noci",
+              "ar-EG": "بند حساب الإقامة لليالي التي لم يُقَم فيها",
               "zh-CN": "未入住夜晚的明细行",
               "zh-TW": "未入住夜晚的明細行"
             },
@@ -684,7 +684,7 @@
             "default": "14:00",
             "label": {
               "en-US": "Late leaving until",
-              "de-DE": "Später Check-out bis",
+              "de-DE": "Späte Abreise bis",
               "fr-FR": "Départ tardif jusqu'à",
               "da-DK": "Sen afrejse indtil",
               "cs-CZ": "Pozdní odjezd do",
@@ -700,8 +700,8 @@
             "default": "11:00",
             "label": {
               "en-US": "No-show time",
-              "de-DE": "Uhrzeit für Nichterscheinen",
-              "fr-FR": "Heure de non-présentation",
+              "de-DE": "Uhrzeit für No-Show",
+              "fr-FR": "Heure du no-show",
               "da-DK": "Tidspunkt for udeblivelse",
               "cs-CZ": "Čas nedostavení",
               "ar-EG": "وقت عدم الحضور",
@@ -718,7 +718,7 @@
               "fr-FR": "Délai d'annulation (jours)",
               "da-DK": "Dages varsel for afbestilling",
               "cs-CZ": "Dní předem na zrušení",
-              "ar-EG": "أيام الإشعار للإلغاء",
+              "ar-EG": "مهلة الإلغاء (بالأيام)",
               "zh-CN": "取消需提前天数",
               "zh-TW": "取消需提前天數"
             },
@@ -832,8 +832,8 @@
           "de-DE": "Hausinfo",
           "fr-FR": "Info de la maison",
           "da-DK": "Husnote",
-          "cs-CZ": "Poznámka domu",
-          "ar-EG": "ملاحظة المنزل",
+          "cs-CZ": "Poznámka hotelu",
+          "ar-EG": "ملاحظة الفندق",
           "zh-CN": "住宿须知",
           "zh-TW": "住宿須知"
         },
@@ -842,8 +842,8 @@
           "de-DE": "Hausinfos",
           "fr-FR": "Infos de la maison",
           "da-DK": "Husnoter",
-          "cs-CZ": "Poznámky domu",
-          "ar-EG": "ملاحظات المنزل",
+          "cs-CZ": "Poznámky hotelu",
+          "ar-EG": "ملاحظات الفندق",
           "zh-CN": "住宿须知",
           "zh-TW": "住宿須知"
         },
@@ -1360,7 +1360,7 @@
                   "cleaning": {
                     "en-US": "Being cleaned",
                     "de-DE": "Wird gereinigt",
-                    "fr-FR": "En nettoyage",
+                    "fr-FR": "En cours de nettoyage",
                     "da-DK": "Bliver gjort rent",
                     "cs-CZ": "Uklízí se",
                     "ar-EG": "قيد التنظيف",
@@ -1448,7 +1448,7 @@
               "da-DK": "Fra",
               "cs-CZ": "Od",
               "ar-EG": "من",
-              "zh-CN": "从",
+              "zh-CN": "开始日期",
               "zh-TW": "從"
             }
           },
@@ -1831,7 +1831,7 @@
             "label": {
               "en-US": "Charged",
               "de-DE": "Berechnet",
-              "fr-FR": "Compté",
+              "fr-FR": "Facturé",
               "da-DK": "Beregnet",
               "cs-CZ": "Účtováno",
               "ar-EG": "يُحتسب",
@@ -2087,7 +2087,7 @@
         "labelPlural": {
           "en-US": "Guests",
           "de-DE": "Gäste",
-          "fr-FR": "Voyageurs",
+          "fr-FR": "Clients",
           "da-DK": "Gæster",
           "cs-CZ": "Hosté",
           "ar-EG": "الضيوف",
@@ -2205,7 +2205,7 @@
           "cs-CZ": "Rezervace",
           "ar-EG": "حجز",
           "zh-CN": "预订",
-          "zh-TW": "預訂"
+          "zh-TW": "訂房"
         },
         "labelPlural": {
           "en-US": "Reservations",
@@ -2215,7 +2215,7 @@
           "cs-CZ": "Rezervace",
           "ar-EG": "الحجوزات",
           "zh-CN": "预订",
-          "zh-TW": "預訂"
+          "zh-TW": "訂房"
         },
         "keyField": "ref",
         "capacity": [
@@ -2688,8 +2688,8 @@
                   },
                   "no_show": {
                     "en-US": "No-show",
-                    "de-DE": "Nicht erschienen",
-                    "fr-FR": "Non présenté",
+                    "de-DE": "No-Show",
+                    "fr-FR": "No-show",
                     "da-DK": "Udeblevet",
                     "cs-CZ": "Nedostavil se",
                     "ar-EG": "لم يحضر",
@@ -2774,7 +2774,7 @@
             "label": {
               "en-US": "Guests",
               "de-DE": "Gäste",
-              "fr-FR": "Voyageurs",
+              "fr-FR": "Clients",
               "da-DK": "Gæster",
               "cs-CZ": "Hosté",
               "ar-EG": "الضيوف",
@@ -2903,7 +2903,7 @@
               "fr-FR": "Portable",
               "da-DK": "Mobil",
               "cs-CZ": "Mobil",
-              "ar-EG": "الجوال",
+              "ar-EG": "الهاتف المحمول",
               "zh-CN": "手机",
               "zh-TW": "手機"
             },
@@ -3201,7 +3201,7 @@
             "label": {
               "en-US": "Charges",
               "de-DE": "Posten",
-              "fr-FR": "Consommations",
+              "fr-FR": "Suppléments",
               "da-DK": "Posteringer",
               "cs-CZ": "Položky",
               "ar-EG": "الرسوم",
@@ -3228,10 +3228,10 @@
             "label": {
               "en-US": "Nights not stayed",
               "de-DE": "Nicht genutzte Nächte",
-              "fr-FR": "Nuits non effectuées",
-              "da-DK": "Nætter ikke brugt",
-              "cs-CZ": "Nevyužité noci",
-              "ar-EG": "ليالٍ لم تُقضَ",
+              "fr-FR": "Nuits non passées",
+              "da-DK": "Ubrugte nætter",
+              "cs-CZ": "Nestrávené noci",
+              "ar-EG": "ليالٍ لم يُقَم فيها",
               "zh-CN": "未入住的夜晚",
               "zh-TW": "未入住的夜晚"
             },
@@ -3514,7 +3514,7 @@
                     "en-US": "The house",
                     "de-DE": "Das Haus",
                     "fr-FR": "L'hôtel",
-                    "da-DK": "Huset",
+                    "da-DK": "Hotellet",
                     "cs-CZ": "Hotel",
                     "ar-EG": "الفندق",
                     "zh-CN": "酒店",
@@ -3593,7 +3593,7 @@
               "fr-FR": "Arrivé",
               "da-DK": "Tjekket ind",
               "cs-CZ": "Ubytován",
-              "ar-EG": "تم تسجيل الدخول",
+              "ar-EG": "تم تسجيل الوصول",
               "zh-CN": "已入住",
               "zh-TW": "已入住"
             },
@@ -3620,7 +3620,7 @@
               "fr-FR": "Accueilli par",
               "da-DK": "Tjekket ind af",
               "cs-CZ": "Ubytoval",
-              "ar-EG": "سجّل الدخول",
+              "ar-EG": "سجّل الوصول",
               "zh-CN": "办理入住人",
               "zh-TW": "辦理入住人"
             },
@@ -3753,13 +3753,13 @@
             "type": "timestamptz",
             "label": {
               "en-US": "Folio emailed",
-              "de-DE": "Folio gemailt",
+              "de-DE": "Gastrechnung gemailt",
               "fr-FR": "Note du séjour envoyée",
-              "da-DK": "Folio sendt",
+              "da-DK": "Opholdsregning sendt",
               "cs-CZ": "Účet pobytu odeslán",
-              "ar-EG": "أُرسل كشف الحساب",
-              "zh-CN": "已发送消费明细",
-              "zh-TW": "已寄出消費明細"
+              "ar-EG": "أُرسل حساب الإقامة",
+              "zh-CN": "已发送住宿结算单",
+              "zh-TW": "已寄出住宿結算單"
             },
             "nullable": true
           },
@@ -3768,13 +3768,13 @@
             "type": "timestamptz",
             "label": {
               "en-US": "Folio so far emailed",
-              "de-DE": "Folio bisher gemailt",
+              "de-DE": "Zwischenrechnung gemailt",
               "fr-FR": "Note à ce jour envoyée",
-              "da-DK": "Folio indtil nu sendt",
+              "da-DK": "Opholdsregning indtil nu sendt",
               "cs-CZ": "Dosavadní účet odeslán",
-              "ar-EG": "أُرسل كشف الحساب حتى الآن",
-              "zh-CN": "已发送目前的消费明细",
-              "zh-TW": "已寄出目前的消費明細"
+              "ar-EG": "أُرسل حساب الإقامة حتى الآن",
+              "zh-CN": "已发送目前的住宿结算单",
+              "zh-TW": "已寄出目前的住宿結算單"
             },
             "nullable": true
           },
@@ -3783,8 +3783,8 @@
             "type": "timestamptz",
             "label": {
               "en-US": "Marked as a no-show",
-              "de-DE": "Als nicht erschienen markiert",
-              "fr-FR": "Marqué non présenté",
+              "de-DE": "Als No-Show markiert",
+              "fr-FR": "Marqué comme no-show",
               "da-DK": "Markeret som udeblevet",
               "cs-CZ": "Označen jako nedostavení",
               "ar-EG": "سُجّل عدم الحضور",
@@ -3848,10 +3848,10 @@
             "default": false,
             "label": {
               "en-US": "Link stopped",
-              "de-DE": "Link gestoppt",
+              "de-DE": "Link deaktiviert",
               "fr-FR": "Lien désactivé",
               "da-DK": "Link stoppet",
-              "cs-CZ": "Odkaz zastaven",
+              "cs-CZ": "Odkaz zneplatněn",
               "ar-EG": "الرابط متوقف",
               "zh-CN": "链接已停用",
               "zh-TW": "連結已停用"
@@ -3962,7 +3962,7 @@
               "cs-CZ": "Rezervace",
               "ar-EG": "حجز",
               "zh-CN": "预订",
-              "zh-TW": "預訂"
+              "zh-TW": "訂房"
             },
             "index": true
           },
@@ -4087,7 +4087,7 @@
             "label": {
               "en-US": "Charged",
               "de-DE": "Berechnet",
-              "fr-FR": "Compté",
+              "fr-FR": "Facturé",
               "da-DK": "Beregnet",
               "cs-CZ": "Účtováno",
               "ar-EG": "يُحتسب",
@@ -4166,7 +4166,7 @@
             "label": {
               "en-US": "Guests",
               "de-DE": "Gäste",
-              "fr-FR": "Voyageurs",
+              "fr-FR": "Clients",
               "da-DK": "Gæster",
               "cs-CZ": "Hosté",
               "ar-EG": "الضيوف",
@@ -4302,7 +4302,7 @@
         "label": {
           "en-US": "Charge",
           "de-DE": "Posten",
-          "fr-FR": "Consommation",
+          "fr-FR": "Supplément",
           "da-DK": "Postering",
           "cs-CZ": "Položka",
           "ar-EG": "رسم",
@@ -4312,7 +4312,7 @@
         "labelPlural": {
           "en-US": "Charges",
           "de-DE": "Posten",
-          "fr-FR": "Consommations",
+          "fr-FR": "Suppléments",
           "da-DK": "Posteringer",
           "cs-CZ": "Položky",
           "ar-EG": "الرسوم",
@@ -4338,7 +4338,7 @@
               "cs-CZ": "Rezervace",
               "ar-EG": "حجز",
               "zh-CN": "预订",
-              "zh-TW": "預訂"
+              "zh-TW": "訂房"
             },
             "index": true
           },
@@ -4474,7 +4474,7 @@
               "de-DE": "Storniert",
               "fr-FR": "Annulé",
               "da-DK": "Annulleret",
-              "cs-CZ": "Zrušeno",
+              "cs-CZ": "Stornováno",
               "ar-EG": "ملغى",
               "zh-CN": "已作废",
               "zh-TW": "已作廢"
@@ -4489,7 +4489,7 @@
               "de-DE": "Warum storniert",
               "fr-FR": "Motif d'annulation",
               "da-DK": "Hvorfor annulleret",
-              "cs-CZ": "Proč zrušeno",
+              "cs-CZ": "Důvod storna",
               "ar-EG": "سبب الإلغاء",
               "zh-CN": "作废原因",
               "zh-TW": "作廢原因"
@@ -4504,7 +4504,7 @@
               "de-DE": "Storniert am",
               "fr-FR": "Annulé le",
               "da-DK": "Annulleret den",
-              "cs-CZ": "Zrušeno dne",
+              "cs-CZ": "Stornováno dne",
               "ar-EG": "أُلغي في",
               "zh-CN": "作废时间",
               "zh-TW": "作廢時間"
@@ -4531,7 +4531,7 @@
               "de-DE": "Storniert von",
               "fr-FR": "Annulé par",
               "da-DK": "Annulleret af",
-              "cs-CZ": "Zrušil",
+              "cs-CZ": "Stornoval",
               "ar-EG": "ألغاه",
               "zh-CN": "作废人",
               "zh-TW": "作廢人"
@@ -4556,20 +4556,20 @@
         "label": {
           "en-US": "Nights not stayed",
           "de-DE": "Nicht genutzte Nächte",
-          "fr-FR": "Nuits non effectuées",
-          "da-DK": "Nætter ikke brugt",
-          "cs-CZ": "Nevyužité noci",
-          "ar-EG": "ليالٍ لم تُقضَ",
+          "fr-FR": "Nuits non passées",
+          "da-DK": "Ubrugte nætter",
+          "cs-CZ": "Nestrávené noci",
+          "ar-EG": "ليالٍ لم يُقَم فيها",
           "zh-CN": "未入住的夜晚",
           "zh-TW": "未入住的夜晚"
         },
         "labelPlural": {
           "en-US": "Nights not stayed",
           "de-DE": "Nicht genutzte Nächte",
-          "fr-FR": "Nuits non effectuées",
-          "da-DK": "Nætter ikke brugt",
-          "cs-CZ": "Nevyužité noci",
-          "ar-EG": "ليالٍ لم تُقضَ",
+          "fr-FR": "Nuits non passées",
+          "da-DK": "Ubrugte nætter",
+          "cs-CZ": "Nestrávené noci",
+          "ar-EG": "ليالٍ لم يُقَم فيها",
           "zh-CN": "未入住的夜晚",
           "zh-TW": "未入住的夜晚"
         },
@@ -4592,7 +4592,7 @@
               "cs-CZ": "Rezervace",
               "ar-EG": "حجز",
               "zh-CN": "预订",
-              "zh-TW": "預訂"
+              "zh-TW": "訂房"
             },
             "index": true
           },
@@ -4647,11 +4647,11 @@
             "maxLength": 60,
             "label": {
               "en-US": "Folio line",
-              "de-DE": "Folio-Zeile",
+              "de-DE": "Rechnungsposten",
               "fr-FR": "Ligne de la note",
-              "da-DK": "Foliolinje",
+              "da-DK": "Linje på opholdsregningen",
               "cs-CZ": "Řádek účtu pobytu",
-              "ar-EG": "سطر كشف الحساب",
+              "ar-EG": "بند في حساب الإقامة",
               "zh-CN": "明细行",
               "zh-TW": "明細行"
             },
@@ -4861,11 +4861,11 @@
             "nullable": true,
             "label": {
               "en-US": "On the folio",
-              "de-DE": "Auf dem Folio",
+              "de-DE": "Auf der Gastrechnung",
               "fr-FR": "Sur la note",
-              "da-DK": "På folioen",
+              "da-DK": "På opholdsregningen",
               "cs-CZ": "Na účtu pobytu",
-              "ar-EG": "في كشف الحساب",
+              "ar-EG": "في حساب الإقامة",
               "zh-CN": "明细金额",
               "zh-TW": "明細金額"
             },
@@ -4930,7 +4930,7 @@
               "de-DE": "Storniert",
               "fr-FR": "Annulé",
               "da-DK": "Annulleret",
-              "cs-CZ": "Zrušeno",
+              "cs-CZ": "Stornováno",
               "ar-EG": "ملغى",
               "zh-CN": "已作废",
               "zh-TW": "已作廢"
@@ -4945,7 +4945,7 @@
               "de-DE": "Warum storniert",
               "fr-FR": "Motif d'annulation",
               "da-DK": "Hvorfor annulleret",
-              "cs-CZ": "Proč zrušeno",
+              "cs-CZ": "Důvod storna",
               "ar-EG": "سبب الإلغاء",
               "zh-CN": "作废原因",
               "zh-TW": "作廢原因"
@@ -4960,7 +4960,7 @@
               "de-DE": "Storniert am",
               "fr-FR": "Annulé le",
               "da-DK": "Annulleret den",
-              "cs-CZ": "Zrušeno dne",
+              "cs-CZ": "Stornováno dne",
               "ar-EG": "أُلغي في",
               "zh-CN": "作废时间",
               "zh-TW": "作廢時間"
@@ -4987,7 +4987,7 @@
               "de-DE": "Storniert von",
               "fr-FR": "Annulé par",
               "da-DK": "Annulleret af",
-              "cs-CZ": "Zrušil",
+              "cs-CZ": "Stornoval",
               "ar-EG": "ألغاه",
               "zh-CN": "作废人",
               "zh-TW": "作廢人"
@@ -5048,7 +5048,7 @@
               "cs-CZ": "Rezervace",
               "ar-EG": "حجز",
               "zh-CN": "预订",
-              "zh-TW": "預訂"
+              "zh-TW": "訂房"
             },
             "index": true
           },
@@ -5087,7 +5087,7 @@
                     "en-US": "Given back",
                     "de-DE": "Zurückgegeben",
                     "fr-FR": "Rendu",
-                    "da-DK": "Givet tilbage",
+                    "da-DK": "Betalt tilbage",
                     "cs-CZ": "Vráceno",
                     "ar-EG": "مُعاد",
                     "zh-CN": "已退还",
@@ -5150,7 +5150,7 @@
                     "da-DK": "Kort",
                     "cs-CZ": "Karta",
                     "ar-EG": "بطاقة",
-                    "zh-CN": "银行卡",
+                    "zh-CN": "刷卡",
                     "zh-TW": "信用卡"
                   },
                   "cash": {
@@ -5158,7 +5158,7 @@
                     "de-DE": "Bar",
                     "fr-FR": "Espèces",
                     "da-DK": "Kontant",
-                    "cs-CZ": "Hotově",
+                    "cs-CZ": "Hotovost",
                     "ar-EG": "نقدًا",
                     "zh-CN": "现金",
                     "zh-TW": "現金"
@@ -5325,7 +5325,7 @@
               "de-DE": "Storniert",
               "fr-FR": "Annulé",
               "da-DK": "Annulleret",
-              "cs-CZ": "Zrušeno",
+              "cs-CZ": "Stornováno",
               "ar-EG": "ملغى",
               "zh-CN": "已作废",
               "zh-TW": "已作廢"
@@ -5340,7 +5340,7 @@
               "de-DE": "Warum storniert",
               "fr-FR": "Motif d'annulation",
               "da-DK": "Hvorfor annulleret",
-              "cs-CZ": "Proč zrušeno",
+              "cs-CZ": "Důvod storna",
               "ar-EG": "سبب الإلغاء",
               "zh-CN": "作废原因",
               "zh-TW": "作廢原因"
@@ -5355,7 +5355,7 @@
               "de-DE": "Storniert am",
               "fr-FR": "Annulé le",
               "da-DK": "Annulleret den",
-              "cs-CZ": "Zrušeno dne",
+              "cs-CZ": "Stornováno dne",
               "ar-EG": "أُلغي في",
               "zh-CN": "作废时间",
               "zh-TW": "作廢時間"
@@ -5382,7 +5382,7 @@
               "de-DE": "Storniert von",
               "fr-FR": "Annulé par",
               "da-DK": "Annulleret af",
-              "cs-CZ": "Zrušil",
+              "cs-CZ": "Stornoval",
               "ar-EG": "ألغاه",
               "zh-CN": "作废人",
               "zh-TW": "作廢人"
@@ -5525,7 +5525,7 @@
                     "en-US": "Cancelled by the house",
                     "de-DE": "Vom Haus storniert",
                     "fr-FR": "Annulé par l'hôtel",
-                    "da-DK": "Afbestilt af huset",
+                    "da-DK": "Afbestilt af hotellet",
                     "cs-CZ": "Zrušeno hotelem",
                     "ar-EG": "ألغاه الفندق",
                     "zh-CN": "酒店取消",
@@ -5534,12 +5534,12 @@
                   "stay-no-show": {
                     "en-US": "We missed you",
                     "de-DE": "Wir haben Sie vermisst",
-                    "fr-FR": "Vous nous avez manqué",
+                    "fr-FR": "Nous vous attendions",
                     "da-DK": "Vi savnede dig",
                     "cs-CZ": "Chyběli jste nám",
-                    "ar-EG": "افتقدناك",
-                    "zh-CN": "我们错过了您",
-                    "zh-TW": "我們錯過了您"
+                    "ar-EG": "كنا بانتظارك",
+                    "zh-CN": "未能等到您",
+                    "zh-TW": "我們沒等到您"
                   },
                   "stay-dates-changed": {
                     "en-US": "Dates changed",
@@ -5563,23 +5563,23 @@
                   },
                   "stay-folio": {
                     "en-US": "The folio",
-                    "de-DE": "Das Folio",
+                    "de-DE": "Die Gastrechnung",
                     "fr-FR": "La note du séjour",
-                    "da-DK": "Folioen",
+                    "da-DK": "Opholdsregningen",
                     "cs-CZ": "Účet pobytu",
-                    "ar-EG": "كشف الحساب",
-                    "zh-CN": "消费明细",
-                    "zh-TW": "消費明細"
+                    "ar-EG": "حساب الإقامة",
+                    "zh-CN": "住宿结算单",
+                    "zh-TW": "住宿結算單"
                   },
                   "stay-folio-owing": {
                     "en-US": "The folio so far",
-                    "de-DE": "Das Folio bisher",
+                    "de-DE": "Die Zwischenrechnung",
                     "fr-FR": "La note du séjour à ce jour",
-                    "da-DK": "Folioen indtil nu",
-                    "cs-CZ": "Účet pobytu zatím",
-                    "ar-EG": "كشف الحساب حتى الآن",
-                    "zh-CN": "目前的消费明细",
-                    "zh-TW": "目前的消費明細"
+                    "da-DK": "Opholdsregningen indtil nu",
+                    "cs-CZ": "Průběžný účet pobytu",
+                    "ar-EG": "حساب الإقامة حتى الآن",
+                    "zh-CN": "目前的住宿结算单",
+                    "zh-TW": "目前的住宿結算單"
                   }
                 }
               }
@@ -5703,7 +5703,7 @@
               "cs-CZ": "Rezervace",
               "ar-EG": "حجز",
               "zh-CN": "预订",
-              "zh-TW": "預訂"
+              "zh-TW": "訂房"
             },
             "nullable": true
           },
@@ -5731,7 +5731,7 @@
               "de-DE": "Versand ab",
               "fr-FR": "À envoyer le",
               "da-DK": "Sendes",
-              "cs-CZ": "Odeslat",
+              "cs-CZ": "Termín odeslání",
               "ar-EG": "موعد الإرسال",
               "zh-CN": "发送时间",
               "zh-TW": "寄送時間"
@@ -5871,7 +5871,7 @@
                     "de-DE": "Storniert",
                     "fr-FR": "Annulé",
                     "da-DK": "Annulleret",
-                    "cs-CZ": "Zrušeno",
+                    "cs-CZ": "Stornováno",
                     "ar-EG": "ملغى",
                     "zh-CN": "作废",
                     "zh-TW": "作廢"
@@ -5892,7 +5892,7 @@
                     "fr-FR": "Ignoré à la main",
                     "da-DK": "Sprunget over manuelt",
                     "cs-CZ": "Přeskočeno ručně",
-                    "ar-EG": "تُخطّي يدويًا",
+                    "ar-EG": "تم تخطيه يدويًا",
                     "zh-CN": "手动跳过",
                     "zh-TW": "手動略過"
                   }
@@ -6097,7 +6097,7 @@
                 "title": "On guests' accounts",
                 "titles": {
                   "en-US": "On guests' accounts",
-                  "de-DE": "Offen auf Gästekonten",
+                  "de-DE": "Offen auf Gastrechnungen",
                   "fr-FR": "Sur les comptes des clients",
                   "da-DK": "På gæsternes konti",
                   "cs-CZ": "Na účtech hostů",
@@ -6160,7 +6160,7 @@
                   "cs-CZ": "Obsazenost dnes v noci",
                   "ar-EG": "الإشغال الليلة",
                   "zh-CN": "今晚入住率",
-                  "zh-TW": "今晚入住率"
+                  "zh-TW": "今晚住房率"
                 },
                 "metricLabel": "of the rooms we can sell",
                 "metricLabels": {
@@ -6419,7 +6419,7 @@
                 "title": "Leaving with money owing",
                 "titles": {
                   "en-US": "Leaving with money owing",
-                  "de-DE": "Abreisend mit offenem Betrag",
+                  "de-DE": "Abreisen mit offenem Betrag",
                   "fr-FR": "Départs avec un solde dû",
                   "da-DK": "Rejser med udestående beløb",
                   "cs-CZ": "Odjíždějí s nezaplacenou částkou",
@@ -6545,7 +6545,7 @@
                     "de-DE": "Keine Anreisen in Sicht.",
                     "fr-FR": "Aucune arrivée à venir.",
                     "da-DK": "Ingen ankomster forude.",
-                    "cs-CZ": "Žádné příjezdy před námi.",
+                    "cs-CZ": "Žádné nadcházející příjezdy.",
                     "ar-EG": "لا وصول قادم.",
                     "zh-CN": "暂无即将入住的客人。",
                     "zh-TW": "暫無即將入住的客人。"
@@ -6697,8 +6697,8 @@
                 "title": "No-shows this month",
                 "titles": {
                   "en-US": "No-shows this month",
-                  "de-DE": "Nicht erschienen diesen Monat",
-                  "fr-FR": "Non-présentations ce mois-ci",
+                  "de-DE": "No-Shows diesen Monat",
+                  "fr-FR": "No-shows ce mois-ci",
                   "da-DK": "Udeblivelser denne måned",
                   "cs-CZ": "Nedostavení tento měsíc",
                   "ar-EG": "حالات عدم الحضور هذا الشهر",
@@ -6859,7 +6859,7 @@
         "cs-CZ": "Rezervace",
         "ar-EG": "الحجوزات",
         "zh-CN": "预订",
-        "zh-TW": "預訂"
+        "zh-TW": "訂房"
       },
       "nav": {
         "group": "records",
@@ -7107,7 +7107,7 @@
       },
       "titles": {
         "de-DE": "Gäste",
-        "fr-FR": "Voyageurs",
+        "fr-FR": "Clients",
         "da-DK": "Gæster",
         "cs-CZ": "Hosté",
         "ar-EG": "الضيوف",
@@ -7162,7 +7162,7 @@
       },
       "titles": {
         "de-DE": "Posten",
-        "fr-FR": "Consommations",
+        "fr-FR": "Suppléments",
         "da-DK": "Posteringer",
         "cs-CZ": "Položky",
         "ar-EG": "الرسوم",
@@ -7247,10 +7247,10 @@
       },
       "titles": {
         "de-DE": "Nicht genutzte Nächte",
-        "fr-FR": "Nuits non effectuées",
-        "da-DK": "Nætter ikke brugt",
-        "cs-CZ": "Nevyužité noci",
-        "ar-EG": "ليالٍ لم تُقضَ",
+        "fr-FR": "Nuits non passées",
+        "da-DK": "Ubrugte nætter",
+        "cs-CZ": "Nestrávené noci",
+        "ar-EG": "ليالٍ لم يُقَم فيها",
         "zh-CN": "未入住的夜晚",
         "zh-TW": "未入住的夜晚"
       },
@@ -8113,8 +8113,8 @@
         "de-DE": "Hausinfos",
         "fr-FR": "Infos de la maison",
         "da-DK": "Husnoter",
-        "cs-CZ": "Poznámky domu",
-        "ar-EG": "ملاحظات المنزل",
+        "cs-CZ": "Poznámky hotelu",
+        "ar-EG": "ملاحظات الفندق",
         "zh-CN": "住宿须知",
         "zh-TW": "住宿須知"
       },
@@ -10266,7 +10266,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "预订参考号",
+                    "label": "您的预订号",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -10379,7 +10379,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "預訂參考號",
+                    "label": "訂房編號",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -10468,7 +10468,7 @@
               "block": "email.button",
               "id": "see",
               "data": {
-                "label": "查看您的預訂",
+                "label": "查看您的訂房",
                 "url": "{{manage_url}}#{{stay.link_token}}"
               }
             }
@@ -11156,7 +11156,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "预订参考号",
+                    "label": "您的预订号",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -11261,7 +11261,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "預訂參考號",
+                    "label": "訂房編號",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -11603,7 +11603,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "预订参考号",
+                    "label": "您的预订号",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -11639,7 +11639,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "預訂參考號",
+                    "label": "訂房編號",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -11914,7 +11914,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "预订参考号",
+                    "label": "您的预订号",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -11950,7 +11950,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "預訂參考號",
+                    "label": "訂房編號",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -12223,7 +12223,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "预订参考号",
+                    "label": "您的预订号",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -12259,7 +12259,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "預訂參考號",
+                    "label": "訂房編號",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -12534,7 +12534,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "预订参考号",
+                    "label": "您的预订号",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -12570,7 +12570,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "預訂參考號",
+                    "label": "訂房編號",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -12597,7 +12597,7 @@
         "en-US": "Cancelled by the house",
         "de-DE": "Vom Haus storniert",
         "fr-FR": "Annulé par l'hôtel",
-        "da-DK": "Afbestilt af huset",
+        "da-DK": "Afbestilt af hotellet",
         "cs-CZ": "Zrušeno hotelem",
         "ar-EG": "ألغاه الفندق",
         "zh-CN": "酒店取消",
@@ -12723,7 +12723,7 @@
           "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Vous recevez cet e-mail parce que vous avez réservé une chambre chez nous."
         },
         "da-DK": {
-          "subject": "Vi har måttet afbestille {{stay.ref}}",
+          "subject": "Vi har måttet aflyse {{stay.ref}}",
           "preheader": "Vi beklager meget · der opkræves intet",
           "blocks": [
             {
@@ -12750,7 +12750,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "Vi har måttet afbestille din reservation {{stay.ref}} ({{room_type.name}}, {{stay.arrive.day_month}} til {{stay.depart.day_month}}). Vi beklager meget. Der opkræves intet.",
+                  "Vi har måttet aflyse din reservation {{stay.ref}} ({{room_type.name}}, {{stay.arrive.day_month}} til {{stay.depart.day_month}}). Vi beklager meget. Der opkræves intet.",
                   "Ring til os på {{practice.phone}}, så hjælper vi dig med at finde et andet værelse."
                 ]
               }
@@ -12847,7 +12847,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "预订参考号",
+                    "label": "您的预订号",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -12883,7 +12883,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "預訂參考號",
+                    "label": "訂房編號",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -12909,12 +12909,12 @@
       "name": {
         "en-US": "We missed you",
         "de-DE": "Wir haben Sie vermisst",
-        "fr-FR": "Vous nous avez manqué",
+        "fr-FR": "Nous vous attendions",
         "da-DK": "Vi savnede dig",
         "cs-CZ": "Chyběli jste nám",
-        "ar-EG": "افتقدناك",
-        "zh-CN": "我们错过了您",
-        "zh-TW": "我們錯過了您"
+        "ar-EG": "كنا بانتظارك",
+        "zh-CN": "未能等到您",
+        "zh-TW": "我們沒等到您"
       },
       "vars": [
         "practice.address",
@@ -13025,7 +13025,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "Nous avons gardé votre chambre pour le {{stay.arrive.day_month}}, mais vous n'êtes pas arrivé : la réservation {{stay.ref}} est donc marquée comme non présentée. Vous ne payez rien.",
+                  "Nous avons gardé votre chambre pour le {{stay.arrive.day_month}}, mais vous n'êtes pas arrivé : la réservation {{stay.ref}} est donc marquée comme no-show. Vous ne payez rien.",
                   "Si vous êtes encore en route, appelez-nous au {{practice.phone}}."
                 ]
               }
@@ -13097,7 +13097,7 @@
               "id": "body",
               "data": {
                 "paras": [
-                  "Drželi jsme vám pokoj na {{stay.arrive.day_month}}, ale nedorazili jste, proto je rezervace {{stay.ref}} označena jako nedostavení. Nic se neúčtuje.",
+                  "Drželi jsme vám pokoj na {{stay.arrive.day_month}}, ale nedorazili jste, proto je rezervace {{stay.ref}} označena jako nedostavení se. Nic se neúčtuje.",
                   "Pokud jste ještě na cestě, zavolejte nám na {{practice.phone}}."
                 ]
               }
@@ -13106,14 +13106,14 @@
           "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Tento e-mail dostáváte, protože jste si u nás rezervovali pokoj."
         },
         "ar-EG": {
-          "subject": "افتقدناك — {{stay.ref}}",
+          "subject": "كنا بانتظارك — {{stay.ref}}",
           "preheader": "لا يُحتسب أي مبلغ",
           "blocks": [
             {
               "block": "email.heading",
               "id": "heading",
               "data": {
-                "text": "افتقدناك يا {{recipient.first_name}}."
+                "text": "كنا بانتظارك يا {{recipient.first_name}}."
               }
             },
             {
@@ -13142,14 +13142,14 @@
           "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. تصلك هذه الرسالة لأنك حجزت غرفة لدينا."
         },
         "zh-CN": {
-          "subject": "我们错过了您 — {{stay.ref}}",
+          "subject": "我们未能等到您 — {{stay.ref}}",
           "preheader": "不收取任何费用",
           "blocks": [
             {
               "block": "email.heading",
               "id": "heading",
               "data": {
-                "text": "{{recipient.first_name}}，我们错过了您。"
+                "text": "{{recipient.first_name}}，我们没能等到您。"
               }
             },
             {
@@ -13158,7 +13158,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "预订参考号",
+                    "label": "您的预订号",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -13178,14 +13178,14 @@
           "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到此邮件，是因为您在我们这里预订了房间。"
         },
         "zh-TW": {
-          "subject": "我們錯過了您 — {{stay.ref}}",
+          "subject": "我們沒等到您 — {{stay.ref}}",
           "preheader": "不收取任何費用",
           "blocks": [
             {
               "block": "email.heading",
               "id": "heading",
               "data": {
-                "text": "{{recipient.first_name}}，我們錯過了您。"
+                "text": "{{recipient.first_name}}，我們沒等到您。"
               }
             },
             {
@@ -13194,7 +13194,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "預訂參考號",
+                    "label": "訂房編號",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -13662,7 +13662,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "预订参考号",
+                    "label": "您的预订号",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -13729,7 +13729,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "預訂參考號",
+                    "label": "訂房編號",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -13741,7 +13741,7 @@
               "data": {
                 "paras": [
                   "變更前：{{was.arrive.day_month}} 至 {{was.depart.day_month}}。",
-                  "現在：{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}。您的附加項目隨新日期調整。"
+                  "現在：{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}。您的加購項目會跟著新日期調整。"
                 ]
               }
             },
@@ -14084,7 +14084,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "预订参考号",
+                    "label": "您的预订号",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -14128,7 +14128,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "預訂參考號",
+                    "label": "訂房編號",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -14148,7 +14148,7 @@
               "block": "email.button",
               "id": "see",
               "data": {
-                "label": "查看您的預訂",
+                "label": "查看您的訂房",
                 "url": "{{manage_url}}#{{stay.link_token}}"
               }
             }
@@ -14166,13 +14166,13 @@
       },
       "name": {
         "en-US": "The folio",
-        "de-DE": "Das Folio",
+        "de-DE": "Die Gastrechnung",
         "fr-FR": "La note du séjour",
-        "da-DK": "Folioen",
+        "da-DK": "Opholdsregningen",
         "cs-CZ": "Účet pobytu",
-        "ar-EG": "كشف الحساب",
-        "zh-CN": "消费明细",
-        "zh-TW": "消費明細"
+        "ar-EG": "حساب الإقامة",
+        "zh-CN": "住宿结算单",
+        "zh-TW": "住宿結算單"
       },
       "vars": [
         "practice.address",
@@ -14254,7 +14254,7 @@
           "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us."
         },
         "de-DE": {
-          "subject": "Ihr Folio von {{appName}} – {{stay.ref}}",
+          "subject": "Ihre Gastrechnung von {{appName}} – {{stay.ref}}",
           "preheader": "{{stay.arrive.day_month}} bis {{stay.depart.day_month}} · {{stay.total.money}}",
           "blocks": [
             {
@@ -14281,7 +14281,7 @@
               "id": "attached",
               "data": {
                 "paras": [
-                  "Ihr Folio für {{room_type.name}}, {{stay.arrive.day_month}} bis {{stay.depart.day_month}}, liegt bei."
+                  "Ihre Gastrechnung für {{room_type.name}}, {{stay.arrive.day_month}} bis {{stay.depart.day_month}}, liegt bei."
                 ],
                 "withAttachment": true
               }
@@ -14384,7 +14384,7 @@
           "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Vous recevez cet e-mail parce que vous avez réservé une chambre chez nous."
         },
         "da-DK": {
-          "subject": "Din folio fra {{appName}} – {{stay.ref}}",
+          "subject": "Din opholdsregning fra {{appName}} – {{stay.ref}}",
           "preheader": "{{stay.arrive.day_month}} til {{stay.depart.day_month}} · {{stay.total.money}}",
           "blocks": [
             {
@@ -14411,7 +14411,7 @@
               "id": "attached",
               "data": {
                 "paras": [
-                  "Din folio for {{room_type.name}}, {{stay.arrive.day_month}} til {{stay.depart.day_month}}, er vedhæftet."
+                  "Din opholdsregning for {{room_type.name}}, {{stay.arrive.day_month}} til {{stay.depart.day_month}}, er vedhæftet."
                 ],
                 "withAttachment": true
               }
@@ -14514,7 +14514,7 @@
           "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Tento e-mail dostáváte, protože jste si u nás rezervovali pokoj."
         },
         "ar-EG": {
-          "subject": "كشف حسابك من {{appName}} — {{stay.ref}}",
+          "subject": "حساب إقامتك من {{appName}} — {{stay.ref}}",
           "preheader": "{{stay.arrive.day_month}} إلى {{stay.depart.day_month}} · {{stay.total.money}}",
           "blocks": [
             {
@@ -14541,7 +14541,7 @@
               "id": "attached",
               "data": {
                 "paras": [
-                  "مرفق كشف حسابك لـ {{room_type.name}}، من {{stay.arrive.day_month}} إلى {{stay.depart.day_month}}."
+                  "مرفق حساب إقامتك لـ {{room_type.name}}، من {{stay.arrive.day_month}} إلى {{stay.depart.day_month}}."
                 ],
                 "withAttachment": true
               }
@@ -14579,7 +14579,7 @@
           "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. تصلك هذه الرسالة لأنك حجزت غرفة لدينا."
         },
         "zh-CN": {
-          "subject": "您在{{appName}}的消费明细 — {{stay.ref}}",
+          "subject": "您在{{appName}}的住宿结算单 — {{stay.ref}}",
           "preheader": "{{stay.arrive.day_month}} 至 {{stay.depart.day_month}} · {{stay.total.money}}",
           "blocks": [
             {
@@ -14595,7 +14595,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "预订参考号",
+                    "label": "您的预订号",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -14606,7 +14606,7 @@
               "id": "attached",
               "data": {
                 "paras": [
-                  "附件是您在{{room_type.name}}（{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}）的消费明细。"
+                  "附件是您入住{{room_type.name}}（{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}）的住宿结算单。"
                 ],
                 "withAttachment": true
               }
@@ -14644,7 +14644,7 @@
           "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到此邮件，是因为您在我们这里预订了房间。"
         },
         "zh-TW": {
-          "subject": "您在{{appName}}的消費明細 — {{stay.ref}}",
+          "subject": "您在{{appName}}的住宿結算單 — {{stay.ref}}",
           "preheader": "{{stay.arrive.day_month}} 至 {{stay.depart.day_month}} · {{stay.total.money}}",
           "blocks": [
             {
@@ -14660,7 +14660,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "預訂參考號",
+                    "label": "訂房編號",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -14671,7 +14671,7 @@
               "id": "attached",
               "data": {
                 "paras": [
-                  "附件是您在{{room_type.name}}（{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}）的消費明細。"
+                  "附件是您入住{{room_type.name}}（{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}）的住宿結算單。"
                 ],
                 "withAttachment": true
               }
@@ -14719,13 +14719,13 @@
       },
       "name": {
         "en-US": "The folio so far",
-        "de-DE": "Das Folio bisher",
+        "de-DE": "Die Zwischenrechnung",
         "fr-FR": "La note du séjour à ce jour",
-        "da-DK": "Folioen indtil nu",
-        "cs-CZ": "Účet pobytu zatím",
-        "ar-EG": "كشف الحساب حتى الآن",
-        "zh-CN": "目前的消费明细",
-        "zh-TW": "目前的消費明細"
+        "da-DK": "Opholdsregningen indtil nu",
+        "cs-CZ": "Průběžný účet pobytu",
+        "ar-EG": "حساب الإقامة حتى الآن",
+        "zh-CN": "目前的住宿结算单",
+        "zh-TW": "目前的住宿結算單"
       },
       "vars": [
         "practice.address",
@@ -14807,14 +14807,14 @@
           "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us."
         },
         "de-DE": {
-          "subject": "Ihr Folio bisher – {{stay.ref}}",
+          "subject": "Ihre Zwischenrechnung – {{stay.ref}}",
           "preheader": "{{stay.balance.money}} noch offen",
           "blocks": [
             {
               "block": "email.heading",
               "id": "heading",
               "data": {
-                "text": "Ihr Folio bisher, {{recipient.first_name}}."
+                "text": "Ihre Zwischenrechnung, {{recipient.first_name}}."
               }
             },
             {
@@ -14834,7 +14834,7 @@
               "id": "attached",
               "data": {
                 "paras": [
-                  "Ihr Folio für {{room_type.name}}, {{stay.arrive.day_month}} bis {{stay.depart.day_month}}, liegt bei."
+                  "Ihre Gastrechnung für {{room_type.name}}, {{stay.arrive.day_month}} bis {{stay.depart.day_month}}, liegt bei."
                 ],
                 "withAttachment": true
               }
@@ -14937,14 +14937,14 @@
           "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Vous recevez cet e-mail parce que vous avez réservé une chambre chez nous."
         },
         "da-DK": {
-          "subject": "Din folio indtil nu – {{stay.ref}}",
+          "subject": "Din opholdsregning indtil nu – {{stay.ref}}",
           "preheader": "{{stay.balance.money}} mangler at blive betalt",
           "blocks": [
             {
               "block": "email.heading",
               "id": "heading",
               "data": {
-                "text": "Din folio indtil nu, {{recipient.first_name}}."
+                "text": "Din opholdsregning indtil nu, {{recipient.first_name}}."
               }
             },
             {
@@ -14964,7 +14964,7 @@
               "id": "attached",
               "data": {
                 "paras": [
-                  "Din folio for {{room_type.name}}, {{stay.arrive.day_month}} til {{stay.depart.day_month}}, er vedhæftet."
+                  "Din opholdsregning for {{room_type.name}}, {{stay.arrive.day_month}} til {{stay.depart.day_month}}, er vedhæftet."
                 ],
                 "withAttachment": true
               }
@@ -15067,14 +15067,14 @@
           "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Tento e-mail dostáváte, protože jste si u nás rezervovali pokoj."
         },
         "ar-EG": {
-          "subject": "كشف حسابك حتى الآن — {{stay.ref}}",
+          "subject": "حساب إقامتك حتى الآن — {{stay.ref}}",
           "preheader": "{{stay.balance.money}} متبقية للسداد",
           "blocks": [
             {
               "block": "email.heading",
               "id": "heading",
               "data": {
-                "text": "كشف حسابك حتى الآن يا {{recipient.first_name}}."
+                "text": "حساب إقامتك حتى الآن يا {{recipient.first_name}}."
               }
             },
             {
@@ -15094,7 +15094,7 @@
               "id": "attached",
               "data": {
                 "paras": [
-                  "مرفق كشف حسابك لـ {{room_type.name}}، من {{stay.arrive.day_month}} إلى {{stay.depart.day_month}}."
+                  "مرفق حساب إقامتك لـ {{room_type.name}}، من {{stay.arrive.day_month}} إلى {{stay.depart.day_month}}."
                 ],
                 "withAttachment": true
               }
@@ -15132,14 +15132,14 @@
           "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. تصلك هذه الرسالة لأنك حجزت غرفة لدينا."
         },
         "zh-CN": {
-          "subject": "您目前的消费明细 — {{stay.ref}}",
+          "subject": "您目前的住宿结算单 — {{stay.ref}}",
           "preheader": "待结清 {{stay.balance.money}}",
           "blocks": [
             {
               "block": "email.heading",
               "id": "heading",
               "data": {
-                "text": "{{recipient.first_name}}，这是您目前的消费明细。"
+                "text": "{{recipient.first_name}}，这是您目前的住宿结算单。"
               }
             },
             {
@@ -15148,7 +15148,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "预订参考号",
+                    "label": "您的预订号",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -15159,7 +15159,7 @@
               "id": "attached",
               "data": {
                 "paras": [
-                  "附件是您在{{room_type.name}}（{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}）的消费明细。"
+                  "附件是您入住{{room_type.name}}（{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}）的住宿结算单。"
                 ],
                 "withAttachment": true
               }
@@ -15197,14 +15197,14 @@
           "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到此邮件，是因为您在我们这里预订了房间。"
         },
         "zh-TW": {
-          "subject": "您目前的消費明細 — {{stay.ref}}",
+          "subject": "您目前的住宿結算單 — {{stay.ref}}",
           "preheader": "待結清 {{stay.balance.money}}",
           "blocks": [
             {
               "block": "email.heading",
               "id": "heading",
               "data": {
-                "text": "{{recipient.first_name}}，這是您目前的消費明細。"
+                "text": "{{recipient.first_name}}，這是您目前的住宿結算單。"
               }
             },
             {
@@ -15213,7 +15213,7 @@
               "data": {
                 "items": [
                   {
-                    "label": "預訂參考號",
+                    "label": "訂房編號",
                     "value": "{{stay.ref}}"
                   }
                 ]
@@ -15224,7 +15224,7 @@
               "id": "attached",
               "data": {
                 "paras": [
-                  "附件是您在{{room_type.name}}（{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}）的消費明細。"
+                  "附件是您入住{{room_type.name}}（{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}）的住宿結算單。"
                 ],
                 "withAttachment": true
               }
