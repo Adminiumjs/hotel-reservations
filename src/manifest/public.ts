@@ -239,7 +239,9 @@ export const PUBLIC_ACCESS = [
       { column: "guests", lte: { via: "room_type_id", column: "sleeps" } },
       { column: "guests", lte: { via: "room_id", column: "sleeps" } },
     ],
-    anonymous: { perValue: { columns: ["email"], n: 10 }, perKeyHour: 300, perIpHour: 10, plainText: ["first_name", "last_name", "note", "mobile"] },
+    // Plain text (no digits, no web address) holds only the names, which the emails print. The mobile is judged as a phone,
+    // and the note — read by the desk alone, never mailed — carries the times and numbers guests write ("after 9pm").
+    anonymous: { perValue: { columns: ["email"], n: 10 }, perKeyHour: 300, perIpHour: 10, plainText: ["first_name", "last_name"] },
     children: {
       stay_extras: { via: "stay_id", writable: ["extra_id"], select: EXTRA_LINE_SELECT.filter((c) => c !== "stay_id"), max: 8 },
     },

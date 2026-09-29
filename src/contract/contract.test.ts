@@ -182,6 +182,9 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
             first_name: "Elin",
             last_name: "Marsh",
             email: "elin.marsh@wrenhouse.test",
+            // A mobile as guests type one, and a note with times and numbers in it: both must go through.
+            mobile: "(207) 555-0150",
+            note: "On the 18:40 ferry, so after 9pm. Room 12 again if it is free; 2 of us.",
             arrival_time: "16:00",
             client_key: "c".repeat(43),
           },
@@ -189,6 +192,11 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         };
         const quote = ok(await guest.post<{ data: Record<string, unknown> }>(`/api/v1/public/records/${door}/dry-run`, body)).data;
         expect(money(quote["total"])).toBe("440.36");
+        // A mobile no phone could ring, and a name with a digit in it: refused, each naming its column.
+        for (const [column, value] of [["mobile", "ring me at the desk"], ["last_name", "Marsh 3"]] as const) {
+          const refused = await guest.post<{ error: { code: string; params?: { column?: string } } }>(`/api/v1/public/records/${door}/dry-run`, { ...body, values: { ...body.values, [column]: value } });
+          expect([refused.status, refused.body.error?.code, refused.body.error?.params?.column], `${column}: ${JSON.stringify(refused.body).slice(0, 300)}`).toEqual([400, "PUBLIC_WRITE_REFUSED", column]);
+        }
         const proof = async () => {
           const challenge = ok(await guest.get<{ data: { id: string; salt: string; difficulty: number } }>("/api/v1/public/challenge?purpose=write")).data;
           return { "x-adminium-proof": `${challenge.id}.${solve(challenge.salt, challenge.difficulty)}` };

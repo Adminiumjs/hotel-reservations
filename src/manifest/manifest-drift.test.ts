@@ -165,7 +165,7 @@ describe("the guest's writes are the few the site needs", () => {
       perValue: { columns: ["email"], n: 10 },
       perKeyHour: 300,
       perIpHour: 10,
-      plainText: ["first_name", "last_name", "note", "mobile"],
+      plainText: ["first_name", "last_name"],
     });
   });
 

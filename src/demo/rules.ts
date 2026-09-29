@@ -1294,9 +1294,7 @@ export const MANIFEST_RULES = {
         "perIpHour": 10,
         "plainText": [
           "first_name",
-          "last_name",
-          "note",
-          "mobile"
+          "last_name"
         ]
       },
       "children": {
