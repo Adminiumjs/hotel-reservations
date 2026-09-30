@@ -20,7 +20,7 @@ because $1,099.03 is still on the folio.
 
 ## What it needs
 
-- Adminium **0.3.6** or later, on SQLite, Postgres or MySQL.
+- Adminium **0.3.8** or later, on SQLite, Postgres or MySQL.
 - Nothing else. **Invoices & Receipts** is offered at install: with it, the
   desk prints a guest's folio and emails it at check-out, and each payment has
   a receipt.
