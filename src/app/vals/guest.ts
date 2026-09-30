@@ -542,7 +542,7 @@ export function guestVals(app: HouseApp, w: WorldV): V {
   const groups = [
     { id: "g1", title: tr("Coming up"), rows: mine.filter((x) => x.state === "booked").map(rowOf) },
     { id: "g2", title: tr("With us now"), rows: mine.filter((x) => x.state === "in").map(rowOf) },
-    { id: "g3", title: tr("Before"), rows: mine.filter((x) => !(x.state === "in" || x.state === "booked")).map(rowOf) },
+    { id: "g3", title: tr("Past stays"), rows: mine.filter((x) => !(x.state === "in" || x.state === "booked")).map(rowOf) },
   ].filter((g) => g.rows.length);
   const offers = app.ports.guest?.offers ?? { newLink: true, signOutEverywhere: true, forget: true };
   v["ls"] = {

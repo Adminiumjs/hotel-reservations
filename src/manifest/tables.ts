@@ -550,7 +550,7 @@ export const TABLES: Table[] = [
       // The day the desk expects them, when they rang to say they would be late.
       date("expect_by", "Expected", { ...opt, rules: { notBefore: { column: "arrive" } } }),
       language("language"),
-      choice("channel", "Made", { online: "Online", desk: "At the desk" }, { default: "online" }),
+      choice("channel", "Booked via", { online: "Online", desk: "At the desk" }, { default: "online" }),
       // The money, all of it worked out here.
       money("room_total", "Room", {
         perNight: {
@@ -741,12 +741,12 @@ export const TABLES: Table[] = [
       choice("kind", "Kind", { taken: "Taken", given_back: "Given back" }, { default: "taken", tones: { taken: "pos", given_back: "warn" } }),
       price("amount", "Amount", { rules: { validation: { min: 0.01 } } }),
       choice("method", "How", { card: "Card", cash: "Cash", transfer: "Transfer" }, { default: "card" }),
-      text("reference", 80, "Reference", opt),
+      text("reference", 80, "Payment reference", opt),
       // Money handed back says why.
       text("note", 240, "Note", { ...opt, rules: { requiredWhen: { column: "kind", in: ["given_back"] } } }),
       // What it does to what was paid: money given back takes it off.
       money("signed", "Counted", { formula: { if: [{ eq: ["kind", "given_back"] }, { sub: [0, "amount"] }, "amount"] } }),
-      date("paid_on", "On", { ...opt, rules: stamp("today", onCreate) }),
+      date("paid_on", "Paid on", { ...opt, rules: stamp("today", onCreate) }),
       at("recorded_at", "Recorded", { ...opt, rules: stamp("now", onCreate) }),
       text("recorded_by", 80, "Recorded by", { ...opt, rules: stamp("user-name", onCreate) }),
       bool("voided", "Voided", false),

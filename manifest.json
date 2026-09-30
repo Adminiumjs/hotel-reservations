@@ -782,8 +782,8 @@
               "da-DK": "Første referencenummer",
               "cs-CZ": "První číslo rezervace",
               "ar-EG": "رقم المرجع الأول",
-              "zh-CN": "起始参考号",
-              "zh-TW": "起始參考號"
+              "zh-CN": "起始预订号",
+              "zh-TW": "起始訂房編號"
             },
             "default": 1001,
             "rules": {
@@ -803,8 +803,8 @@
               "da-DK": "Referencepræfiks",
               "cs-CZ": "Předpona čísla",
               "ar-EG": "بادئة المرجع",
-              "zh-CN": "参考号前缀",
-              "zh-TW": "參考號前綴"
+              "zh-CN": "预订号前缀",
+              "zh-TW": "訂房編號前綴"
             },
             "default": "R-"
           },
@@ -2582,8 +2582,8 @@
               "da-DK": "Reference (løbende)",
               "cs-CZ": "Pořadové číslo",
               "ar-EG": "المرجع (متسلسل)",
-              "zh-CN": "参考号（流水）",
-              "zh-TW": "參考號（流水）"
+              "zh-CN": "预订号（流水）",
+              "zh-TW": "訂房編號（流水）"
             },
             "nullable": true,
             "rules": {
@@ -2607,8 +2607,8 @@
               "da-DK": "Reference",
               "cs-CZ": "Číslo rezervace",
               "ar-EG": "المرجع",
-              "zh-CN": "参考号",
-              "zh-TW": "參考號"
+              "zh-CN": "预订号",
+              "zh-TW": "訂房編號"
             },
             "nullable": true,
             "unique": true,
@@ -3061,14 +3061,14 @@
               "desk"
             ],
             "label": {
-              "en-US": "Made",
-              "de-DE": "Gebucht",
-              "fr-FR": "Réservé",
-              "da-DK": "Oprettet",
-              "cs-CZ": "Vytvořeno",
-              "ar-EG": "أُجري",
-              "zh-CN": "预订时间",
-              "zh-TW": "預訂時間"
+              "en-US": "Booked via",
+              "de-DE": "Buchungskanal",
+              "fr-FR": "Canal de réservation",
+              "da-DK": "Bookingkanal",
+              "cs-CZ": "Způsob rezervace",
+              "ar-EG": "قناة الحجز",
+              "zh-CN": "预订渠道",
+              "zh-TW": "預訂管道"
             },
             "default": "online",
             "rules": {
@@ -3568,11 +3568,11 @@
             "type": "timestamptz",
             "label": {
               "en-US": "Made",
-              "de-DE": "Gebucht",
-              "fr-FR": "Réservé",
+              "de-DE": "Gebucht am",
+              "fr-FR": "Réservé le",
               "da-DK": "Oprettet",
               "cs-CZ": "Vytvořeno",
-              "ar-EG": "أُجري",
+              "ar-EG": "تاريخ الحجز",
               "zh-CN": "预订时间",
               "zh-TW": "預訂時間"
             },
@@ -5182,14 +5182,14 @@
             "type": "text",
             "maxLength": 80,
             "label": {
-              "en-US": "Reference",
-              "de-DE": "Referenz",
-              "fr-FR": "Référence",
-              "da-DK": "Reference",
-              "cs-CZ": "Číslo rezervace",
-              "ar-EG": "المرجع",
-              "zh-CN": "参考号",
-              "zh-TW": "參考號"
+              "en-US": "Payment reference",
+              "de-DE": "Zahlungsreferenz",
+              "fr-FR": "Référence du paiement",
+              "da-DK": "Betalingsreference",
+              "cs-CZ": "Reference platby",
+              "ar-EG": "مرجع الدفع",
+              "zh-CN": "付款参考号",
+              "zh-TW": "付款參考號"
             },
             "nullable": true
           },
@@ -5256,14 +5256,14 @@
             "ref": "paid_on",
             "type": "date",
             "label": {
-              "en-US": "On",
-              "de-DE": "Aktiv",
-              "fr-FR": "Actif",
-              "da-DK": "Aktiv",
-              "cs-CZ": "Aktivní",
-              "ar-EG": "مفعّل",
-              "zh-CN": "启用",
-              "zh-TW": "啟用"
+              "en-US": "Paid on",
+              "de-DE": "Bezahlt am",
+              "fr-FR": "Payé le",
+              "da-DK": "Betalt den",
+              "cs-CZ": "Zaplaceno dne",
+              "ar-EG": "تاريخ الدفع",
+              "zh-CN": "付款日期",
+              "zh-TW": "付款日期"
             },
             "nullable": true,
             "rules": {
