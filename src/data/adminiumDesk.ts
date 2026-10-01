@@ -22,7 +22,7 @@ import type { DeskHouse, DeskPerson, DeskPort, Folio, StayWithLines } from "./po
 import { SessionPortError, type SessionTransport } from "./sessionSource.ts";
 import type { StaffConfig } from "../staffConnection.ts";
 import { addDays, venueDay } from "../lib/venueTime.ts";
-import { ApiError, type Id, type LiveFrame, type Night, type NightCount, type QuoteReply, type Row, type StayBody, type StayReply } from "./wire.ts";
+import { ApiError, yes, type Id, type LiveFrame, type Night, type NightCount, type QuoteReply, type Row, type StayBody, type StayReply } from "./wire.ts";
 
 /** The app's key: its roles are named `hotel-<role>`, its tables `hotel_<table>` when the server does not say. */
 const APP_KEY = "hotel";
@@ -261,7 +261,7 @@ export class AdminiumDesk implements DeskPort {
   /** A credit this stay already has for these nights: a write sent again after it was made finds it, and makes no second. */
   private async liveCredit(id: Id, reason: "left_early" | "missed", from: unknown): Promise<Row | undefined> {
     const credits = await this.list("stay_credits", where("stay_id", id));
-    return credits.find((c) => c["reason"] === reason && String(c["from_date"]) === String(from) && c["voided"] !== true && c["voided"] !== 1);
+    return credits.find((c) => c["reason"] === reason && String(c["from_date"]) === String(from) && !yes(c["voided"]));
   }
 
   guestByEmail(email: string) {

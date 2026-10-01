@@ -9,7 +9,7 @@
  * `balance`); nothing here prices anything.
  */
 import type { DeskHouse, House, StayWithLines } from "../data/ports.ts";
-import type { Id, Row } from "../data/wire.ts";
+import { yes, type Id, type Row } from "../data/wire.ts";
 import { venueDay, venueMinutes } from "../lib/venueTime.ts";
 import { tr } from "../i18n/tr.ts";
 import { fsi } from "./fmt.ts";
@@ -327,7 +327,7 @@ export function worldOf(house: House | DeskHouse, stays: StayWithLines[], zone: 
       language: s["language"] === null || s["language"] === undefined ? null : str(s["language"]),
       state,
       // A cancellation by the house is never late (the house moved, not the guest).
-      late: s["late_cancel"] === true && s["cancel_code"] !== "house",
+      late: yes(s["late_cancel"]) && s["cancel_code"] !== "house",
       cancelCode: s["cancel_code"] === null || s["cancel_code"] === undefined ? null : str(s["cancel_code"]),
       expectBy: s["expect_by"] === null || s["expect_by"] === undefined ? null : ymd(s["expect_by"]),
       channel: str(s["channel"]) || "online",
@@ -347,7 +347,7 @@ export function worldOf(house: House | DeskHouse, stays: StayWithLines[], zone: 
         note: str(c["note"]),
         amount: n(c["amount"]),
         by: str(c["recorded_by"]),
-        voided: c["voided"] === true,
+        voided: yes(c["voided"]),
         voidReason: str(c["void_reason"]),
       })),
       credits: w.credits.map((c) => ({
@@ -357,7 +357,7 @@ export function worldOf(house: House | DeskHouse, stays: StayWithLines[], zone: 
         nights: n(c["nights"]),
         amount: n(c["amount"]),
         reason: (str(c["reason"]) || "left_early") as CreditV["reason"],
-        voided: c["voided"] === true,
+        voided: yes(c["voided"]),
         voidReason: str(c["void_reason"]),
         date: momentOf(c["created_at"], zone)?.date ?? ymd(c["from_date"]),
       })),
@@ -368,7 +368,7 @@ export function worldOf(house: House | DeskHouse, stays: StayWithLines[], zone: 
         method: str(p["method"]),
         amount: n(p["amount"]),
         by: str(p["recorded_by"]),
-        voided: p["voided"] === true,
+        voided: yes(p["voided"]),
         voidReason: str(p["void_reason"]),
         refNo: str(p["reference"]),
         note: str(p["note"]),

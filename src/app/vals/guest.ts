@@ -72,6 +72,9 @@ export function extraDetail(per: string, guests: number, n: number, lateUntil: s
 }
 
 /** The nightly rates of a quote, as the rate lists draw them. */
+/** Said under a total Adminium did not answer: the stay can still be reserved, and its price is on the confirmation. */
+const NO_PRICE = () => tr("We could not work out the price just now. You can still reserve — the total is on your confirmation.");
+
 export function nightList(q: QuoteReply | undefined) {
   return (q?.nights ?? []).map((n) => ({ date: fDW(n.date), rate: money(n.rate), hasTags: n.tags.length > 0, tags: n.tags.join(" · ") }));
 }
@@ -354,7 +357,10 @@ export function guestVals(app: HouseApp, w: WorldV): V {
     const a = byType.get(pt.id);
     const left = small || problem !== null ? 0 : leftOf(a);
     const priced = s.searched;
-    const q = priced && left > 0 ? app.quote(pt.id, sr.arrive, sr.depart, guests).value : undefined;
+    const qa = priced && left > 0 ? app.quote(pt.id, sr.arrive, sr.depart, guests) : undefined;
+    const q = qa?.value;
+    // Asked and not answered: a dash, and a line saying so — never "…" for ever.
+    const wait = iso(qa !== undefined && q === undefined && qa.error ? "—" : "…");
     const earliest = !small && left === 0 ? a?.earliest ?? null : null;
     const mine = rooms.filter((r) => r.type === pt.id);
     v["rt"] = {
@@ -384,9 +390,10 @@ export function guestVals(app: HouseApp, w: WorldV): V {
       numbers: iso(mine.map((r) => r.n).join("   ")),
       floors: floorSpread(mine.map((r) => r.floor)),
       howMany: tr("{n} of them in the house", { n: mine.length }),
-      subtotal: q === undefined ? iso("…") : money(q.data["subtotal"]),
-      tax: q === undefined ? iso("…") : money(q.data["tax"]),
-      total: q === undefined ? iso("…") : money(q.data["total"]),
+      subtotal: q === undefined ? wait : money(q.data["subtotal"]),
+      tax: q === undefined ? wait : money(q.data["tax"]),
+      total: q === undefined ? wait : money(q.data["total"]),
+      priceNote: qa !== undefined && q === undefined && qa.error ? NO_PRICE() : "",
       open: priced && answered && left > 0,
       soldOut: priced && answered && !small && left === 0 && problem === null,
       small: priced && small,
@@ -636,7 +643,9 @@ function reserveVals(app: HouseApp, w: WorldV, pt: TypeV, n: number, guests: num
   const sr = s.search;
   const f = s.form;
   const picked = app.pickedExtras(f);
-  const q = app.quote(pt.id, sr.arrive, sr.depart, guests, picked).value;
+  const qa = app.quote(pt.id, sr.arrive, sr.depart, guests, picked);
+  const q = qa.value;
+  const wait = iso(q === undefined && qa.error ? "—" : "…");
   const setF = (k: keyof typeof f) => (e: { target: { value: string } }) => app.setState({ form: { ...app.state.form, [k]: e.target.value } });
   const firstErr = s.formErr && !f.first.trim() ? tr("Your first name") : "";
   const lastErr = s.formErr && !f.last.trim() ? tr("Your surname") : "";
@@ -713,10 +722,11 @@ function reserveVals(app: HouseApp, w: WorldV, pt: TypeV, n: number, guests: num
       };
     }),
     nightsLabel: nights(n),
-    roomTotal: q === undefined ? iso("…") : money(q.data["room_total"]),
+    roomTotal: q === undefined ? wait : money(q.data["room_total"]),
     lines,
-    tax: q === undefined ? iso("…") : money(q.data["tax"]),
-    total: q === undefined ? iso("…") : money(q.data["total"]),
+    tax: q === undefined ? wait : money(q.data["tax"]),
+    total: q === undefined ? wait : money(q.data["total"]),
+    priceNote: q === undefined && qa.error ? NO_PRICE() : "",
     busy: s.rvBusy,
     idle: !s.rvBusy,
     btnLabel: s.rvBusy ? tr("Reserving…") : tr("Reserve the room"),

@@ -71,47 +71,51 @@ export function DeskView({ v }: { v: any }) {
               ) : null}
               {" "}
               <div style={st("position:relative;flex:1;max-inline-size:420px;min-inline-size:0")}>
-                <span data-icon="search" style={st("position:absolute;inset-inline-start:11px;inset-block-start:50%;transform:translateY(-50%);inline-size:15px;block-size:15px;color:var(--fg-subtle);display:inline-flex")}><Icon name={"search"} /></span>
-                {" "}
-                <input value={v.deskQuery ?? ""} onChange={v.onDeskQuery} onKeyDown={v.onDeskQueryKey} placeholder={tr("Name, reference or email")} aria-label={tr("Search by name, reference or email")} style={st("inline-size:100%;padding-block:9px;padding-inline:34px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2);font-size:13.5px")} />
-                {" "}
-                {v.hasResults ? (
+                {v.canSearch ? (
                   <>
-                    <div style={st("position:absolute;inset-block-start:calc(100% + 6px);inset-inline:0;background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;box-shadow:var(--shadow-lift);padding:6px;z-index:40;max-block-size:380px;overflow:auto;animation:wh-pop .14s ease-out")}>
-                      {(v.searchHits ?? []).map((h: any, i_h: number) => (
-                        <Fragment key={i_h}>
-                          <button onClick={h.go} style={st("inline-size:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:0;border-radius:9px;background:transparent;cursor:pointer;text-align:start")} className={fx("background:var(--surface-3)", null)}>
-                            <span style={st(`inline-size:26px;block-size:26px;border-radius:7px;background:${h.tint};flex:0 0 auto`)}></span>
-                            {" "}
-                            <span style={st("min-inline-size:0;flex:1")}>
-                              <span style={st("display:block;font-size:13px;font-weight:700")}>
-                                {h.name}
-                              </span>
-                              {" "}
-                              <span style={st("display:block;font-family:var(--mono);font-size:11px;color:var(--fg-subtle)")}>
-                                {h.sub}
-                              </span>
-                            </span>
-                            {" "}
-                            <span style={st(`font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${h.pillBg};color:${h.pillFg};white-space:nowrap`)}>
-                              {h.pill}
-                            </span>
+                    <span data-icon="search" style={st("position:absolute;inset-inline-start:11px;inset-block-start:50%;transform:translateY(-50%);inline-size:15px;block-size:15px;color:var(--fg-subtle);display:inline-flex")}><Icon name={"search"} /></span>
+                    {" "}
+                    <input value={v.deskQuery ?? ""} onChange={v.onDeskQuery} onKeyDown={v.onDeskQueryKey} placeholder={tr("Name, reference or email")} aria-label={tr("Search by name, reference or email")} style={st("inline-size:100%;padding-block:9px;padding-inline:34px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2);font-size:13.5px")} />
+                    {" "}
+                    {v.hasResults ? (
+                      <>
+                        <div style={st("position:absolute;inset-block-start:calc(100% + 6px);inset-inline:0;background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;box-shadow:var(--shadow-lift);padding:6px;z-index:40;max-block-size:380px;overflow:auto;animation:wh-pop .14s ease-out")}>
+                          {(v.searchHits ?? []).map((h: any, i_h: number) => (
+                            <Fragment key={i_h}>
+                              <button onClick={h.go} style={st("inline-size:100%;display:flex;align-items:center;gap:10px;padding:9px 10px;border:0;border-radius:9px;background:transparent;cursor:pointer;text-align:start")} className={fx("background:var(--surface-3)", null)}>
+                                <span style={st(`inline-size:26px;block-size:26px;border-radius:7px;background:${h.tint};flex:0 0 auto`)}></span>
+                                {" "}
+                                <span style={st("min-inline-size:0;flex:1")}>
+                                  <span style={st("display:block;font-size:13px;font-weight:700")}>
+                                    {h.name}
+                                  </span>
+                                  {" "}
+                                  <span style={st("display:block;font-family:var(--mono);font-size:11px;color:var(--fg-subtle)")}>
+                                    {h.sub}
+                                  </span>
+                                </span>
+                                {" "}
+                                <span style={st(`font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:${h.pillBg};color:${h.pillFg};white-space:nowrap`)}>
+                                  {h.pill}
+                                </span>
+                              </button>
+                            </Fragment>
+                          ))}
+                          {" "}
+                          <button onClick={v.seeAll} style={st("inline-size:100%;margin-block-start:4px;padding:10px;border:0;border-block-start:1px solid var(--border);background:transparent;color:var(--accent);font-size:12.5px;font-weight:700;cursor:pointer;text-align:start")} className={fx("background:var(--surface-2)", null)}>
+                            {v.hitsMore}
                           </button>
-                        </Fragment>
-                      ))}
-                      {" "}
-                      <button onClick={v.seeAll} style={st("inline-size:100%;margin-block-start:4px;padding:10px;border:0;border-block-start:1px solid var(--border);background:transparent;color:var(--accent);font-size:12.5px;font-weight:700;cursor:pointer;text-align:start")} className={fx("background:var(--surface-2)", null)}>
-                        {v.hitsMore}
-                      </button>
-                    </div>
-                  </>
-                ) : null}
-                {" "}
-                {v.noResults ? (
-                  <>
-                    <div role="status" style={st("position:absolute;inset-block-start:calc(100% + 6px);inset-inline:0;background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;box-shadow:var(--shadow-lift);padding:14px;z-index:40;font-size:13px;color:var(--fg-muted);animation:wh-pop .14s ease-out")}>
-                      {trx("Nobody by that name, reference or email. Try a surname, or {ref}.", { ref: <span style={st("font-family:var(--mono)")}>{v.refExample}</span> })}
-                    </div>
+                        </div>
+                      </>
+                    ) : null}
+                    {" "}
+                    {v.noResults ? (
+                      <>
+                        <div role="status" style={st("position:absolute;inset-block-start:calc(100% + 6px);inset-inline:0;background:var(--surface);border:1px solid var(--border-strong);border-radius:12px;box-shadow:var(--shadow-lift);padding:14px;z-index:40;font-size:13px;color:var(--fg-muted);animation:wh-pop .14s ease-out")}>
+                          {v.refExample ? trx("Nobody by that name, reference or email. Try a surname, or {ref}.", { ref: <span style={st("font-family:var(--mono)")}>{v.refExample}</span> }) : tr("Nobody by that name, reference or email. Try a surname.")}
+                        </div>
+                      </>
+                    ) : null}
                   </>
                 ) : null}
               </div>

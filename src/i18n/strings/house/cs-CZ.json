@@ -706,7 +706,10 @@
  "{type}, {day}: {sold} of {n} sold": "{type}, {day}: prodáno {sold} z {n}",
  "{type}: over-sold by {by} on {day} and {n} more night — someone will need moving.|{type}: over-sold by {by} on {day} and {n} more nights — someone will need moving.": "{type}: přeprodáno o {by} na noc {day} a ještě na {n} další noc — někoho bude třeba přestěhovat.|{type}: přeprodáno o {by} na noc {day} a ještě na {n} další noci — někoho bude třeba přestěhovat.|{type}: přeprodáno o {by} na noc {day} a ještě na {n} dalších nocí — někoho bude třeba přestěhovat.",
  "{type}: over-sold by {n} on {day} — someone will need moving.": "{type}: přeprodáno o {n} na noc {day} — někoho bude třeba přestěhovat.",
-  "Please shorten your note.": "Zkraťte prosím svou poznámku.",
-  "Please write your name in letters only.": "Napište prosím své jméno jen písmeny.",
-  "That does not look like a mobile number — check it, or leave it empty.": "Tohle nevypadá jako číslo mobilu — zkontrolujte ho, nebo pole nechte prázdné."
+ "Please shorten your note.": "Zkraťte prosím svou poznámku.",
+ "Please write your name in letters only.": "Napište prosím své jméno jen písmeny.",
+ "That does not look like a mobile number — check it, or leave it empty.": "Tohle nevypadá jako číslo mobilu — zkontrolujte ho, nebo pole nechte prázdné.",
+ "Nobody by that name, reference or email. Try a surname.": "Nikoho s tímto jménem, číslem rezervace ani e-mailem jsme nenašli. Zkuste příjmení.",
+ "No email was sent: {email} is a sample address.": "E-mail nebyl odeslán: {email} není skutečná adresa.",
+ "We could not work out the price just now. You can still reserve — the total is on your confirmation.": "Cenu se teď nepodařilo spočítat. Rezervovat můžete i tak — celková částka bude v potvrzení."
 }

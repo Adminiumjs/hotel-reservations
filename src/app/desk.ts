@@ -9,6 +9,7 @@
  */
 import { isApiError, type Id, type QuoteReply, type StayBody } from "../data/wire.ts";
 import { tr } from "../i18n/tr.ts";
+import { mailable } from "../lib/mail.ts";
 import { money, nightsOf, plus, strip } from "./fmt.ts";
 import { blankForm, mintKey, type HouseApp, type Nb, type View } from "./house.ts";
 import type { StV } from "./world.ts";
@@ -288,7 +289,8 @@ export async function emailFolio(app: HouseApp, st: StV): Promise<void> {
   await app.once("folio-email", () =>
     app.write(
       () => app.ports.desk!.emailFolio(st.id, soFar),
-      () => app.toast(tr("The folio is on its way to {email}.", { email: st.email })),
+      // Adminium mails no reserved address (a sample guest's): say so, not "on its way".
+      () => (mailable(st.email) ? app.toast(tr("The folio is on its way to {email}.", { email: st.email })) : app.toast(tr("No email was sent: {email} is a sample address.", { email: st.email }), "warn")),
     ),
   );
 }

@@ -708,5 +708,8 @@
   "Your details were deleted, so you were signed out.": "Dine oplysninger blev slettet, så du blev logget ud.",
   "Please shorten your note.": "Gør venligst din besked kortere.",
   "Please write your name in letters only.": "Skriv venligst dit navn kun med bogstaver.",
-  "That does not look like a mobile number — check it, or leave it empty.": "Det ligner ikke et mobilnummer – tjek det, eller lad feltet stå tomt."
+  "That does not look like a mobile number — check it, or leave it empty.": "Det ligner ikke et mobilnummer – tjek det, eller lad feltet stå tomt.",
+  "Nobody by that name, reference or email. Try a surname.": "Ingen med det navn, den reference eller den e-mail. Prøv et efternavn.",
+  "No email was sent: {email} is a sample address.": "Der blev ikke sendt nogen e-mail: {email} er en eksempeladresse.",
+  "We could not work out the price just now. You can still reserve — the total is on your confirmation.": "Vi kunne ikke beregne prisen lige nu. Du kan stadig reservere — det samlede beløb står i din bekræftelse."
 }

@@ -75,7 +75,7 @@ export function renderVals(app: HouseApp): V {
     telHref: H?.tel ?? "",
     address: H?.address ?? "",
     houseName: H?.name ?? "",
-    footLine: H === undefined ? "" : `© ${app.day.slice(0, 4)} ${H.name} · ${H.address}`,
+    footLine: H === undefined ? "" : [`© ${app.day.slice(0, 4)} ${H.name}`.trim(), H.address].filter((part) => part !== "").join(" · "),
     taxLabel: H === undefined ? "" : taxWords(H.taxLabel, H.taxRate),
     clockShort: iso(`${strip(fDW(app.day))} · ${strip(fT(app.time))}`),
     clockLong: `${fLong(app.day)}, ${strip(fT(app.time))}`,

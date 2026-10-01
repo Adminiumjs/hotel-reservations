@@ -708,5 +708,8 @@
   "{type}: over-sold by {n} on {day} — someone will need moving.": "{type}：{day} 超賣 {n} 間 — 需要有人換房。",
   "Please shorten your note.": "請縮短您的留言。",
   "Please write your name in letters only.": "請只用字母或文字填寫您的姓名。",
-  "That does not look like a mobile number — check it, or leave it empty.": "這看起來不像手機號碼——請檢查，或留空。"
+  "That does not look like a mobile number — check it, or leave it empty.": "這看起來不像手機號碼——請檢查，或留空。",
+  "Nobody by that name, reference or email. Try a surname.": "找不到符合這個姓名、訂房編號或電子郵件的客人。試試姓氏。",
+  "No email was sent: {email} is a sample address.": "沒有寄出電子郵件：{email} 是範例地址。",
+  "We could not work out the price just now. You can still reserve — the total is on your confirmation.": "目前無法算出價格。您仍然可以訂房——總價會寫在確認信裡。"
 }

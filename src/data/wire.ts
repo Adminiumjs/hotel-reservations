@@ -15,6 +15,9 @@ export type Id = number;
 /** A row as an API answers it. */
 export type Row = Record<string, unknown> & { id: Id };
 
+/** A yes/no column, read as a yes: Adminium answers `true`; one older than its yes/no fix answered 1 on SQLite and MySQL. */
+export const yes = (value: unknown): boolean => value === true || value === 1;
+
 // ── the public API ──────────────────────────────────────────────────────────
 
 /** `/public/config`: the house's zone and money. */

@@ -1016,6 +1016,11 @@ export function GuestView({ v }: { v: any }) {
                               {v.rt.total}
                             </span>
                           </div>
+                          {v.rt.priceNote ? (
+                            <p role="status" style={st("margin:8px 0 0;font-size:12.5px;font-weight:600;line-height:1.5;color:var(--warn)")}>
+                              {v.rt.priceNote}
+                            </p>
+                          ) : null}
                           {" "}
                           <button onClick={v.rt.reserve} style={st("inline-size:100%;margin-block-start:15px;padding:13px;border:0;border-radius:11px;background:var(--accent);color:var(--accent-fg);font-size:14.5px;font-weight:700;cursor:pointer;transition:filter .14s")} className={fx("filter:brightness(1.08)", "transform:scale(.97)")}>
                             {tr("Reserve")}
@@ -1289,6 +1294,11 @@ export function GuestView({ v }: { v: any }) {
                           {v.rv.total}
                         </span>
                       </div>
+                      {v.rv.priceNote ? (
+                        <p role="status" style={st("margin:8px 0 0;font-size:12.5px;font-weight:600;line-height:1.5;color:var(--warn)")}>
+                          {v.rv.priceNote}
+                        </p>
+                      ) : null}
                       {" "}
                       <p style={st("margin:8px 0 0;font-size:12.5px;font-weight:600;line-height:1.5;color:var(--fg-muted)")}>
                         {v.rv.payNote}

@@ -708,5 +708,8 @@
   "Your details were deleted, so you were signed out.": "Vos données ont été supprimées, donc vous avez été déconnecté.",
   "Please shorten your note.": "Merci de raccourcir votre message.",
   "Please write your name in letters only.": "Merci d'écrire votre nom en lettres uniquement.",
-  "That does not look like a mobile number — check it, or leave it empty.": "Ce numéro de portable ne semble pas valide — vérifiez-le ou laissez le champ vide."
+  "That does not look like a mobile number — check it, or leave it empty.": "Ce numéro de portable ne semble pas valide — vérifiez-le ou laissez le champ vide.",
+  "Nobody by that name, reference or email. Try a surname.": "Personne avec ce nom, cette référence ou cet e-mail. Essayez un nom de famille.",
+  "No email was sent: {email} is a sample address.": "Aucun e-mail n’a été envoyé : {email} est une adresse d’exemple.",
+  "We could not work out the price just now. You can still reserve — the total is on your confirmation.": "Nous n’avons pas pu calculer le prix pour le moment. Vous pouvez tout de même réserver — le total figure sur votre confirmation."
 }

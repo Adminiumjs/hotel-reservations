@@ -457,6 +457,8 @@ export function deskVals(app: HouseApp, w: WorldV): V {
   const q = s.deskQuery.trim().toLowerCase();
   const match = (x: StV, needle: string) => x.name.toLowerCase().includes(needle) || x.ref.toLowerCase().includes(needle) || x.email.toLowerCase().includes(needle);
   const hitsAll = q.length < 2 ? [] : stays.filter((x) => match(x, q));
+  // Housekeeping reads no stays: no search to find one with.
+  v["canSearch"] = !app.isHousekeeping();
   v["deskQuery"] = s.deskQuery;
   v["refExample"] = stays.slice().sort((p, q) => q.arrive.localeCompare(p.arrive))[0]?.ref ?? "";
   v["onDeskQuery"] = (e: { target: { value: string } }) => app.setState({ deskQuery: e.target.value });
