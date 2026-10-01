@@ -1,6 +1,6 @@
 /**
  * This app's screens, as data — the ONE declaration two build outputs and one
- * runtime all read (29-app-surfaces.md D7/D8).
+ * runtime all read.
  *
  * ─── Why this exists ────────────────────────────────────────────────────────
  *
