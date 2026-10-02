@@ -143,3 +143,8 @@ public/fonts/  self-hosted fonts (woff2)
 ## License
 
 [AGPL-3.0](LICENSE) © 2026 Hotel Reservations. A demo shipped with Adminium.
+
+## Building on this app with a coding agent
+
+The Adminium skills teach Claude Code, Codex and other agents to build and change an app:
+`npx skills add Adminiumjs/skills` — https://github.com/Adminiumjs/skills
