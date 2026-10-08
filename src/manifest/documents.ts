@@ -5,7 +5,8 @@
  *
  * The folio's lines are the stay's nights, one per night with its rate and
  * what made it (a weekend, a season), then each extra on the stay, each
- * charge not voided and the nights not stayed, taken off. The tax is the
+ * charge not voided, the nights not stayed and each reduction a code or a
+ * voucher gave, taken off. The tax is the
  * stay's own, as it was on the day the stay was made.
  */
 import { l } from "./labels.ts";
@@ -31,6 +32,8 @@ export const DOCUMENTS = [
           { table: "charges", via: "stay_id", orderBy: "id", unless: "voided", columns: { desc: "label", date: "charged_on", rate: "amount", amount: "amount" } },
           // One line a credit: its amount is the nights' together (they may each have had their own rate).
           { table: "stay_credits", via: "stay_id", orderBy: "id", unless: "voided", columns: { desc: "label", date: "from_date", rate: "line_amount", amount: "line_amount" } },
+          // What codes and vouchers took off, one line each by name, as Offers & gift cards recorded it; nothing while it is away.
+          { addOn: "offers", table: "applied", match: { table: "source_table", row: "source_row" }, orderBy: "id", columns: { desc: "name", rate: "amount", amount: "amount" }, takenOff: ["rate", "amount"] },
         ],
       },
       subtotal: { column: "subtotal" },

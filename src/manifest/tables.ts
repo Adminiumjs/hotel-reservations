@@ -858,7 +858,17 @@ export const TABLES: Table[] = [
       // Money handed back says why.
       text("note", 240, "Note", { ...opt, rules: { requiredWhen: { column: "kind", in: ["given_back"] } } }),
       // What it does to what was paid: money given back takes it off.
-      money("signed", "Counted", { formula: { if: [{ eq: ["kind", "given_back"] }, { sub: [0, "amount"] }, "amount"] } }),
+      // A gift card's payment counts once the card has answered (what it then holds is written with what it gave): until then
+      // the stay still owes all of it, which is what the card is asked against.
+      money("signed", "Counted", {
+        formula: {
+          if: [
+            { eq: ["kind", "given_back"] },
+            { sub: [0, "amount"] },
+            { if: [{ and: [{ eq: ["method", "gift_card"] }, { isNull: "card_balance_after" }] }, 0, "amount"] },
+          ],
+        },
+      }),
       date("paid_on", "Paid on", { ...opt, rules: stamp("today", onCreate) }),
       at("recorded_at", "Recorded", { ...opt, rules: stamp("now", onCreate) }),
       text("recorded_by", 80, "Recorded by", { ...opt, rules: stamp("user-name", onCreate) }),

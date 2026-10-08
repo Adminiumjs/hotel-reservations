@@ -92,6 +92,10 @@ export class DemoGuest implements GuestPort {
     return { timezone: this.world.zone, currency: this.world.currency, now: new Date(this.engine.now).toISOString() };
   }
 
+  async cardBalance(_by: { code: string } | { token: string }): Promise<{ balance: string; expiresOn: string | null } | null> {
+    return null;
+  }
+
   async house(): Promise<House> {
     await this.wait(this.latency.read);
     const list = (table: "room_types" | "room_type_features" | "rooms" | "extras" | "house_notes") => {

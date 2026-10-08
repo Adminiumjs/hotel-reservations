@@ -22,7 +22,7 @@ import { createPublicClient, PublicApiError, type PublicClient } from "@adminium
 import type { GuestOffers, GuestPort, House, NightQuestion, StayWithLines } from "./ports.ts";
 import { keptSession, tabStorage, type KeptSession } from "./keptSession.ts";
 import { publicRefs, type Refs } from "./publicRefs.ts";
-import { ApiError, type ClaimReply, type ExtraAvailability, type Id, type PublicConfig, type QuoteReply, type Row, type StayBody, type StayReply, type NightAnswer, type Night } from "./wire.ts";
+import { ApiError, appliedOf, type Applied, type ClaimReply, type ExtraAvailability, type Id, type PublicConfig, type QuoteReply, type Row, type StayBody, type StayReply, type NightAnswer, type Night } from "./wire.ts";
 
 export interface GuestConfig {
   /** Where the public API is: `""` for this same origin. */
@@ -48,6 +48,8 @@ export interface GuestOptions {
 export const REAL_OFFERS: GuestOffers = { newLink: true, signOutEverywhere: true, forget: true };
 
 const PAGE = 200;
+/** Offers & gift cards' gift cards, as its own public entry names them on the page's key. */
+const OFFERS_CARDS = "offers_gift_cards";
 
 /** The public client's refusal as the screens read one. */
 export function asApiError(error: unknown): unknown {
@@ -111,6 +113,9 @@ export class AdminiumGuest implements GuestPort {
   private linkedId: Id | null = null;
   private readonly baseUrl: string;
   private readonly keys: { customer: string; link: string | null };
+  /** Offers & gift cards' own link key, when it is in use: a gift card's emailed link opens through it. */
+  private readonly offersLinkKey: string | null;
+  private readonly plainFetch: typeof fetch;
   /** The own link the last reservation was answered with, when the server sent one. */
   private lastLink: { key: string; token: string } | null = null;
 
@@ -120,6 +125,8 @@ export class AdminiumGuest implements GuestPort {
     this.refs = publicRefs(config.tables);
     this.baseUrl = config.baseUrl;
     const linkKey = config.publicKeys?.["link"] ?? null;
+    this.offersLinkKey = config.publicKeys?.["offers-link"] ?? null;
+    this.plainFetch = base;
     this.keys = { customer: config.publishableKey, link: linkKey };
     this.customerSession = keptSession("customer", storage, base, options.clock);
     const reserveAt = `/api/v1/public/records/${this.refs.reserve}`;
@@ -159,7 +166,9 @@ export class AdminiumGuest implements GuestPort {
   config(): Promise<PublicConfig> {
     return answer(async () => {
       const c = await this.customer.config();
-      return { timezone: c.timezone, currency: c.currency, ...(c.now === undefined ? {} : { now: c.now }) };
+      // Offers & gift cards joins the page's key with its own entry while it is in use for the house: that is how the page knows.
+      const offers = Object.keys(c.refs ?? {}).some((ref) => ref.startsWith(OFFERS_CARDS));
+      return { timezone: c.timezone, currency: c.currency, ...(c.now === undefined ? {} : { now: c.now }), offers };
     });
   }
 
@@ -217,6 +226,7 @@ export class AdminiumGuest implements GuestPort {
         children: { stay_extras: (got.children["stay_extras"] ?? []).map((c) => ({ data: c.data })) },
         capacity: got.capacity,
         exact: got.exact,
+        ...(appliedOf(got.applied) === undefined ? {} : { applied: appliedOf(got.applied)!, told: (got.told ?? []).map((t) => ({ column: t.column, note: t.note, name: t.name })) }),
       };
     });
   }
@@ -235,6 +245,8 @@ export class AdminiumGuest implements GuestPort {
         children: { stay_extras: (got.children["stay_extras"] ?? []).map((c) => ({ data: c.data })) },
         ...(got.replayed ? { replayed: true as const } : {}),
         ...(link === null || got.replayed ? {} : { link }),
+        // From the save, never from the quote before it.
+        ...(appliedOf(got.applied) === undefined ? {} : { applied: appliedOf(got.applied)! }),
       };
     });
   }
@@ -263,7 +275,8 @@ export class AdminiumGuest implements GuestPort {
         if (stay === undefined) throw new ApiError(404, "PUBLIC_REF_NOT_FOUND", "Open the link again.");
         this.linkedId = stay.id;
         const [extras, charges, credits, payments] = await Promise.all([all(this.link, r.linkExtras), all(this.link, r.linkCharges), all(this.link, r.linkCredits), all(this.link, r.linkPayments)]);
-        return { stay, extras, charges, credits, payments };
+        const applied = await this.appliedTo(this.link, r.linkStay, stay);
+        return { stay, extras, charges, credits, payments, ...(applied === undefined ? {} : { applied }) };
       } catch (error) {
         // A session that has ended reads as nothing to read: drop it, so a reload does not send it again.
         if (error instanceof PublicApiError && error.code === "PUBLIC_REF_NOT_FOUND") this.linkSession?.drop();
@@ -344,9 +357,56 @@ export class AdminiumGuest implements GuestPort {
         throw error;
       });
       const of = (rows: Row[], id: Id) => rows.filter((row) => row["stay_id"] === id);
+      const applied = new Map<Id, Applied[]>();
+      for (const stay of stays) {
+        const found = await this.appliedTo(this.customer, r.myStays, stay);
+        if (found !== undefined) applied.set(stay.id, found);
+      }
       return stays
         .sort((a, b) => String(a["arrive"]).localeCompare(String(b["arrive"])))
-        .map((stay) => ({ stay, extras: of(extras, stay.id), charges: of(charges, stay.id), credits: of(credits, stay.id), payments: of(payments, stay.id) }));
+        .map((stay) => ({ stay, extras: of(extras, stay.id), charges: of(charges, stay.id), credits: of(credits, stay.id), payments: of(payments, stay.id), ...(applied.has(stay.id) ? { applied: applied.get(stay.id)! } : {}) }));
+    });
+  }
+
+  /**
+   * What was taken off a stay that carries a reduction, as Adminium answers it with the stay's own read. A stay
+   * with none is not asked about; a read that fails hides the names, never the stay.
+   */
+  private async appliedTo(client: PublicClient, ref: string, stay: Row): Promise<Applied[] | undefined> {
+    if (!(Number(stay["discount"] ?? 0) > 0)) return undefined;
+    const read = await client.getPriced<Row>(ref, String(stay.id)).catch(() => null);
+    return read === null || read.applied === null ? undefined : appliedOf(read.applied);
+  }
+
+  cardBalance(by: { code: string } | { token: string }): Promise<{ balance: string; expiresOn: string | null } | null> {
+    return answer(async () => {
+      const shown = (card: Row | undefined) => {
+        // Any state but "active" reads as no card at all; a balance of nothing is a balance.
+        if (card === undefined || (card["status"] !== undefined && card["status"] !== "active")) return null;
+        const expires = card["expires_on"] ?? null;
+        return { balance: String(card["balance"] ?? "0"), expiresOn: expires === null ? null : String(expires).slice(0, 10) };
+      };
+      try {
+        if ("token" in by) {
+          // The emailed link opens the card through Offers & gift cards' own key, which this page is handed by its purpose.
+          const key = this.offersLinkKey;
+          if (key === null) return null;
+          const client = createPublicClient({ baseUrl: this.baseUrl, publishableKey: key, fetch: this.plainFetch });
+          if (client === null) return null;
+          const config = await client.config();
+          const ref = Object.keys(config.refs ?? {}).find((name) => name.startsWith(OFFERS_CARDS));
+          if (ref === undefined || (await client.openShared(by.token)) !== "opened") return null;
+          return shown((await client.list<Row>(ref, { limit: 1 })).data[0]);
+        }
+        const config = await this.customer.config();
+        const ref = Object.keys(config.refs ?? {}).find((name) => name.startsWith(OFFERS_CARDS));
+        if (ref === undefined) return null;
+        return shown((await this.customer.list<Row>(ref, { limit: 1, code: by.code.trim() })).data[0]);
+      } catch (error) {
+        const refused = asApiError(error) as ApiError;
+        if (refused.code === "PUBLIC_REF_NOT_FOUND" || refused.status === 404 || refused.code === "LINK_EXPIRED") return null;
+        throw refused;
+      }
     });
   }
 

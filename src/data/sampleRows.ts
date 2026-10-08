@@ -232,7 +232,7 @@ export const RULES: Rules = {
     { table: "stay_credits", column: "nights", scale: 2, expr: {"daysBetween":["from_date","to_date"]} },
     { table: "stay_credits", column: "amount", scale: "currency", expr: {"add":["room_amount",{"mul":[{"coalesce":["extras_nightly",0]},{"coalesce":["nights",0]}]}]} },
     { table: "stay_credits", column: "line_amount", scale: "currency", expr: {"sub":[0,"amount"]} },
-    { table: "payments", column: "signed", scale: "currency", expr: {"if":[{"eq":["kind","given_back"]},{"sub":[0,"amount"]},"amount"]} },
+    { table: "payments", column: "signed", scale: "currency", expr: {"if":[{"eq":["kind","given_back"]},{"sub":[0,"amount"]},{"if":[{"and":[{"eq":["method","gift_card"]},{"isNull":"card_balance_after"}]},0,"amount"]}]} },
     { table: "payments", column: "settle_as", scale: 2, expr: {"if":[{"eq":["method","gift_card"]},{"if":[{"eq":["kind","given_back"]},2,1]},0]} },
   ],
   rollups: [

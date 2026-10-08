@@ -22,7 +22,7 @@ import type { DeskHouse, DeskPerson, DeskPort, Folio, StayWithLines } from "./po
 import { SessionPortError, type SessionTransport } from "./sessionSource.ts";
 import type { StaffConfig } from "../staffConnection.ts";
 import { addDays, venueDay } from "../lib/venueTime.ts";
-import { ApiError, yes, type Id, type LiveFrame, type Night, type NightCount, type QuoteReply, type Row, type StayBody, type StayReply } from "./wire.ts";
+import { ApiError, yes, type Applied, type CardCheck, type CodeFound, type Id, type LinenReply, type LinenRow, type LiveFrame, type Night, type NightCount, type QuoteReply, type Row, type StayBody, appliedOf, type StayReply, type Told } from "./wire.ts";
 
 /** The app's key: its roles are named `hotel-<role>`, its tables `hotel_<table>` when the server does not say. */
 const APP_KEY = "hotel";
@@ -34,7 +34,18 @@ export const BOOK_DAYS = 60;
 
 type Table =
   | "settings" | "room_types" | "room_type_features" | "rooms" | "extras" | "house_notes" | "room_closures" | "rate_rules" | "charge_items"
-  | "customers" | "stays" | "stay_extras" | "charges" | "stay_credits" | "payments";
+  | "customers" | "stays" | "stay_extras" | "stay_codes" | "charges" | "stay_credits" | "payments";
+
+/** How Inventory's and Offers & gift cards' rows name one of this app's tables. */
+const stored = (table: Table) => `${APP_KEY}:${table}`;
+
+const toldOf = (value: unknown): Told[] | undefined => (Array.isArray(value) ? value.map((one: Record<string, unknown>) => ({ column: String(one["column"] ?? ""), note: String(one["note"] ?? ""), name: String(one["name"] ?? "") })) : undefined);
+/** A reply's `applied` and `told`, left out when the server said neither. */
+const priced = (got: { applied?: unknown; told?: unknown }): { applied?: Applied[]; told?: Told[] } => {
+  const applied = appliedOf(got.applied);
+  const told = toldOf(got.told);
+  return { ...(applied === undefined ? {} : { applied }), ...(told === undefined ? {} : { told }) };
+};
 
 /** The tables whose changes the desk hears, in the order their channels are asked for. */
 const LIVE: readonly Table[] = ["stays", "stay_extras", "charges", "stay_credits", "payments", "rooms", "room_closures", "customers", "room_types", "rate_rules", "extras"];
@@ -46,6 +57,23 @@ export function asApiError(error: unknown): unknown {
     return new ApiError(error.status, error.code, error.message, details);
   }
   return error;
+}
+
+/** A name an add-on keeps in several languages (or as plain text), read in one: the asked language, else English, else the first. */
+export function nameOf(value: unknown, locale?: string | null): string {
+  let held = value;
+  if (typeof held === "string" && held.startsWith("{")) {
+    try {
+      held = JSON.parse(held) as unknown;
+    } catch {
+      return value as string;
+    }
+  }
+  if (held !== null && typeof held === "object") {
+    const names = held as Record<string, unknown>;
+    return String(names[locale ?? "en-US"] ?? names["en-US"] ?? Object.values(names)[0] ?? "");
+  }
+  return String(held ?? "");
 }
 
 async function answer<T>(run: () => Promise<T>): Promise<T> {
@@ -73,6 +101,8 @@ export interface DeskOptions {
   /** Where signing out lands. */
   leave?: (url: string) => void;
   clock?: () => number;
+  /** The language the desk is read in: an add-on's names (an offer's) are read in it. */
+  locale?: () => string;
 }
 
 export interface EventSourceLike {
@@ -171,6 +201,10 @@ export class AdminiumDesk implements DeskPort {
       currency: this.cfg.currency,
       ...(typeof this.cfg.now === "string" ? { now: this.cfg.now } : {}),
       folio: this.cfg.addOns["invoices"] !== undefined,
+      // In use for this app: connected and switched on. Anything less, and the screens are as they were before it.
+      linen: this.cfg.addOns["inventory"] !== undefined,
+      codes: this.cfg.addOns["offers"] !== undefined,
+      giftCards: this.cfg.addOns["offers"] !== undefined,
     };
   }
 
@@ -239,8 +273,37 @@ export class AdminiumDesk implements DeskPort {
         this.list("payments", f),
         this.nightly(id),
       ]);
-      return { stay, extras, charges, credits, payments, nights };
+      const applied = await this.appliedTo(id);
+      return { stay, extras, charges, credits, payments, nights, ...(applied === undefined ? {} : { applied }) };
     });
+  }
+
+  /**
+   * What Offers & gift cards took off a stay, one entry per offer, code or
+   * voucher: its own rows for the stay, read as this person may read them,
+   * each name in the first language it has. Nothing while it is not in use,
+   * or when the read is refused (the grant is taken back when it goes).
+   */
+  private async appliedTo(id: Id): Promise<Applied[] | undefined> {
+    if (this.cfg.addOns["offers"] === undefined) return undefined;
+    try {
+      const filter = encodeURIComponent(JSON.stringify({ and: [{ column: "source_table", op: "eq", value: stored("stays") }, { column: "source_row", op: "eq", value: String(id) }] }));
+      const conn = this.cfg.connectionId ?? (await this.t.connection());
+      const got = await this.t.get<Page>(`/api/v1/data/${encodeURIComponent(conn)}/offers_applied?limit=${String(PAGE)}&where=${filter}`);
+      // A reduction is kept a row a line: one entry for each name and kind, its amounts added by Adminium's own cents.
+      const out = new Map<string, { name: string; kind: Applied["kind"]; cents: number; typed: boolean }>();
+      for (const row of got.data) {
+        const name = nameOf(row["name"], this.opts.locale?.());
+        const key = `${String(row["kind"])}|${name}`;
+        const held = out.get(key) ?? { name, kind: String(row["kind"]) as Applied["kind"], cents: 0, typed: yes(row["typed"]) };
+        held.cents += Math.round(Number(row["amount"]) * 100);
+        out.set(key, held);
+      }
+      return [...out.values()].map((one) => ({ line: null, name: one.name, kind: one.kind, amount: (one.cents / 100).toFixed(2), typed: one.typed }));
+    } catch (error) {
+      if (error instanceof SessionPortError && (error.status === 403 || error.status === 404)) return undefined;
+      throw error;
+    }
   }
 
   /** The stay's nights as Adminium priced them; none when it keeps the stay's price as one line, or has no nightly lines to say. */
@@ -290,7 +353,10 @@ export class AdminiumDesk implements DeskPort {
 
   private async withExtras(body: StayBody): Promise<{ values: Record<string, unknown>; children: Record<string, { values: Record<string, unknown> }[]> }> {
     const rel = await this.t.relation(this.real("stay_extras"), "stay_id");
-    return { values: { ...body.values, channel: "desk" }, children: { [rel]: body.children.stay_extras } };
+    const codes = body.children.stay_codes ?? [];
+    // A code is sent only when one was typed: with none, the booking is the one 0.2 sent.
+    const typed = codes.length === 0 ? {} : { [await this.t.relation(this.real("stay_codes"), "stay_id")]: codes };
+    return { values: { ...body.values, channel: "desk" }, children: { [rel]: body.children.stay_extras, ...typed } };
   }
 
   private night(n: Record<string, unknown>, typeId: unknown): Night {
@@ -304,7 +370,7 @@ export class AdminiumDesk implements DeskPort {
       const write = await this.withExtras(body);
       // A booking is priced before its guest is named: a placeholder name, written nowhere.
       if (write.values["first_name"] === undefined || write.values["first_name"] === "") write.values["first_name"] = "—";
-      const got = await this.mutate<{ data: Row; children?: Record<string, { data: Row }[]>; nights?: Record<string, unknown>[] }>(await this.path("stays", "/dry-run"), "POST", write);
+      const got = await this.mutate<{ data: Row; children?: Record<string, { data: Row }[]>; nights?: Record<string, unknown>[]; applied?: unknown; told?: unknown }>(await this.path("stays", "/dry-run"), "POST", write);
       const rel = Object.keys(write.children)[0]!;
       return {
         data: got.data,
@@ -312,6 +378,7 @@ export class AdminiumDesk implements DeskPort {
         children: { stay_extras: (got.children?.[rel] ?? []).map((c) => ({ data: c.data })) },
         capacity: [],
         exact: true,
+        ...priced(got),
       };
     });
   }
@@ -320,10 +387,10 @@ export class AdminiumDesk implements DeskPort {
     return answer(async () => {
       const write = await this.withExtras(body);
       const sent = { ...write, ...(body.expect === undefined ? {} : { expect: body.expect }), ...(body.clientKey === undefined ? {} : { clientKey: body.clientKey }) };
-      const reply = await this.mutate<{ data: Row; replayed?: boolean }>(await this.path("stays"), "POST", sent);
+      const reply = await this.mutate<{ data: Row; replayed?: boolean; applied?: unknown; told?: unknown }>(await this.path("stays"), "POST", sent);
       // The booking is made: its lines are read for the toast only, and a failed read never hides the booking.
       const lines = await this.list("stay_extras", where("stay_id", reply.data.id)).catch(() => [] as Row[]);
-      return { data: reply.data, children: { stay_extras: lines.map((data) => ({ data })) }, ...(reply.replayed === true ? { replayed: true as const } : {}) };
+      return { data: reply.data, children: { stay_extras: lines.map((data) => ({ data })) }, ...(reply.replayed === true ? { replayed: true as const } : {}), ...priced(reply) };
     });
   }
 
@@ -359,7 +426,7 @@ export class AdminiumDesk implements DeskPort {
   quoteEdit(id: Id, values: Record<string, unknown>, extras: { extraId: Id; on: boolean }[] = []): Promise<QuoteReply> {
     return answer(async () => {
       const body = await this.changeBody(id, values, extras, true);
-      const got = await this.mutate<{ data: Row; children?: Record<string, { data: Row }[]>; nights?: Record<string, unknown>[] }>(await this.path("stays", `/${encodeURIComponent(String(id))}/dry-run`), "POST", body);
+      const got = await this.mutate<{ data: Row; children?: Record<string, { data: Row }[]>; nights?: Record<string, unknown>[]; applied?: unknown; told?: unknown }>(await this.path("stays", `/${encodeURIComponent(String(id))}/dry-run`), "POST", body);
       const lines = Object.values(got.children ?? {})[0] ?? [];
       return {
         data: got.data,
@@ -367,6 +434,7 @@ export class AdminiumDesk implements DeskPort {
         children: { stay_extras: lines.map((c) => ({ data: c.data })) },
         capacity: [],
         exact: true,
+        ...priced(got),
       };
     });
   }
@@ -483,6 +551,142 @@ export class AdminiumDesk implements DeskPort {
         note: payment.note?.trim() || null,
       }),
     );
+  }
+
+  // ── gift cards ────────────────────────────────────────────────────────────
+
+  lookUpCode(code: string): Promise<CodeFound | null> {
+    return answer(async () => {
+      const got = await this.mutate<{ found: boolean; kind?: string; last4?: string | null; record?: Record<string, unknown> }>("/api/v1/add-ons/offers/look-up", "POST", { value: code.trim() });
+      return got.found ? { kind: String(got.kind), last4: got.last4 ?? null, record: got.record ?? {} } : null;
+    });
+  }
+
+  quoteCard(stayId: Id, code: string): Promise<CardCheck> {
+    return answer(async () => {
+      const stay = await this.one("stays", stayId);
+      // Asked with what the stay owes: the card answers what it would give of it, and nothing is taken.
+      const got = await this.mutate<{ data?: Row; payment?: { amount: unknown; due: unknown } | null; postings?: { ledger?: string; state?: string; reason?: string; left?: unknown }[] }>(await this.path("payments", "/dry-run"), "POST", {
+        values: { stay_id: stayId, kind: "taken", method: "gift_card", card_code: code.trim(), amount: stay["balance"] },
+      });
+      // A check that a save would refuse answers so, and why: told as the save's own refusal.
+      const refused = (got.postings ?? []).find((posting) => posting.state !== undefined && posting.state !== "ok");
+      if (refused !== undefined) throw new ApiError(409, "POSTING_REFUSED", "The card cannot pay this.", { ledger: refused.ledger ?? "value", reason: refused.state === "refused" ? (refused.reason ?? "not-valid") : "add-on-unavailable", ...(refused.left === undefined ? {} : { left: refused.left }) });
+      if (got.payment === undefined || got.payment === null) throw new ApiError(409, "POSTING_REFUSED", "The card paid nothing.", { ledger: "value", reason: "not-valid" });
+      return { amount: String(got.payment.amount), due: String(got.payment.due), balanceAfter: String(got.data?.["card_balance_after"] ?? "") };
+    });
+  }
+
+  recordCardPayment(stayId: Id, code: string, amount: string): Promise<Row> {
+    // The amount the check answered goes as what is asked of the card: it gives exactly that, or the save is refused.
+    return answer(() => this.create("payments", { stay_id: stayId, kind: "taken", method: "gift_card", card_code: code.trim(), amount: amount.trim(), asked: amount.trim() }));
+  }
+
+  giveBackToCard(stayId: Id, paymentId: Id, amount: string, note: string): Promise<Row> {
+    return answer(() => this.create("payments", { stay_id: stayId, kind: "given_back", method: "gift_card", against_id: paymentId, amount: amount.trim(), note: note.trim() }));
+  }
+
+  // ── linen ─────────────────────────────────────────────────────────────────
+
+  /** One of Inventory's tables, by its fixed name on this connection. */
+  private async stock(table: string, rest = ""): Promise<string> {
+    const conn = this.cfg.connectionId ?? (await this.t.connection());
+    return `/api/v1/data/${encodeURIComponent(conn)}/inventory_${table}${rest}`;
+  }
+  private async stockRows(table: string, filter?: unknown): Promise<Row[]> {
+    const rows: Row[] = [];
+    for (let offset = 0; offset < MOST_ROWS; offset += PAGE) {
+      const got = await this.t.get<Page>(await this.stock(table, `?limit=${String(PAGE)}&offset=${String(offset)}${filter === undefined ? "" : `&where=${encodeURIComponent(JSON.stringify(filter))}`}`));
+      rows.push(...got.data);
+      if (got.data.length < PAGE) break;
+    }
+    return rows;
+  }
+
+  linen(): Promise<LinenRow[]> {
+    return answer(async () => {
+      if (this.cfg.addOns["inventory"] === undefined) return [];
+      try {
+        // The kits the room types are linked to, and of their lines the ones that move: linen goes to the laundry, an amenity is used.
+        // (Where it is kept: the line's own place, or the place its link names.)
+        const links = (await this.stockRows("links", { column: "source_table", op: "eq", value: stored("room_types") })).filter((link) => link["kind"] === "kit" && link["kit_id"] !== null);
+        const kits = [...new Set(links.map((link) => Number(link["kit_id"])))];
+        if (kits.length === 0) return [];
+        const lines = (await this.stockRows("kit_lines", { column: "kit_id", op: "in", value: kits })).filter((line) => line["action"] === "move" && line["to_place_id"] !== null);
+        const [items, places, points] = await Promise.all([this.stockRows("items"), this.stockRows("places"), this.stockRows("stock_points")]);
+        const name = (rows: Row[], id: unknown) => String(rows.find((row) => Number(row.id) === Number(id))?.["name"] ?? "");
+        const held = (item: unknown, place: unknown) => Number(points.find((point) => Number(point["item_id"]) === Number(item) && Number(point["place_id"]) === Number(place))?.["on_hand"] ?? 0);
+        const out = new Map<string, LinenRow>();
+        for (const line of lines) {
+          const said = line["place_id"] ?? links.find((link) => Number(link["kit_id"]) === Number(line["kit_id"]) && link["place_id"] !== null && link["place_id"] !== undefined)?.["place_id"] ?? null;
+          // Said nowhere, it is where the books keep the item beside the laundry (the fullest such place, when several do).
+          const kept = points.filter((point) => Number(point["item_id"]) === Number(line["item_id"]) && Number(point["place_id"]) !== Number(line["to_place_id"])).sort((a, b) => Number(b["on_hand"]) - Number(a["on_hand"]))[0];
+          const store = said ?? kept?.["place_id"] ?? null;
+          if (store === null) continue;
+          const key = `${String(line["item_id"])}|${String(store)}|${String(line["to_place_id"])}`;
+          if (out.has(key)) continue;
+          out.set(key, {
+            itemId: Number(line["item_id"]),
+            name: name(items, line["item_id"]),
+            storeId: Number(store),
+            store: name(places, store),
+            awayId: Number(line["to_place_id"]),
+            away: name(places, line["to_place_id"]),
+            inStore: held(line["item_id"], store),
+            atLaundry: held(line["item_id"], line["to_place_id"]),
+          });
+        }
+        return [...out.values()];
+      } catch (error) {
+        // The reads are taken back when Inventory is disconnected: then there is no linen to show.
+        if (error instanceof SessionPortError && (error.status === 403 || error.status === 404)) return [];
+        throw error;
+      }
+    });
+  }
+
+  putBackLinen(rows: { itemId: Id; qty: number }[], resume?: Id): Promise<LinenReply> {
+    return answer(async () => {
+      const linen = await this.linen();
+      const wanted = rows.filter((row) => row.qty > 0).map((row) => ({ ...row, of: linen.find((one) => one.itemId === row.itemId) })).filter((row): row is { itemId: Id; qty: number; of: LinenRow } => row.of !== undefined);
+      let transferId = resume;
+      if (transferId === undefined) {
+        if (wanted.length === 0) throw new ApiError(422, "VALIDATION_FAILED", "Nothing to put back.", {});
+        const { awayId, storeId } = wanted[0]!.of;
+        const rel = await this.t.relation("inventory_transfer_lines", "transfer_id");
+        // One transfer, from the laundry to the store, its lines waiting.
+        const made = await this.mutate<{ data: Row }>(await this.stock("transfers"), "POST", {
+          values: { from_place_id: awayId, to_place_id: storeId },
+          children: { [rel]: wanted.filter((row) => row.of.awayId === awayId && row.of.storeId === storeId).map((row) => ({ values: { item_id: row.itemId, qty: row.qty } })) },
+        });
+        transferId = made.data.id;
+      }
+      const transfer = (await this.t.get<{ data: Row }>(await this.stock("transfers", `/${encodeURIComponent(String(transferId))}`))).data;
+      if (transfer["status"] === "draft") await this.mutate(await this.stock("transfers", `/${encodeURIComponent(String(transferId))}`), "PATCH", { values: { status: "posting" }, from: "draft" });
+      // Each line is its own move: one that fails leaves the others moved, and pressing again sends only what is left.
+      const waiting = (await this.stockRows("transfer_lines", { column: "transfer_id", op: "eq", value: transferId })).filter((line) => line["status"] === "draft");
+      const over: { itemId: Id; by: number }[] = [];
+      if (waiting.length > 0) {
+        const ran = await this.mutate<{ results: { id: unknown; ok: boolean; postings?: { notes?: { note?: string }[] }[] }[] }>(await this.stock("transfer_lines", "/one-by-one"), "POST", {
+          ids: waiting.map((line) => line.id),
+          values: { status: "posted" },
+          from: "draft",
+        });
+        for (const result of ran.results) {
+          const line = waiting.find((one) => String(one.id) === String(result.id));
+          if (!result.ok || line === undefined) continue;
+          if ((result.postings ?? []).some((posting) => (posting.notes ?? []).some((note) => note.note === "short"))) {
+            const before = linen.find((one) => one.itemId === Number(line["item_id"]))?.atLaundry ?? 0;
+            over.push({ itemId: Number(line["item_id"]), by: Math.max(0, Number(line["qty"]) - before) });
+          }
+        }
+      }
+      const after = await this.stockRows("transfer_lines", { column: "transfer_id", op: "eq", value: transferId });
+      const left = after.filter((line) => line["status"] === "draft").map((line) => Number(line["item_id"]));
+      const moved = after.filter((line) => line["status"] !== "draft").map((line) => Number(line["item_id"]));
+      if (left.length === 0) await this.mutate(await this.stock("transfers", `/${encodeURIComponent(String(transferId))}`), "PATCH", { values: { status: "done" }, from: "posting" });
+      return { done: left.length === 0, transferId, moved, left, over };
+    });
   }
 
   voidRow(table: "charges" | "payments" | "stay_credits", id: Id, reason: string): Promise<Row> {

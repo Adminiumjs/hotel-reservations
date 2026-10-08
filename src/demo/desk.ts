@@ -6,7 +6,7 @@
  * DEMO BUILD ONLY — nothing in a real build imports it.
  */
 import type { DeskHouse, DeskPerson, DeskPort, Folio, StayWithLines } from "../data/ports.ts";
-import { ApiError, isApiError, type Id, type LiveFrame, type NightCount, type QuoteReply, type Row, type StayBody, type StayReply } from "../data/wire.ts";
+import { ApiError, type LinenRow, isApiError, type Id, type LiveFrame, type NightCount, type QuoteReply, type Row, type StayBody, type StayReply } from "../data/wire.ts";
 import { addDays } from "../lib/venueTime.ts";
 import { byPosition, Engine, notFound, refusedValue, type Writer } from "./engine.ts";
 
@@ -48,6 +48,25 @@ export class DemoDesk implements DeskPort {
   async config() {
     // The demo's house has Invoices & Receipts: its folio prints and emails (the demo sends nothing).
     return { timezone: this.world.zone, currency: this.world.currency, now: new Date(this.engine.now).toISOString(), folio: true };
+  }
+
+  async lookUpCode(_code: string): Promise<null> {
+    return null;
+  }
+  async quoteCard(_stayId: Id, _code: string): Promise<never> {
+    throw new ApiError(409, "POSTING_REFUSED", "Gift cards are not in use.", { ledger: "value", reason: "add-on-unavailable" });
+  }
+  async recordCardPayment(_stayId: Id, _code: string, _amount: string): Promise<never> {
+    throw new ApiError(409, "POSTING_REFUSED", "Gift cards are not in use.", { ledger: "value", reason: "add-on-unavailable" });
+  }
+  async giveBackToCard(_stayId: Id, _paymentId: Id, _amount: string, _note: string): Promise<never> {
+    throw new ApiError(409, "POSTING_REFUSED", "Gift cards are not in use.", { ledger: "value", reason: "add-on-unavailable" });
+  }
+  async linen(): Promise<LinenRow[]> {
+    return [];
+  }
+  async putBackLinen(_rows: { itemId: Id; qty: number }[]): Promise<never> {
+    throw new ApiError(404, "NOT_FOUND", "Inventory is not in use.");
   }
 
   async house(): Promise<DeskHouse> {

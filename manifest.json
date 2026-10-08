@@ -279,6 +279,24 @@
                 "rate": "line_amount",
                 "amount": "line_amount"
               }
+            },
+            {
+              "addOn": "offers",
+              "table": "applied",
+              "match": {
+                "table": "source_table",
+                "row": "source_row"
+              },
+              "orderBy": "id",
+              "columns": {
+                "desc": "name",
+                "rate": "amount",
+                "amount": "amount"
+              },
+              "takenOff": [
+                "rate",
+                "amount"
+              ]
             }
           ]
         },
@@ -5748,7 +5766,25 @@
                       "amount"
                     ]
                   },
-                  "amount"
+                  {
+                    "if": [
+                      {
+                        "and": [
+                          {
+                            "eq": [
+                              "method",
+                              "gift_card"
+                            ]
+                          },
+                          {
+                            "isNull": "card_balance_after"
+                          }
+                        ]
+                      },
+                      0,
+                      "amount"
+                    ]
+                  }
                 ]
               }
             }

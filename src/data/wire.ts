@@ -26,6 +26,79 @@ export interface PublicConfig {
   currency: string | null;
   /** The server's clock, when it says it. */
   now?: string;
+  /** Offers & gift cards is in use for the house: the guest site shows the code field and the balance page. */
+  offers?: boolean;
+}
+
+/** One reduction Offers & gift cards took off a stay: an offer, a typed code, or a voucher (by its last four only). */
+export interface Applied {
+  line: string | null;
+  name: string;
+  kind: "offer" | "code" | "voucher" | "pack" | "staff";
+  amount: string;
+  typed: boolean;
+  codeLast4?: string;
+}
+
+/** An add-on's reductions as a reply carries them, read as the screens read them. */
+export function appliedOf(value: unknown): Applied[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  return value.map((one: Record<string, unknown>) => ({
+    line: one["line"] === null || one["line"] === undefined ? null : String(one["line"]),
+    name: String(one["name"] ?? ""),
+    kind: String(one["kind"] ?? "offer") as Applied["kind"],
+    amount: String(one["amount"] ?? "0"),
+    typed: one["typed"] === true || one["typed"] === 1,
+    ...(typeof one["codeLast4"] === "string" ? { codeLast4: one["codeLast4"] } : {}),
+  }));
+}
+
+/** Said beside a typed code that was not needed: another offer took more off. */
+export interface Told {
+  column: string;
+  note: string;
+  name: string;
+}
+
+/** What a gift card would give a stay, as the desk's check answers it: never what else the card holds. */
+export interface CardCheck {
+  /** What the card pays. */
+  amount: string;
+  /** What is then still owing on the stay. */
+  due: string;
+  /** What the card keeps after it. */
+  balanceAfter: string;
+}
+
+/** What the desk's look-up says a typed code is: its kind, its last four, and — for a card — its state, balance and expiry. */
+export interface CodeFound {
+  kind: string;
+  last4: string | null;
+  record: Record<string, unknown>;
+}
+
+/** One kind of linen the house sends to the laundry: where it is kept, where it goes, and how much is at each. */
+export interface LinenRow {
+  itemId: Id;
+  name: string;
+  storeId: Id;
+  store: string;
+  awayId: Id;
+  away: string;
+  /** In the store, and away at the laundry, as Inventory's books hold them. */
+  inStore: number;
+  atLaundry: number;
+}
+
+/** What putting linen back answered: done, or which lines are still to move; and the lines above what the books held. */
+export interface LinenReply {
+  done: boolean;
+  transferId: Id;
+  /** The items moved, and those still to move (a failed line: pressing again sends only these). */
+  moved: Id[];
+  left: Id[];
+  /** Per item, how many more than the books held at the laundry. */
+  over: { itemId: Id; by: number }[];
 }
 
 /**
@@ -64,7 +137,8 @@ export interface TreeRow {
 /** A stay with its extras, as a create sends it. */
 export interface StayBody {
   values: Record<string, unknown>;
-  children: { stay_extras: TreeRow[] };
+  /** `stay_codes`: the codes typed when the stay is booked, in the order typed. Sent only when one was. */
+  children: { stay_extras: TreeRow[]; stay_codes?: { values: { typed: string } }[] };
   /** The total the guest was shown, as a decimal string: a different one writes nothing. */
   expect?: { total: string };
   /** The desk's retry key for this save: sent again after a reply that never came, it answers the stay the first save made. */
@@ -83,6 +157,9 @@ export interface StayReply {
   replayed?: true;
   /** The stay's own link, answered once, on the first create (never on a replay). */
   link?: { key: string; token: string };
+  /** What was taken off, from the save itself. */
+  applied?: Applied[];
+  told?: Told[];
 }
 
 /** One night of a price by the night. */
@@ -100,6 +177,9 @@ export interface QuoteReply {
   children?: { stay_extras?: TreeReplyRow[] };
   capacity: { pool: string; state: "available" | "full"; at?: string }[];
   exact: boolean;
+  /** What a save would take off, one entry per offer, code or voucher; absent while Offers & gift cards is not in use. */
+  applied?: Applied[];
+  told?: Told[];
 }
 
 /** A session a claim opens (a stay's link, a sign-in). */

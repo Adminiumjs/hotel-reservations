@@ -13,7 +13,7 @@
  * carrying Adminium's code, so a screen has one path whoever answers: the
  * real server, or the demo's stand-in, which plays the same rules.
  */
-import type { ClaimReply, ExtraAvailability, Id, LiveFrame, Night, NightAnswer, NightCount, PublicConfig, QuoteReply, Row, StayBody, StayReply } from "./wire.ts";
+import type { Applied, CardCheck, ClaimReply, CodeFound, ExtraAvailability, Id, LinenReply, LinenRow, LiveFrame, Night, NightAnswer, NightCount, PublicConfig, QuoteReply, Row, StayBody, StayReply } from "./wire.ts";
 
 /** The house as the guest site reads it. */
 export interface House {
@@ -32,6 +32,8 @@ export interface StayWithLines {
   charges: Row[];
   credits: Row[];
   payments: Row[];
+  /** What Offers & gift cards took off this stay, as it recorded it; absent when it is not in use or nothing was. */
+  applied?: Applied[];
 }
 
 /** What the guest asks the night availability. */
@@ -101,6 +103,13 @@ export interface GuestPort {
   /** A new link for one of the signed-in guest's stays: the old one stops. */
   newLink(id: Id): Promise<{ sentTo: string }>;
 
+  /**
+   * What is on a gift card, by its code or by the link its email carries.
+   * Null for anything that is not a card in use: the page says one sentence
+   * whichever it was.
+   */
+  cardBalance(by: { code: string } | { token: string }): Promise<{ balance: string; expiresOn: string | null } | null>;
+
   signOut(): Promise<void>;
   signOutEverywhere(): Promise<void>;
   /** Empties the guest's account; a sign-in older than ten minutes is asked to sign in again first. */
@@ -128,7 +137,11 @@ export interface Folio extends StayWithLines {
 export interface DeskPort {
   me(): Promise<DeskPerson>;
   /** `folio`: Invoices & Receipts is attached, so the folio can be printed and emailed. */
-  config(): Promise<{ timezone: string | null; currency: string | null; now?: string; folio?: boolean }>;
+  /**
+   * `linen`: Inventory is in use, so Today counts the linen and the rack can put it back.
+   * `codes`, `giftCards`: Offers & gift cards is in use, so a booking takes a code and a payment a gift card.
+   */
+  config(): Promise<{ timezone: string | null; currency: string | null; now?: string; folio?: boolean; linen?: boolean; codes?: boolean; giftCards?: boolean }>;
   house(): Promise<DeskHouse>;
 
   /** Every stay on the book, with its extras. */
@@ -168,6 +181,20 @@ export interface DeskPort {
 
   addCharge(stayId: Id, charge: { itemId: Id; note?: string | null } | { label: string; amount: string; note: string }): Promise<Row>;
   recordPayment(stayId: Id, payment: { kind: "taken" | "given_back"; amount: string; method: "card" | "cash" | "transfer"; reference?: string | null; note?: string | null }): Promise<Row>;
+  /** What a typed code is, as the person asking may know it; null for one the house does not know. */
+  lookUpCode(code: string): Promise<CodeFound | null>;
+  /** What a gift card would pay of what the stay owes, written nowhere. */
+  quoteCard(stayId: Id, code: string): Promise<CardCheck>;
+  /** The card pays exactly what the check answered, or nothing (a card spent meanwhile is refused, saying what it has left). */
+  recordCardPayment(stayId: Id, code: string, amount: string): Promise<Row>;
+  /** Money back to the card a payment came from: the payment is named, never a code. */
+  giveBackToCard(stayId: Id, paymentId: Id, amount: string, note: string): Promise<Row>;
+
+  /** The linen the room types send to the laundry, with what the books hold in the store and away. Empty without Inventory. */
+  linen(): Promise<LinenRow[]>;
+  /** Back from the laundry: each row's count moved to the store. `resume` continues a transfer a line of which failed. */
+  putBackLinen(rows: { itemId: Id; qty: number }[], resume?: Id): Promise<LinenReply>;
+
   /** A manager's: a charge, a payment or a credit voided, with the reason. */
   voidRow(table: "charges" | "payments" | "stay_credits", id: Id, reason: string): Promise<Row>;
   /** The folio drawn by Invoices & Receipts, and where its print copy is (none in the demo). */

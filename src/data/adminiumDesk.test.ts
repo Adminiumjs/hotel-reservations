@@ -60,7 +60,7 @@ describe("the real desk door", () => {
   it("says who is signed in and the app's roles by their own names", async () => {
     const desk = new AdminiumDesk(transport({}).t, config({ access: { tables: {}, roles: [{ slug: "hotel-manager", name: "Manager" }] } }));
     expect(await desk.me()).toEqual({ name: "Maeve R.", roles: ["manager"] });
-    expect(await desk.config()).toEqual({ timezone: "America/New_York", currency: "USD", folio: false });
+    expect(await desk.config()).toEqual({ timezone: "America/New_York", currency: "USD", folio: false, linen: false, codes: false, giftCards: false });
   });
 
   it("prints the folio through Invoices & Receipts, and emails it by stamping when it was asked for", async () => {
@@ -77,7 +77,7 @@ describe("the real desk door", () => {
 
   it("takes the house's clock from Adminium's config, not the browser's", async () => {
     const desk = new AdminiumDesk(transport({}).t, config({ now: "2026-07-28T13:05:00.000Z" }));
-    expect(await desk.config()).toEqual({ timezone: "America/New_York", currency: "USD", now: "2026-07-28T13:05:00.000Z", folio: false });
+    expect(await desk.config()).toEqual({ timezone: "America/New_York", currency: "USD", now: "2026-07-28T13:05:00.000Z", folio: false, linen: false, codes: false, giftCards: false });
   });
 
   it("reads only the tables the person may read", async () => {
