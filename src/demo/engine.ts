@@ -89,7 +89,7 @@ type StatesRule = {
 };
 const STATES = MANIFEST_RULES.states as unknown as Record<string, StatesRule>;
 const STAMPS = MANIFEST_RULES.stamps as unknown as Record<string, Record<string, { set: unknown; on: unknown }>>;
-type RoleRule = { key: string; grants: Record<string, readonly string[]>; limits: Record<string, { writable: readonly string[]; writableValues?: Record<string, readonly unknown[]> }> | null };
+type RoleRule = { key: string; grants: Record<string, readonly string[]>; limits: Record<string, { writable?: readonly string[]; writableValues?: Record<string, readonly unknown[]> }> | null };
 const ROLES = MANIFEST_RULES.roles as unknown as readonly RoleRule[];
 type Producer = {
   kind: string;
@@ -596,7 +596,7 @@ export class Engine {
     if (held.some((r) => (r.grants[table] ?? []).includes("update") && r.limits?.[table] === undefined)) return;
     const limits = held.map((r) => r.limits?.[table]).filter((l) => l !== undefined);
     for (const [column, value] of Object.entries(values)) {
-      const ok = limits.some((l) => l.writable.includes(column) && (l.writableValues?.[column] === undefined || l.writableValues[column]!.includes(value)));
+      const ok = limits.some((l) => (l.writable === undefined || l.writable.includes(column)) && (l.writableValues?.[column] === undefined || l.writableValues[column]!.includes(value)));
       if (!ok) throw new ApiError(403, "COLUMN_FORBIDDEN", "Not for your role.", { column, reason: "update-limit" });
     }
   }

@@ -56,6 +56,10 @@ export interface Table {
   unique?: string[][];
   capacity?: Record<string, unknown> | Record<string, unknown>[];
   states?: Record<string, unknown>;
+  /** The price question an add-on answers inside every save of this table. */
+  adjust?: Record<string, unknown>;
+  /** What this table hands an add-on's ledger, and when. */
+  postings?: Record<string, unknown>[];
   columns: Column[];
 }
 
@@ -89,6 +93,14 @@ function price(ref: string, label: string, more: Partial<Column> = {}): Column {
 /** Money Adminium works out. */
 function money(ref: string, label: string, rules: Record<string, unknown>): Column {
   return { ref, type: "decimal", scale: "currency", nullable: true, label: l(label), rules };
+}
+/** Money somebody else decides (an add-on's answer), or nobody has yet: empty until then. */
+function amount(ref: string, label: string): Column {
+  return { ref, type: "decimal", scale: "currency", nullable: true, label: l(label) };
+}
+/** A row of an add-on's table, by its key. No database link: the add-on may be away, and its table with it. */
+function link(ref: string, addOn: string, table: string, label: string, rules: Record<string, unknown> = {}): Column {
+  return { ref, type: "int", nullable: true, label: l(label), rules: { addOnLink: { addOn, table }, ...rules } };
 }
 /** A wall time on the house's clock, "15:00". */
 function clock(ref: string, label: string, value: string): Column {
@@ -274,6 +286,8 @@ const STAY_STATES = {
   lock: { when: ["departed", "cancelled"], except: ["link_stopped", "language"] },
   children: {
     stay_extras: { via: "stay_id", parentIn: ["booked", "in_house"] },
+    // A code is typed when the stay is booked; it is kept with the stay, and nothing adds one to a finished stay.
+    stay_codes: { via: "stay_id", parentIn: ["booked", "in_house"] },
     // Charged while the stay is live; voided whatever state it is in, so a
     // manager can correct what was recorded before it closed.
     charges: { via: "stay_id", createIn: ["booked", "in_house"], changeIn: [...STATUSES] },
@@ -512,6 +526,54 @@ export const TABLES: Table[] = [
     keyField: "ref",
     capacity: NIGHT_RULES,
     states: STAY_STATES,
+    // Offers & gift cards works out what a code or a voucher takes off the room and the extras, inside the save.
+    adjust: {
+      by: { addOn: "offers" },
+      needs: "codes",
+      lines: [
+        // The room: the stay itself is the line, its amount the nights together, each night with its own price.
+        {
+          self: true,
+          price: "room_total",
+          quantity: "nights",
+          discount: "room_discount",
+          what: [{ column: "room_type_id", as: "item" }],
+          nights: { from: "arrive", to: "depart", rate: "room_total" },
+        },
+        // Each extra on the stay; a dropped one is no line. A charge at the bar is never reduced.
+        {
+          table: "stay_extras",
+          via: "stay_id",
+          price: "amount",
+          discount: "discount",
+          what: [{ column: "extra_id", as: "item" }],
+          only: { column: "state", eq: "on" },
+        },
+      ],
+      order: {
+        discount: "discount",
+        // Who is staying: a signed-in guest, or a guest the desk names. An earlier stay counts unless it was cancelled or never came.
+        customer: { link: "customer_id", address: "email", proved: "customer_proved", counts: { column: "status", in: ["booked", "in_house", "departed"] } },
+      },
+      codes: { table: "stay_codes", via: "stay_id", typed: "typed", code: "code_id", voucher: "voucher_id", removed: "removed_at" },
+      uses: "uses",
+      frozen: { to: ["departed", "cancelled", "no_show"] },
+      expect: "total",
+    },
+    postings: [
+      // A code's use is taken when the stay is booked and given back when it is cancelled. A no-show keeps it.
+      { id: "uses", into: { addOn: "offers", ledger: "value", action: "redeem" }, needs: "codes", post: { on: { create: true } }, reverse: { on: { to: ["cancelled"] } }, map: {} },
+      // At check-out the room type's linen goes to the laundry and its amenities are used, as Inventory's links say.
+      // Never taken back: a finished stay is closed, and a wrong check-out is put right by a transfer.
+      {
+        id: "turnover",
+        into: { addOn: "inventory", ledger: "stock", action: "use" },
+        needs: "linen-and-supplies",
+        post: { on: { to: ["departed"] } },
+        map: { what: "room_type_id", quantity: { value: 1 }, kind: { value: "used" } },
+        multipliers: { night: "nights", guest: "guests" },
+      },
+    ],
     columns: [
       id,
       int("ref_seq", "Reference (running)", {
@@ -571,11 +633,20 @@ export const TABLES: Table[] = [
       money("extras_nightly", "Extras a night", { rollup: { from: "stay_extras", via: "stay_id", sum: "nightly", where: { column: "state", eq: "on" } } }),
       money("charges_total", "Charges", { rollup: { from: "charges", via: "stay_id", sum: "amount", where: { column: "voided", eq: false } } }),
       money("credits_total", "Nights not stayed", { rollup: { from: "stay_credits", via: "stay_id", sum: "amount", where: { column: "voided", eq: false } } }),
+      // What codes and vouchers took off, decided by Offers & gift cards; empty when it is not in use.
+      amount("discount", "Reductions"),
+      amount("room_discount", "Reduction on the room"),
+      // Reductions come off before the tax. A stay from before these columns has none, and keeps its cents.
       money("subtotal", "Before tax", {
         formula: {
           sub: [
-            { add: ["room_total", { coalesce: ["extras_total", 0] }, { coalesce: ["charges_total", 0] }] },
-            { coalesce: ["credits_total", 0] },
+            {
+              sub: [
+                { add: ["room_total", { coalesce: ["extras_total", 0] }, { coalesce: ["charges_total", 0] }] },
+                { coalesce: ["credits_total", 0] },
+              ],
+            },
+            { coalesce: ["discount", 0] },
           ],
         },
       }),
@@ -618,6 +689,8 @@ export const TABLES: Table[] = [
       at("folio_so_far_at", "Folio so far emailed", opt),
       at("no_show_marked_at", "Marked as a no-show", { ...opt, rules: { stamp: { set: "now", on: onStatus("no_show"), clearOnBack: true } } }),
       fk("customer_id", "customers", "Guest account", opt),
+      // Whether the guest was signed in, or named by the desk, when a code asked who they are: Offers & gift cards is told, and it is kept.
+      { ref: "customer_proved", type: "bool", nullable: true, label: l("Guest known when booking") },
       // The reservation's own link: emailed to the guest, never shown in a list.
       text("link_token", 16, "Link code", { ...opt, rules: { code: { length: 16 } } }),
       bool("link_stopped", "Link stopped", false),
@@ -660,6 +733,24 @@ export const TABLES: Table[] = [
       money("nightly", "A night", { formula: EXTRA_NIGHTLY }),
       money("amount", "Amount", { formula: { if: [{ eq: ["per", "stay"] }, "each", { mul: ["nightly", { coalesce: ["nights", 0] }] }] } }),
       at("added_at", "Added", { ...opt, rules: stamp("now", onCreate) }),
+      // This extra's share of the stay's reductions, decided by Offers & gift cards.
+      amount("discount", "Reduction"),
+    ],
+  },
+  {
+    // A code or a voucher typed when the stay was booked. The whole code is read by no page and no role.
+    ref: "stay_codes",
+    label: l("Code on a reservation"),
+    labelPlural: l("Codes on reservations"),
+    keyField: "id",
+    columns: [
+      id,
+      fk("stay_id", "stays", "Reservation"),
+      text("typed", 64, "Code as typed", opt),
+      link("code_id", "offers", "codes", "Discount code"),
+      link("voucher_id", "offers", "vouchers", "Voucher"),
+      at("removed_at", "Removed", opt),
+      at("created_at", "Added", { ...opt, rules: stamp("now", onCreate) }),
     ],
   },
   {
@@ -734,13 +825,35 @@ export const TABLES: Table[] = [
     label: l("Payment"),
     labelPlural: l("Payments"),
     keyField: "method",
+    postings: [
+      // A gift card pays when the row names one, and gets its money back when that payment is voided.
+      {
+        id: "card",
+        into: { addOn: "offers", ledger: "value", action: "spend" },
+        needs: "gift-cards",
+        via: "stay_id",
+        post: { on: { column: "card_id", set: true, own: true } },
+        reverse: { on: { column: "voided_at", set: true, own: true } },
+        map: { card: "card_id", amount: "amount", ask: "asked", due: { parent: "balance" }, balance_after: "card_balance_after" },
+      },
+      // Money given back to the card it came from: the payment it returns to is named, never a code.
+      {
+        id: "card-refund",
+        into: { addOn: "offers", ledger: "value", action: "refund" },
+        needs: "gift-cards",
+        via: "stay_id",
+        post: { on: { column: "against_id", set: true, own: true } },
+        reverse: { on: { column: "voided_at", set: true, own: true } },
+        map: { amount: "amount", against_table: { value: "hotel:payments" }, against_row: "against_id" },
+      },
+    ],
     columns: [
       id,
       fk("stay_id", "stays", "Reservation", { index: true }),
       // Money taken, or money handed back to the guest.
       choice("kind", "Kind", { taken: "Taken", given_back: "Given back" }, { default: "taken", tones: { taken: "pos", given_back: "warn" } }),
       price("amount", "Amount", { rules: { validation: { min: 0.01 } } }),
-      choice("method", "How", { card: "Card", cash: "Cash", transfer: "Transfer" }, { default: "card" }),
+      choice("method", "How", { card: "Card", cash: "Cash", transfer: "Transfer", gift_card: "Gift card" }, { default: "card" }),
       text("reference", 80, "Payment reference", opt),
       // Money handed back says why.
       text("note", 240, "Note", { ...opt, rules: { requiredWhen: { column: "kind", in: ["given_back"] } } }),
@@ -753,6 +866,19 @@ export const TABLES: Table[] = [
       text("void_reason", 240, "Why it was voided", opt),
       at("voided_at", "Voided on", { ...opt, rules: stamp("now", voidedNow) }),
       text("voided_by", 80, "Voided by", { ...opt, rules: stamp("user-name", voidedNow) }),
+      // Kind and method together, for the two rules below to read: 1 a gift card pays, 2 money goes back to one, 0 anything else.
+      { ref: "settle_as", type: "int", nullable: true, label: l("Settled as"), rules: { formula: { if: [{ eq: ["method", "gift_card"] }, { if: [{ eq: ["kind", "given_back"] }, 2, 1] }, 0] } } },
+      // A gift card's whole code, as typed at the desk: read by no page and no role.
+      text("card_code", 64, "Card code", { ...opt, rules: { requiredWhen: { column: "settle_as", in: [1] } } }),
+      link("card_id", "offers", "gift_cards", "Gift card", {
+        lookup: { from: "card_code", table: { addOn: "offers", table: "gift_cards" }, column: "code", where: [{ column: "status", eq: "active" }] },
+      }),
+      text("card_last4", 4, "Card ending", { ...opt, rules: { codeLast4: { of: "card_code" } } }),
+      amount("card_balance_after", "Left on the card"),
+      // What the desk's check answered: the card is asked for exactly this, and gives it or nothing.
+      amount("asked", "Asked of the card"),
+      // The gift card payment a given-back row returns its money to.
+      fk("against_id", "payments", "Returns to", { ...opt, rules: { requiredWhen: { column: "settle_as", in: [2] } } }),
     ],
   },
   {

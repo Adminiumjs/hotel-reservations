@@ -18,16 +18,19 @@ import { PUBLIC_ACCESS, PUBLIC_KEYS } from "./public.ts";
 import { ROLES } from "./roles.ts";
 import { TABLES } from "./tables.ts";
 
-/** This release, a patch over 0.2.x (the version moved 0.1.3 → 0.2.0 once: its tables were new). */
-export const VERSION = "0.2.3";
+/** This release: linen, codes, vouchers and gift cards, on 0.2.x's tables with one more beside them. */
+export const VERSION = "0.3.0";
 
 /**
  * The Adminium release that first reads everything below: rooms counted night
  * by night, a stay priced by the night and written with its extras, strict
  * moves with their effects on the room, moves made by the clock, a stay's own
- * link. Written from the version actually released, never guessed.
+ * link; and an add-on asked what a code takes off inside the save, a gift
+ * card paying a row of a table that takes other payments too, and a room
+ * type's linen and amenities posted at check-out. Written from the version
+ * actually released, never guessed.
  */
-export const MIN_ADMINIUM = "0.3.9";
+export const MIN_ADMINIUM = "0.3.20";
 
 const ENV = {
   VITE_ADMINIUM_API_BASE_URL: { required: false, example: "https://admin.example.com" },
@@ -47,6 +50,8 @@ export const CUSTOMER_ROUTES = {
   reservation: "/r",
   signIn: "/sign-in",
   reservations: "/reservations",
+  // A gift card's balance: the key Offers & gift cards' own email looks for.
+  giftCard: "/gift-card",
 };
 
 export function buildManifest(): Record<string, unknown> {
@@ -87,7 +92,8 @@ export function buildManifest(): Record<string, unknown> {
     publicAccess: PUBLIC_ACCESS,
     outbox: OUTBOX,
     emailTemplates: emailTemplates(KINDS),
-    sampleData: { file: "seeds/hotel.sample.json" },
+    // The house's own sample; and, while Inventory's sample is in, each room type linked to its "Room turnover" kit.
+    sampleData: { file: "seeds/hotel.sample.json", addOns: { inventory: { file: "seeds/hotel.inventory.sample.json" } } },
   };
 }
 

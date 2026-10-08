@@ -189,6 +189,20 @@ const EXTRAS: Block = {
   },
 };
 
+/**
+ * What codes and vouchers took off, one line each, as Offers & gift cards
+ * recorded them for this stay. With the add-on away, or nothing taken off,
+ * the list is empty and the block is left out.
+ */
+const REDUCTIONS: Block = {
+  block: "email.rows",
+  id: "reductions",
+  data: {
+    from: { link: "stay", addOn: "offers", table: "applied", match: { table: "source_table", row: "source_row" }, orderBy: "id", limit: 20 },
+    row: { title: "{{row.name}}", amount: "−{{row.amount}}" },
+  },
+};
+
 /** The emails that set out the stay and what it costs. */
 const WITH_STAY: ReadonlySet<Kind> = new Set(["stay-made", "stay-made-desk"]);
 
@@ -201,6 +215,7 @@ function layout(kind: Kind, all: EmailWords) {
   if (FOLIO.has(kind)) blocks.push({ block: "email.text", id: "attached", data: { paras: [all.attached], withAttachment: true } });
   blocks.push(para("body", ...w.paras));
   if (FOLIO.has(kind)) {
+    blocks.push(REDUCTIONS);
     blocks.push({
       block: "email.tax-breakdown",
       id: "folio",
@@ -220,6 +235,7 @@ function layout(kind: Kind, all: EmailWords) {
       data: { lines: [{ label: all.theRoom, amount: "{{stay.room_total.money}}" }] },
     });
     blocks.push(EXTRAS);
+    blocks.push(REDUCTIONS);
     blocks.push({
       block: "email.tax-breakdown",
       id: "totals",

@@ -44,6 +44,9 @@ export const STAY_SELECT = [
   "extras_total",
   "charges_total",
   "credits_total",
+  // What codes and vouchers took off: Adminium's figures, never the page's.
+  "discount",
+  "room_discount",
   "subtotal",
   "tax_rate",
   "tax_label",
@@ -62,10 +65,11 @@ export const STAY_SELECT = [
 /** The columns Adminium takes for personal data: a guest's name, email and mobile. */
 export const PERSONAL = ["first_name", "last_name", "email", "mobile", "note"];
 
-export const EXTRA_LINE_SELECT = ["id", "stay_id", "extra_id", "state", "label", "each", "per", "nights", "guests", "amount"];
+export const EXTRA_LINE_SELECT = ["id", "stay_id", "extra_id", "state", "label", "each", "per", "nights", "guests", "amount", "discount"];
 export const CHARGE_SELECT = ["id", "stay_id", "label", "amount", "note", "charged_on", "voided"];
 export const CREDIT_SELECT = ["id", "stay_id", "reason", "from_date", "to_date", "nights", "amount", "voided"];
-export const PAYMENT_SELECT = ["id", "stay_id", "kind", "amount", "method", "paid_on", "voided"];
+/** A gift card's payment shows the card's last four: never the code, never what is left on it. */
+export const PAYMENT_SELECT = ["id", "stay_id", "kind", "amount", "method", "paid_on", "voided", "card_last4"];
 
 /** The house's public face: its words, its times, its rules for a stay. */
 export const SETTINGS_SELECT = [
@@ -244,6 +248,8 @@ export const PUBLIC_ACCESS = [
     anonymous: { perValue: { columns: ["email"], n: 10 }, perKeyHour: 300, perIpHour: 10, plainText: ["first_name", "last_name"] },
     children: {
       stay_extras: { via: "stay_id", writable: ["extra_id"], select: EXTRA_LINE_SELECT.filter((c) => c !== "stay_id"), max: 8 },
+      // A code is typed when the stay is reserved; Adminium finds what it is, and the page never reads one back.
+      stay_codes: { via: "stay_id", writable: ["typed"], select: ["id"], max: 12 },
     },
     dryRun: true,
     expect: "total",

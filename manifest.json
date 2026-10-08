@@ -3,7 +3,7 @@
   "manifestVersion": 1,
   "key": "hotel",
   "name": "Hotel Reservations",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "publisher": {
     "id": "adminium",
     "name": "Adminium",
@@ -18,7 +18,7 @@
     "hospitality"
   ],
   "compatibility": {
-    "minAdminiumVersion": "0.3.9",
+    "minAdminiumVersion": "0.3.20",
     "engines": [
       "sqlite",
       "postgres",
@@ -75,7 +75,8 @@
         "reserve": "/reserve",
         "reservation": "/r",
         "signIn": "/sign-in",
-        "reservations": "/reservations"
+        "reservations": "/reservations",
+        "giftCard": "/gift-card"
       }
     }
   ],
@@ -95,6 +96,34 @@
           "zh-CN": "在前台打印客人的住宿结算单，退房时通过邮件发送，并为每笔付款附上收据。",
           "zh-TW": "在櫃檯列印客人的住宿結算單，退房時以郵件寄出，並為每筆付款附上收據。"
         }
+      },
+      {
+        "key": "inventory",
+        "range": ">=1.0.9",
+        "reason": {
+          "en-US": "Count linen and amenities as guests leave.",
+          "de-DE": "Wäsche und Gästeartikel zählen, wenn Gäste abreisen.",
+          "fr-FR": "Compter le linge et les produits d'accueil au départ des clients.",
+          "da-DK": "Tæl linned og gæsteartikler, når gæsterne rejser.",
+          "cs-CZ": "Počítejte prádlo a potřeby pro hosty při jejich odjezdu.",
+          "ar-EG": "احسب البياضات ومستلزمات الضيوف عند مغادرتهم.",
+          "zh-CN": "客人退房时清点布草和客用品。",
+          "zh-TW": "客人退房時清點布巾與備品。"
+        }
+      },
+      {
+        "key": "offers",
+        "range": ">=1.0.9",
+        "reason": {
+          "en-US": "Take codes, vouchers and gift cards.",
+          "de-DE": "Codes, Gutscheine und Geschenkkarten annehmen.",
+          "fr-FR": "Accepter les codes, les bons et les cartes cadeaux.",
+          "da-DK": "Tag imod koder, vouchere og gavekort.",
+          "cs-CZ": "Přijímejte kódy, poukazy a dárkové karty.",
+          "ar-EG": "اقبل الرموز والقسائم وبطاقات الهدايا.",
+          "zh-CN": "接受代码、代金券和礼品卡。",
+          "zh-TW": "接受代碼、票券與禮品卡。"
+        }
       }
     ],
     "features": [
@@ -112,6 +141,54 @@
         },
         "requires": [
           "invoices"
+        ]
+      },
+      {
+        "id": "linen-and-supplies",
+        "label": {
+          "en-US": "Linen and supplies",
+          "de-DE": "Wäsche und Bedarf",
+          "fr-FR": "Linge et fournitures",
+          "da-DK": "Linned og forsyninger",
+          "cs-CZ": "Prádlo a zásoby",
+          "ar-EG": "البياضات والمستلزمات",
+          "zh-CN": "布草和用品",
+          "zh-TW": "布巾與備品"
+        },
+        "requires": [
+          "inventory"
+        ]
+      },
+      {
+        "id": "codes",
+        "label": {
+          "en-US": "Codes and vouchers",
+          "de-DE": "Codes und Gutscheine",
+          "fr-FR": "Codes et bons",
+          "da-DK": "Koder og vouchere",
+          "cs-CZ": "Kódy a poukazy",
+          "ar-EG": "الرموز والقسائم",
+          "zh-CN": "代码和代金券",
+          "zh-TW": "代碼與票券"
+        },
+        "requires": [
+          "offers"
+        ]
+      },
+      {
+        "id": "gift-cards",
+        "label": {
+          "en-US": "Gift cards",
+          "de-DE": "Geschenkkarten",
+          "fr-FR": "Cartes cadeaux",
+          "da-DK": "Gavekort",
+          "cs-CZ": "Dárkové karty",
+          "ar-EG": "بطاقات الهدايا",
+          "zh-CN": "礼品卡",
+          "zh-TW": "禮品卡"
+        },
+        "requires": [
+          "offers"
         ]
       }
     ]
@@ -2454,6 +2531,13 @@
                 "in_house"
               ]
             },
+            "stay_codes": {
+              "via": "stay_id",
+              "parentIn": [
+                "booked",
+                "in_house"
+              ]
+            },
             "charges": {
               "via": "stay_id",
               "createIn": [
@@ -2566,6 +2650,133 @@
             }
           ]
         },
+        "adjust": {
+          "by": {
+            "addOn": "offers"
+          },
+          "needs": "codes",
+          "lines": [
+            {
+              "self": true,
+              "price": "room_total",
+              "quantity": "nights",
+              "discount": "room_discount",
+              "what": [
+                {
+                  "column": "room_type_id",
+                  "as": "item"
+                }
+              ],
+              "nights": {
+                "from": "arrive",
+                "to": "depart",
+                "rate": "room_total"
+              }
+            },
+            {
+              "table": "stay_extras",
+              "via": "stay_id",
+              "price": "amount",
+              "discount": "discount",
+              "what": [
+                {
+                  "column": "extra_id",
+                  "as": "item"
+                }
+              ],
+              "only": {
+                "column": "state",
+                "eq": "on"
+              }
+            }
+          ],
+          "order": {
+            "discount": "discount",
+            "customer": {
+              "link": "customer_id",
+              "address": "email",
+              "proved": "customer_proved",
+              "counts": {
+                "column": "status",
+                "in": [
+                  "booked",
+                  "in_house",
+                  "departed"
+                ]
+              }
+            }
+          },
+          "codes": {
+            "table": "stay_codes",
+            "via": "stay_id",
+            "typed": "typed",
+            "code": "code_id",
+            "voucher": "voucher_id",
+            "removed": "removed_at"
+          },
+          "uses": "uses",
+          "frozen": {
+            "to": [
+              "departed",
+              "cancelled",
+              "no_show"
+            ]
+          },
+          "expect": "total"
+        },
+        "postings": [
+          {
+            "id": "uses",
+            "into": {
+              "addOn": "offers",
+              "ledger": "value",
+              "action": "redeem"
+            },
+            "needs": "codes",
+            "post": {
+              "on": {
+                "create": true
+              }
+            },
+            "reverse": {
+              "on": {
+                "to": [
+                  "cancelled"
+                ]
+              }
+            },
+            "map": {}
+          },
+          {
+            "id": "turnover",
+            "into": {
+              "addOn": "inventory",
+              "ledger": "stock",
+              "action": "use"
+            },
+            "needs": "linen-and-supplies",
+            "post": {
+              "on": {
+                "to": [
+                  "departed"
+                ]
+              }
+            },
+            "map": {
+              "what": "room_type_id",
+              "quantity": {
+                "value": 1
+              },
+              "kind": {
+                "value": "used"
+              }
+            },
+            "multipliers": {
+              "night": "nights",
+              "guest": "guests"
+            }
+          }
+        ],
         "columns": [
           {
             "ref": "id",
@@ -3248,6 +3459,38 @@
             }
           },
           {
+            "ref": "discount",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Reductions",
+              "de-DE": "Ermäßigungen",
+              "fr-FR": "Réductions",
+              "da-DK": "Reduktioner",
+              "cs-CZ": "Slevy",
+              "ar-EG": "التخفيضات",
+              "zh-CN": "减免",
+              "zh-TW": "減免"
+            }
+          },
+          {
+            "ref": "room_discount",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Reduction on the room",
+              "de-DE": "Ermäßigung auf das Zimmer",
+              "fr-FR": "Réduction sur la chambre",
+              "da-DK": "Reduktion på værelset",
+              "cs-CZ": "Sleva na pokoj",
+              "ar-EG": "تخفيض على الغرفة",
+              "zh-CN": "房费减免",
+              "zh-TW": "房費減免"
+            }
+          },
+          {
             "ref": "subtotal",
             "type": "decimal",
             "scale": "currency",
@@ -3266,17 +3509,27 @@
               "formula": {
                 "sub": [
                   {
-                    "add": [
-                      "room_total",
+                    "sub": [
                       {
-                        "coalesce": [
-                          "extras_total",
-                          0
+                        "add": [
+                          "room_total",
+                          {
+                            "coalesce": [
+                              "extras_total",
+                              0
+                            ]
+                          },
+                          {
+                            "coalesce": [
+                              "charges_total",
+                              0
+                            ]
+                          }
                         ]
                       },
                       {
                         "coalesce": [
-                          "charges_total",
+                          "credits_total",
                           0
                         ]
                       }
@@ -3284,7 +3537,7 @@
                   },
                   {
                     "coalesce": [
-                      "credits_total",
+                      "discount",
                       0
                     ]
                   }
@@ -3822,6 +4075,21 @@
             "nullable": true
           },
           {
+            "ref": "customer_proved",
+            "type": "bool",
+            "nullable": true,
+            "label": {
+              "en-US": "Guest known when booking",
+              "de-DE": "Gast bei der Buchung bekannt",
+              "fr-FR": "Client connu à la réservation",
+              "da-DK": "Gæsten kendt ved booking",
+              "cs-CZ": "Host známý při rezervaci",
+              "ar-EG": "الضيف معروف عند الحجز",
+              "zh-CN": "预订时已确认客人身份",
+              "zh-TW": "訂房時已確認客人身分"
+            }
+          },
+          {
             "ref": "link_token",
             "type": "text",
             "maxLength": 16,
@@ -4276,6 +4544,162 @@
           },
           {
             "ref": "added_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Added",
+              "de-DE": "Hinzugefügt",
+              "fr-FR": "Ajouté",
+              "da-DK": "Tilføjet",
+              "cs-CZ": "Přidáno",
+              "ar-EG": "أُضيف",
+              "zh-CN": "添加时间",
+              "zh-TW": "新增時間"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": "now",
+                "on": "create"
+              }
+            }
+          },
+          {
+            "ref": "discount",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Reduction",
+              "de-DE": "Ermäßigung",
+              "fr-FR": "Réduction",
+              "da-DK": "Reduktion",
+              "cs-CZ": "Sleva",
+              "ar-EG": "تخفيض",
+              "zh-CN": "减免",
+              "zh-TW": "減免"
+            }
+          }
+        ]
+      },
+      {
+        "ref": "stay_codes",
+        "label": {
+          "en-US": "Code on a reservation",
+          "de-DE": "Code an einer Reservierung",
+          "fr-FR": "Code sur une réservation",
+          "da-DK": "Kode på en reservation",
+          "cs-CZ": "Kód u rezervace",
+          "ar-EG": "رمز على حجز",
+          "zh-CN": "预订上的代码",
+          "zh-TW": "訂房上的代碼"
+        },
+        "labelPlural": {
+          "en-US": "Codes on reservations",
+          "de-DE": "Codes an Reservierungen",
+          "fr-FR": "Codes sur les réservations",
+          "da-DK": "Koder på reservationer",
+          "cs-CZ": "Kódy u rezervací",
+          "ar-EG": "رموز على الحجوزات",
+          "zh-CN": "预订上的代码",
+          "zh-TW": "訂房上的代碼"
+        },
+        "keyField": "id",
+        "columns": [
+          {
+            "ref": "id",
+            "type": "int",
+            "role": "pk"
+          },
+          {
+            "ref": "stay_id",
+            "type": "fk",
+            "references": "stays",
+            "label": {
+              "en-US": "Reservation",
+              "de-DE": "Reservierung",
+              "fr-FR": "Réservation",
+              "da-DK": "Reservation",
+              "cs-CZ": "Rezervace",
+              "ar-EG": "حجز",
+              "zh-CN": "预订",
+              "zh-TW": "訂房"
+            }
+          },
+          {
+            "ref": "typed",
+            "type": "text",
+            "maxLength": 64,
+            "label": {
+              "en-US": "Code as typed",
+              "de-DE": "Code wie eingegeben",
+              "fr-FR": "Code tel que saisi",
+              "da-DK": "Kode som indtastet",
+              "cs-CZ": "Kód, jak byl zadán",
+              "ar-EG": "الرمز كما كُتب",
+              "zh-CN": "输入的代码",
+              "zh-TW": "輸入的代碼"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "code_id",
+            "type": "int",
+            "nullable": true,
+            "label": {
+              "en-US": "Discount code",
+              "de-DE": "Rabattcode",
+              "fr-FR": "Code de réduction",
+              "da-DK": "Rabatkode",
+              "cs-CZ": "Slevový kód",
+              "ar-EG": "رمز خصم",
+              "zh-CN": "折扣码",
+              "zh-TW": "折扣碼"
+            },
+            "rules": {
+              "addOnLink": {
+                "addOn": "offers",
+                "table": "codes"
+              }
+            }
+          },
+          {
+            "ref": "voucher_id",
+            "type": "int",
+            "nullable": true,
+            "label": {
+              "en-US": "Voucher",
+              "de-DE": "Gutschein",
+              "fr-FR": "Bon",
+              "da-DK": "Voucher",
+              "cs-CZ": "Poukaz",
+              "ar-EG": "قسيمة",
+              "zh-CN": "代金券",
+              "zh-TW": "票券"
+            },
+            "rules": {
+              "addOnLink": {
+                "addOn": "offers",
+                "table": "vouchers"
+              }
+            }
+          },
+          {
+            "ref": "removed_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Removed",
+              "de-DE": "Entfernt",
+              "fr-FR": "Retiré",
+              "da-DK": "Fjernet",
+              "cs-CZ": "Odebráno",
+              "ar-EG": "أُزيل",
+              "zh-CN": "移除时间",
+              "zh-TW": "移除時間"
+            },
+            "nullable": true
+          },
+          {
+            "ref": "created_at",
             "type": "timestamptz",
             "label": {
               "en-US": "Added",
@@ -5030,6 +5454,72 @@
           "zh-TW": "付款"
         },
         "keyField": "method",
+        "postings": [
+          {
+            "id": "card",
+            "into": {
+              "addOn": "offers",
+              "ledger": "value",
+              "action": "spend"
+            },
+            "needs": "gift-cards",
+            "via": "stay_id",
+            "post": {
+              "on": {
+                "column": "card_id",
+                "set": true,
+                "own": true
+              }
+            },
+            "reverse": {
+              "on": {
+                "column": "voided_at",
+                "set": true,
+                "own": true
+              }
+            },
+            "map": {
+              "card": "card_id",
+              "amount": "amount",
+              "ask": "asked",
+              "due": {
+                "parent": "balance"
+              },
+              "balance_after": "card_balance_after"
+            }
+          },
+          {
+            "id": "card-refund",
+            "into": {
+              "addOn": "offers",
+              "ledger": "value",
+              "action": "refund"
+            },
+            "needs": "gift-cards",
+            "via": "stay_id",
+            "post": {
+              "on": {
+                "column": "against_id",
+                "set": true,
+                "own": true
+              }
+            },
+            "reverse": {
+              "on": {
+                "column": "voided_at",
+                "set": true,
+                "own": true
+              }
+            },
+            "map": {
+              "amount": "amount",
+              "against_table": {
+                "value": "hotel:payments"
+              },
+              "against_row": "against_id"
+            }
+          }
+        ],
         "columns": [
           {
             "ref": "id",
@@ -5127,7 +5617,8 @@
             "enum": [
               "card",
               "cash",
-              "transfer"
+              "transfer",
+              "gift_card"
             ],
             "label": {
               "en-US": "How",
@@ -5172,6 +5663,16 @@
                     "ar-EG": "تحويل",
                     "zh-CN": "转账",
                     "zh-TW": "轉帳"
+                  },
+                  "gift_card": {
+                    "en-US": "Gift card",
+                    "de-DE": "Geschenkkarte",
+                    "fr-FR": "Carte cadeau",
+                    "da-DK": "Gavekort",
+                    "cs-CZ": "Dárková karta",
+                    "ar-EG": "بطاقة هدية",
+                    "zh-CN": "礼品卡",
+                    "zh-TW": "禮品卡"
                   }
                 }
               }
@@ -5397,6 +5898,182 @@
                     true
                   ]
                 }
+              }
+            }
+          },
+          {
+            "ref": "settle_as",
+            "type": "int",
+            "nullable": true,
+            "label": {
+              "en-US": "Settled as",
+              "de-DE": "Verbucht als",
+              "fr-FR": "Réglé comme",
+              "da-DK": "Afregnet som",
+              "cs-CZ": "Vyrovnáno jako",
+              "ar-EG": "سُوّي كـ",
+              "zh-CN": "结算方式",
+              "zh-TW": "結算方式"
+            },
+            "rules": {
+              "formula": {
+                "if": [
+                  {
+                    "eq": [
+                      "method",
+                      "gift_card"
+                    ]
+                  },
+                  {
+                    "if": [
+                      {
+                        "eq": [
+                          "kind",
+                          "given_back"
+                        ]
+                      },
+                      2,
+                      1
+                    ]
+                  },
+                  0
+                ]
+              }
+            }
+          },
+          {
+            "ref": "card_code",
+            "type": "text",
+            "maxLength": 64,
+            "label": {
+              "en-US": "Card code",
+              "de-DE": "Kartencode",
+              "fr-FR": "Code de la carte",
+              "da-DK": "Kortkode",
+              "cs-CZ": "Kód karty",
+              "ar-EG": "رمز البطاقة",
+              "zh-CN": "卡号",
+              "zh-TW": "卡號"
+            },
+            "nullable": true,
+            "rules": {
+              "requiredWhen": {
+                "column": "settle_as",
+                "in": [
+                  1
+                ]
+              }
+            }
+          },
+          {
+            "ref": "card_id",
+            "type": "int",
+            "nullable": true,
+            "label": {
+              "en-US": "Gift card",
+              "de-DE": "Geschenkkarte",
+              "fr-FR": "Carte cadeau",
+              "da-DK": "Gavekort",
+              "cs-CZ": "Dárková karta",
+              "ar-EG": "بطاقة هدية",
+              "zh-CN": "礼品卡",
+              "zh-TW": "禮品卡"
+            },
+            "rules": {
+              "addOnLink": {
+                "addOn": "offers",
+                "table": "gift_cards"
+              },
+              "lookup": {
+                "from": "card_code",
+                "table": {
+                  "addOn": "offers",
+                  "table": "gift_cards"
+                },
+                "column": "code",
+                "where": [
+                  {
+                    "column": "status",
+                    "eq": "active"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "ref": "card_last4",
+            "type": "text",
+            "maxLength": 4,
+            "label": {
+              "en-US": "Card ending",
+              "de-DE": "Karte endet auf",
+              "fr-FR": "Carte se terminant par",
+              "da-DK": "Kort der ender på",
+              "cs-CZ": "Karta končící na",
+              "ar-EG": "البطاقة المنتهية بـ",
+              "zh-CN": "卡号末四位",
+              "zh-TW": "卡號末四碼"
+            },
+            "nullable": true,
+            "rules": {
+              "codeLast4": {
+                "of": "card_code"
+              }
+            }
+          },
+          {
+            "ref": "card_balance_after",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Left on the card",
+              "de-DE": "Restguthaben der Karte",
+              "fr-FR": "Reste sur la carte",
+              "da-DK": "Tilbage på kortet",
+              "cs-CZ": "Zbývá na kartě",
+              "ar-EG": "المتبقي في البطاقة",
+              "zh-CN": "卡内余额",
+              "zh-TW": "卡內餘額"
+            }
+          },
+          {
+            "ref": "asked",
+            "type": "decimal",
+            "scale": "currency",
+            "nullable": true,
+            "label": {
+              "en-US": "Asked of the card",
+              "de-DE": "Von der Karte verlangt",
+              "fr-FR": "Demandé à la carte",
+              "da-DK": "Bedt om fra kortet",
+              "cs-CZ": "Požadováno z karty",
+              "ar-EG": "المطلوب من البطاقة",
+              "zh-CN": "向卡请求的金额",
+              "zh-TW": "向卡請求的金額"
+            }
+          },
+          {
+            "ref": "against_id",
+            "type": "fk",
+            "references": "payments",
+            "label": {
+              "en-US": "Returns to",
+              "de-DE": "Geht zurück an",
+              "fr-FR": "Retourne à",
+              "da-DK": "Går tilbage til",
+              "cs-CZ": "Vrací se na",
+              "ar-EG": "يعود إلى",
+              "zh-CN": "退回至",
+              "zh-TW": "退回至"
+            },
+            "nullable": true,
+            "rules": {
+              "requiredWhen": {
+                "column": "settle_as",
+                "in": [
+                  2
+                ]
               }
             }
           }
@@ -8171,6 +8848,7 @@
         "table:@customers:read",
         "table:@stays:read",
         "table:@stay_extras:read",
+        "table:@stay_codes:read",
         "table:@charges:read",
         "table:@stay_credits:read",
         "table:@payments:read",
@@ -8180,6 +8858,7 @@
         "table:@stays:update",
         "table:@stay_extras:create",
         "table:@stay_extras:update",
+        "table:@stay_codes:create",
         "table:@charges:create",
         "table:@stay_credits:create",
         "table:@stay_credits:update",
@@ -8234,6 +8913,56 @@
             "state"
           ]
         },
+        "stay_codes": {
+          "readable": [
+            "id",
+            "stay_id",
+            "code_id",
+            "voucher_id",
+            "removed_at",
+            "created_at"
+          ],
+          "creatable": [
+            "stay_id",
+            "typed"
+          ]
+        },
+        "payments": {
+          "readable": [
+            "id",
+            "stay_id",
+            "kind",
+            "amount",
+            "method",
+            "reference",
+            "note",
+            "signed",
+            "paid_on",
+            "recorded_at",
+            "recorded_by",
+            "voided",
+            "void_reason",
+            "voided_at",
+            "voided_by",
+            "settle_as",
+            "card_id",
+            "card_last4",
+            "card_balance_after",
+            "asked",
+            "against_id"
+          ],
+          "creatable": [
+            "stay_id",
+            "kind",
+            "amount",
+            "method",
+            "reference",
+            "note",
+            "card_code",
+            "asked",
+            "against_id"
+          ]
+        },
         "rooms": {
           "writable": [
             "status",
@@ -8253,7 +8982,214 @@
             "active"
           ]
         }
-      }
+      },
+      "tables": [
+        {
+          "addOn": "inventory",
+          "table": "transfers",
+          "actions": [
+            "read",
+            "create",
+            "update"
+          ],
+          "limit": {
+            "creatable": [
+              "from_place_id",
+              "to_place_id",
+              "note"
+            ],
+            "writable": [
+              "status"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "transfer_lines",
+          "actions": [
+            "read",
+            "create",
+            "update"
+          ],
+          "limit": {
+            "creatable": [
+              "transfer_id",
+              "item_id",
+              "qty"
+            ],
+            "writable": [
+              "status"
+            ],
+            "writableValues": {
+              "status": [
+                "posted"
+              ]
+            }
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "links",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "source_table",
+              "source_row",
+              "kind",
+              "kit_id",
+              "item_id"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "kits",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "name"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "kit_lines",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "kit_id",
+              "item_id",
+              "qty",
+              "per",
+              "action",
+              "place_id",
+              "to_place_id"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "items",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "name",
+              "unit",
+              "decimals"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "places",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "name"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "stock_points",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "item_id",
+              "place_id",
+              "on_hand"
+            ]
+          }
+        },
+        {
+          "addOn": "offers",
+          "table": "applied",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "source_table",
+              "source_row",
+              "source_line",
+              "name",
+              "kind",
+              "amount",
+              "typed",
+              "at"
+            ]
+          }
+        },
+        {
+          "addOn": "offers",
+          "table": "gift_cards",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "kind",
+              "label",
+              "status",
+              "balance",
+              "expires_on"
+            ]
+          }
+        },
+        {
+          "addOn": "offers",
+          "table": "vouchers",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "code_last4",
+              "worth",
+              "value",
+              "what",
+              "units",
+              "public_name",
+              "uses_left",
+              "uses_total",
+              "status",
+              "expires_on"
+            ]
+          }
+        },
+        {
+          "addOn": "offers",
+          "table": "codes",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "offer_id",
+              "active",
+              "valid_until"
+            ]
+          }
+        }
+      ]
     },
     {
       "key": "housekeeping",
@@ -8296,7 +9232,144 @@
             "state"
           ]
         }
-      }
+      },
+      "tables": [
+        {
+          "addOn": "inventory",
+          "table": "transfers",
+          "actions": [
+            "read",
+            "create",
+            "update"
+          ],
+          "limit": {
+            "creatable": [
+              "from_place_id",
+              "to_place_id",
+              "note"
+            ],
+            "writable": [
+              "status"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "transfer_lines",
+          "actions": [
+            "read",
+            "create",
+            "update"
+          ],
+          "limit": {
+            "creatable": [
+              "transfer_id",
+              "item_id",
+              "qty"
+            ],
+            "writable": [
+              "status"
+            ],
+            "writableValues": {
+              "status": [
+                "posted"
+              ]
+            }
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "links",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "source_table",
+              "source_row",
+              "kind",
+              "kit_id",
+              "item_id"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "kits",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "name"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "kit_lines",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "kit_id",
+              "item_id",
+              "qty",
+              "per",
+              "action",
+              "place_id",
+              "to_place_id"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "items",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "name",
+              "unit",
+              "decimals"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "places",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "name"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "stock_points",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "item_id",
+              "place_id",
+              "on_hand"
+            ]
+          }
+        }
+      ]
     },
     {
       "key": "manager",
@@ -8351,6 +9424,10 @@
         "table:@stay_extras:create",
         "table:@stay_extras:update",
         "table:@stay_extras:delete",
+        "table:@stay_codes:read",
+        "table:@stay_codes:create",
+        "table:@stay_codes:update",
+        "table:@stay_codes:delete",
         "table:@charges:read",
         "table:@charges:create",
         "table:@charges:update",
@@ -8399,6 +9476,250 @@
         "table:@stays:read_pii",
         "table:@customers:read_pii",
         "table:@messages:read_pii"
+      ],
+      "limits": {
+        "stay_codes": {
+          "readable": [
+            "id",
+            "stay_id",
+            "code_id",
+            "voucher_id",
+            "removed_at",
+            "created_at"
+          ]
+        },
+        "payments": {
+          "readable": [
+            "id",
+            "stay_id",
+            "kind",
+            "amount",
+            "method",
+            "reference",
+            "note",
+            "signed",
+            "paid_on",
+            "recorded_at",
+            "recorded_by",
+            "voided",
+            "void_reason",
+            "voided_at",
+            "voided_by",
+            "settle_as",
+            "card_id",
+            "card_last4",
+            "card_balance_after",
+            "asked",
+            "against_id"
+          ]
+        }
+      },
+      "tables": [
+        {
+          "addOn": "inventory",
+          "table": "transfers",
+          "actions": [
+            "read",
+            "create",
+            "update"
+          ],
+          "limit": {
+            "creatable": [
+              "from_place_id",
+              "to_place_id",
+              "note"
+            ],
+            "writable": [
+              "status"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "transfer_lines",
+          "actions": [
+            "read",
+            "create",
+            "update"
+          ],
+          "limit": {
+            "creatable": [
+              "transfer_id",
+              "item_id",
+              "qty"
+            ],
+            "writable": [
+              "status"
+            ],
+            "writableValues": {
+              "status": [
+                "posted"
+              ]
+            }
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "links",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "source_table",
+              "source_row",
+              "kind",
+              "kit_id",
+              "item_id"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "kits",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "name"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "kit_lines",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "kit_id",
+              "item_id",
+              "qty",
+              "per",
+              "action",
+              "place_id",
+              "to_place_id"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "items",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "name",
+              "unit",
+              "decimals"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "places",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "name"
+            ]
+          }
+        },
+        {
+          "addOn": "inventory",
+          "table": "stock_points",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "id",
+              "item_id",
+              "place_id",
+              "on_hand"
+            ]
+          }
+        },
+        {
+          "addOn": "offers",
+          "table": "applied",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "source_table",
+              "source_row",
+              "source_line",
+              "name",
+              "kind",
+              "amount",
+              "typed",
+              "at"
+            ]
+          }
+        },
+        {
+          "addOn": "offers",
+          "table": "gift_cards",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "kind",
+              "label",
+              "status",
+              "balance",
+              "expires_on"
+            ]
+          }
+        },
+        {
+          "addOn": "offers",
+          "table": "vouchers",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "code_last4",
+              "worth",
+              "value",
+              "what",
+              "units",
+              "public_name",
+              "uses_left",
+              "uses_total",
+              "status",
+              "expires_on"
+            ]
+          }
+        },
+        {
+          "addOn": "offers",
+          "table": "codes",
+          "actions": [
+            "read"
+          ],
+          "limit": {
+            "readable": [
+              "offer_id",
+              "active",
+              "valid_until"
+            ]
+          }
+        }
       ]
     }
   ],
@@ -8468,6 +9789,8 @@
         "extras_total",
         "charges_total",
         "credits_total",
+        "discount",
+        "room_discount",
         "subtotal",
         "tax_rate",
         "tax_label",
@@ -8555,6 +9878,8 @@
         "extras_total",
         "charges_total",
         "credits_total",
+        "discount",
+        "room_discount",
         "subtotal",
         "tax_rate",
         "tax_label",
@@ -8605,7 +9930,8 @@
         "per",
         "nights",
         "guests",
-        "amount"
+        "amount",
+        "discount"
       ],
       "writable": [
         "stay_id",
@@ -8643,7 +9969,8 @@
         "per",
         "nights",
         "guests",
-        "amount"
+        "amount",
+        "discount"
       ],
       "writable": [
         "state"
@@ -8724,7 +10051,8 @@
         "amount",
         "method",
         "paid_on",
-        "voided"
+        "voided",
+        "card_last4"
       ]
     },
     {
@@ -8888,6 +10216,8 @@
         "extras_total",
         "charges_total",
         "credits_total",
+        "discount",
+        "room_discount",
         "subtotal",
         "tax_rate",
         "tax_label",
@@ -8981,9 +10311,20 @@
             "per",
             "nights",
             "guests",
-            "amount"
+            "amount",
+            "discount"
           ],
           "max": 8
+        },
+        "stay_codes": {
+          "via": "stay_id",
+          "writable": [
+            "typed"
+          ],
+          "select": [
+            "id"
+          ],
+          "max": 12
         }
       },
       "dryRun": true,
@@ -9018,6 +10359,8 @@
         "extras_total",
         "charges_total",
         "credits_total",
+        "discount",
+        "room_discount",
         "subtotal",
         "tax_rate",
         "tax_label",
@@ -9099,7 +10442,8 @@
         "per",
         "nights",
         "guests",
-        "amount"
+        "amount",
+        "discount"
       ],
       "writable": [
         "stay_id",
@@ -9138,7 +10482,8 @@
         "per",
         "nights",
         "guests",
-        "amount"
+        "amount",
+        "discount"
       ],
       "writable": [
         "state"
@@ -9222,7 +10567,8 @@
         "amount",
         "method",
         "paid_on",
-        "voided"
+        "voided",
+        "card_last4"
       ]
     },
     {
@@ -9639,6 +10985,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "totals",
               "data": {
@@ -9748,6 +11115,27 @@
                 "row": {
                   "title": "{{row.label}}",
                   "amount": "{{row.amount.money}}"
+                }
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
                 }
               }
             },
@@ -9865,6 +11253,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "totals",
               "data": {
@@ -9974,6 +11383,27 @@
                 "row": {
                   "title": "{{row.label}}",
                   "amount": "{{row.amount.money}}"
+                }
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
                 }
               }
             },
@@ -10091,6 +11521,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "totals",
               "data": {
@@ -10200,6 +11651,27 @@
                 "row": {
                   "title": "{{row.label}}",
                   "amount": "{{row.amount.money}}"
+                }
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
                 }
               }
             },
@@ -10317,6 +11789,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "totals",
               "data": {
@@ -10426,6 +11919,27 @@
                 "row": {
                   "title": "{{row.label}}",
                   "amount": "{{row.amount.money}}"
+                }
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
                 }
               }
             },
@@ -10577,6 +12091,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "totals",
               "data": {
@@ -10678,6 +12213,27 @@
                 "row": {
                   "title": "{{row.label}}",
                   "amount": "{{row.amount.money}}"
+                }
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
                 }
               }
             },
@@ -10787,6 +12343,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "totals",
               "data": {
@@ -10888,6 +12465,27 @@
                 "row": {
                   "title": "{{row.label}}",
                   "amount": "{{row.amount.money}}"
+                }
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
                 }
               }
             },
@@ -10997,6 +12595,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "totals",
               "data": {
@@ -11098,6 +12717,27 @@
                 "row": {
                   "title": "{{row.label}}",
                   "amount": "{{row.amount.money}}"
+                }
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
                 }
               }
             },
@@ -11207,6 +12847,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "totals",
               "data": {
@@ -11308,6 +12969,27 @@
                 "row": {
                   "title": "{{row.label}}",
                   "amount": "{{row.amount.money}}"
+                }
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
                 }
               }
             },
@@ -14231,6 +15913,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "folio",
               "data": {
@@ -14293,6 +15996,27 @@
                 "paras": [
                   "Wir hoffen, Sie bald wiederzusehen."
                 ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
               }
             },
             {
@@ -14361,6 +16085,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "folio",
               "data": {
@@ -14423,6 +16168,27 @@
                 "paras": [
                   "Vi håber at se dig igen."
                 ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
               }
             },
             {
@@ -14491,6 +16257,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "folio",
               "data": {
@@ -14553,6 +16340,27 @@
                 "paras": [
                   "نأمل أن نراك مجددًا."
                 ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
               }
             },
             {
@@ -14621,6 +16429,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "folio",
               "data": {
@@ -14683,6 +16512,27 @@
                 "paras": [
                   "期待再次見到您。"
                 ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
               }
             },
             {
@@ -14784,6 +16634,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "folio",
               "data": {
@@ -14846,6 +16717,27 @@
                 "paras": [
                   "An der Rezeption sind noch {{stay.balance.money}} zu begleichen."
                 ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
               }
             },
             {
@@ -14914,6 +16806,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "folio",
               "data": {
@@ -14976,6 +16889,27 @@
                 "paras": [
                   "Der mangler {{stay.balance.money}} at blive betalt i receptionen."
                 ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
               }
             },
             {
@@ -15044,6 +16978,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "folio",
               "data": {
@@ -15106,6 +17061,27 @@
                 "paras": [
                   "يتبقى {{stay.balance.money}} للسداد في الاستقبال."
                 ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
               }
             },
             {
@@ -15174,6 +17150,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "folio",
               "data": {
@@ -15239,6 +17236,27 @@
               }
             },
             {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
               "block": "email.tax-breakdown",
               "id": "folio",
               "data": {
@@ -15265,6 +17283,11 @@
     }
   ],
   "sampleData": {
-    "file": "seeds/hotel.sample.json"
+    "file": "seeds/hotel.sample.json",
+    "addOns": {
+      "inventory": {
+        "file": "seeds/hotel.inventory.sample.json"
+      }
+    }
   }
 }

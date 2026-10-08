@@ -1,0 +1,60 @@
+{
+  "format": "adminium.sample/1",
+  "app": "hotel",
+  "addOn": "inventory",
+  "tables": [
+    {
+      "ref": "links",
+      "rows": [
+        {
+          "source_table": {
+            "@table": "room_types"
+          },
+          "source_row": {
+            "@ref": "type:snug"
+          },
+          "kind": "kit",
+          "kit_id": {
+            "@ref": "kit:room-turnover"
+          }
+        },
+        {
+          "source_table": {
+            "@table": "room_types"
+          },
+          "source_row": {
+            "@ref": "type:garden"
+          },
+          "kind": "kit",
+          "kit_id": {
+            "@ref": "kit:room-turnover"
+          }
+        },
+        {
+          "source_table": {
+            "@table": "room_types"
+          },
+          "source_row": {
+            "@ref": "type:harbour"
+          },
+          "kind": "kit",
+          "kit_id": {
+            "@ref": "kit:room-turnover"
+          }
+        },
+        {
+          "source_table": {
+            "@table": "room_types"
+          },
+          "source_row": {
+            "@ref": "type:loft"
+          },
+          "kind": "kit",
+          "kit_id": {
+            "@ref": "kit:room-turnover"
+          }
+        }
+      ]
+    }
+  ]
+}

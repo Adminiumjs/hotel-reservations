@@ -24,7 +24,7 @@
  * the limits below are what refuse the write — a hidden button is not a lock.
  */
 import { PAGE_REFS } from "./pages.ts";
-import { DESK_CANCEL_CODES, TABLE_REFS } from "./tables.ts";
+import { DESK_CANCEL_CODES, TABLE_REFS, TABLES } from "./tables.ts";
 
 const grant = (table: string, ...actions: string[]) => actions.map((action) => `table:@${table}:${action}`);
 const view = (page: string) => `page:@${page}:view`;
@@ -59,6 +59,54 @@ const DESK_STAY_COLUMNS = [
   "customer_id",
 ];
 
+/**
+ * What a role reads and writes of the add-ons' own tables, column by column.
+ * Nothing here is held while the add-on is away, and all of it is taken back
+ * when the add-on is disconnected.
+ *
+ * Of Inventory: what a room type's linen is and how much of it is where, and
+ * a transfer — "Back from the laundry" — made and moved through its steps.
+ * No cost, no count, no receipt, no other movement. A second role with a
+ * plain read of one of these tables lifts its column limit.
+ */
+const LINEN = [
+  { addOn: "inventory", table: "transfers", actions: ["read", "create", "update"], limit: { creatable: ["from_place_id", "to_place_id", "note"], writable: ["status"] } },
+  {
+    addOn: "inventory",
+    table: "transfer_lines",
+    actions: ["read", "create", "update"],
+    limit: { creatable: ["transfer_id", "item_id", "qty"], writable: ["status"], writableValues: { status: ["posted"] } },
+  },
+  { addOn: "inventory", table: "links", actions: ["read"], limit: { readable: ["id", "source_table", "source_row", "kind", "kit_id", "item_id"] } },
+  { addOn: "inventory", table: "kits", actions: ["read"], limit: { readable: ["id", "name"] } },
+  { addOn: "inventory", table: "kit_lines", actions: ["read"], limit: { readable: ["id", "kit_id", "item_id", "qty", "per", "action", "place_id", "to_place_id"] } },
+  { addOn: "inventory", table: "items", actions: ["read"], limit: { readable: ["id", "name", "unit", "decimals"] } },
+  { addOn: "inventory", table: "places", actions: ["read"], limit: { readable: ["id", "name"] } },
+  { addOn: "inventory", table: "stock_points", actions: ["read"], limit: { readable: ["id", "item_id", "place_id", "on_hand"] } },
+];
+
+/**
+ * Of Offers & gift cards: the reductions of a stay, for the folio; and what a
+ * typed code is when the desk looks it up — a card's state, balance and
+ * expiry, a voucher's worth and what is left of it, whether a code is on.
+ * Never a code, a holder, an address or a message. Read only: the desk sells
+ * no card.
+ */
+const OFFERS_AT_THE_DESK = [
+  { addOn: "offers", table: "applied", actions: ["read"], limit: { readable: ["source_table", "source_row", "source_line", "name", "kind", "amount", "typed", "at"] } },
+  { addOn: "offers", table: "gift_cards", actions: ["read"], limit: { readable: ["kind", "label", "status", "balance", "expires_on"] } },
+  { addOn: "offers", table: "vouchers", actions: ["read"], limit: { readable: ["code_last4", "worth", "value", "what", "units", "public_name", "uses_left", "uses_total", "status", "expires_on"] } },
+  { addOn: "offers", table: "codes", actions: ["read"], limit: { readable: ["offer_id", "active", "valid_until"] } },
+];
+
+const columnsOf = (table: string) => TABLES.find((t) => t.ref === table)!.columns.map((c) => c.ref);
+/** What anybody reads of a payment: never `card_code` — a gift card's whole code is typed once and shown again by no screen. */
+export const PAYMENT_READS = columnsOf("payments").filter((ref) => ref !== "card_code");
+/** What anybody reads of a code on a stay: never the code as typed. */
+export const STAY_CODE_READS = columnsOf("stay_codes").filter((ref) => ref !== "typed");
+/** What the desk sends with a payment: never what a card gave or kept, which Offers & gift cards decides. */
+export const DESK_PAYMENT_COLUMNS = ["stay_id", "kind", "amount", "method", "reference", "note", "card_code", "asked", "against_id"];
+
 export const ROLES = [
   {
     key: "front-desk",
@@ -72,6 +120,8 @@ export const ROLES = [
       // A booking with its extras, in one write; the money rows of a stay.
       ...grant("stays", "create", "update"),
       ...grant("stay_extras", "create", "update"),
+      // A code typed when the booking is taken: written with the stay, never changed after.
+      ...grant("stay_codes", "create"),
       ...grant("charges", "create"),
       // A credit is recorded, never changed: the update grant only lets the stay's change quote send its credits back as they are.
       ...grant("stay_credits", "create", "update"),
@@ -89,9 +139,12 @@ export const ROLES = [
         },
       },
       stay_extras: { writable: ["state"] },
+      stay_codes: { readable: STAY_CODE_READS, creatable: ["stay_id", "typed"] },
+      payments: { readable: PAYMENT_READS, creatable: DESK_PAYMENT_COLUMNS },
       rooms: { writable: ["status", "note"], writableValues: { status: ["ready", "cleaning"] } },
       room_closures: { writable: ["to_date", "reason", "active"] },
     },
+    tables: [...LINEN, ...OFFERS_AT_THE_DESK],
   },
   {
     key: "housekeeping",
@@ -108,6 +161,8 @@ export const ROLES = [
       stays: { readable: HOUSEKEEPING_STAY_COLUMNS },
       stay_extras: { readable: ["stay_id", "extra_id", "state"] },
     },
+    // The linen, and putting it back: nothing of Offers & gift cards.
+    tables: LINEN,
   },
   {
     key: "manager",
@@ -121,5 +176,11 @@ export const ROLES = [
       ...PAGE_REFS.flatMap((page) => [view(page), `page:@${page}:edit`]),
       ...["stays", "customers", "messages"].map(pii),
     ],
+    limits: {
+      // A code's whole text is typed and never read back, by a manager either.
+      stay_codes: { readable: STAY_CODE_READS },
+      payments: { readable: PAYMENT_READS },
+    },
+    tables: [...LINEN, ...OFFERS_AT_THE_DESK],
   },
 ];

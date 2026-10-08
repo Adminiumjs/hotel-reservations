@@ -194,11 +194,12 @@ export const COLUMNS: Record<string, Record<string, Fill>> = {
   extras: { code: null, label: REQUIRED, short: null, how: null, icon: null, amount: REQUIRED, per: "night", spaces: null, active: true, position: 0 },
   charge_items: { label: REQUIRED, detail: null, amount: REQUIRED, icon: null, extra_id: null, active: true, position: 0 },
   customers: { email: null, first_name: null, last_name: null, forgotten_at: null, created_at: null },
-  stays: { ref_seq: null, ref: null, status: "booked", room_type_id: REQUIRED, room_id: null, arrive: REQUIRED, depart: REQUIRED, guests: 2, nights: null, first_name: REQUIRED, last_name: null, guest_name: null, email: null, mobile: null, arrival_time: null, note: null, expect_by: null, language: null, channel: "online", room_total: null, extras_total: null, extras_nightly: null, charges_total: null, credits_total: null, subtotal: null, tax_rate: null, tax_label: null, tax: null, total: null, paid: null, balance: null, late_cancel: false, cancel_code: null, cancel_by: null, created_at: null, checked_in_at: null, checked_in_by: null, checked_out_at: null, checked_out_by: null, cancelled_at: null, cancelled_by: null, folio_sent_at: null, folio_so_far_at: null, no_show_marked_at: null, customer_id: null, link_token: null, link_stopped: false, client_key: null },
-  stay_extras: { stay_id: REQUIRED, extra_id: REQUIRED, state: "on", label: null, each: null, per: null, nights: null, guests: null, nightly: null, amount: null, added_at: null },
+  stays: { ref_seq: null, ref: null, status: "booked", room_type_id: REQUIRED, room_id: null, arrive: REQUIRED, depart: REQUIRED, guests: 2, nights: null, first_name: REQUIRED, last_name: null, guest_name: null, email: null, mobile: null, arrival_time: null, note: null, expect_by: null, language: null, channel: "online", room_total: null, extras_total: null, extras_nightly: null, charges_total: null, credits_total: null, discount: null, room_discount: null, subtotal: null, tax_rate: null, tax_label: null, tax: null, total: null, paid: null, balance: null, late_cancel: false, cancel_code: null, cancel_by: null, created_at: null, checked_in_at: null, checked_in_by: null, checked_out_at: null, checked_out_by: null, cancelled_at: null, cancelled_by: null, folio_sent_at: null, folio_so_far_at: null, no_show_marked_at: null, customer_id: null, customer_proved: null, link_token: null, link_stopped: false, client_key: null },
+  stay_extras: { stay_id: REQUIRED, extra_id: REQUIRED, state: "on", label: null, each: null, per: null, nights: null, guests: null, nightly: null, amount: null, added_at: null, discount: null },
+  stay_codes: { stay_id: REQUIRED, typed: null, code_id: null, voucher_id: null, removed_at: null, created_at: null },
   charges: { stay_id: REQUIRED, charge_item_id: null, label: null, amount: REQUIRED, note: null, charged_on: null, recorded_by: null, voided: false, void_reason: null, voided_at: null, voided_by: null },
   stay_credits: { stay_id: REQUIRED, reason: "left_early", label: null, from_date: REQUIRED, to_date: REQUIRED, room_type_id: null, nights: null, room_amount: null, extras_nightly: null, amount: null, line_amount: null, recorded_by: null, created_at: null, voided: false, void_reason: null, voided_at: null, voided_by: null },
-  payments: { stay_id: REQUIRED, kind: "taken", amount: REQUIRED, method: "card", reference: null, note: null, signed: null, paid_on: null, recorded_at: null, recorded_by: null, voided: false, void_reason: null, voided_at: null, voided_by: null },
+  payments: { stay_id: REQUIRED, kind: "taken", amount: REQUIRED, method: "card", reference: null, note: null, signed: null, paid_on: null, recorded_at: null, recorded_by: null, voided: false, void_reason: null, voided_at: null, voided_by: null, settle_as: null, card_code: null, card_id: null, card_last4: null, card_balance_after: null, asked: null, against_id: null },
   messages: { kind: REQUIRED, status: "queued", to_address: null, language: null, stay_id: null, customer_id: null, due: null, created_at: null, sent_at: null, error: null, was: null, repeat_key: null, skip_reason: null },
 };
 
@@ -223,7 +224,7 @@ export const RULES: Rules = {
   formulas: [
     { table: "stays", column: "nights", scale: 2, expr: {"daysBetween":["arrive","depart"]} },
     { table: "stays", column: "guest_name", scale: 2, expr: {"join":["first_name"," ","last_name"]} },
-    { table: "stays", column: "subtotal", scale: "currency", expr: {"sub":[{"add":["room_total",{"coalesce":["extras_total",0]},{"coalesce":["charges_total",0]}]},{"coalesce":["credits_total",0]}]} },
+    { table: "stays", column: "subtotal", scale: "currency", expr: {"sub":[{"sub":[{"add":["room_total",{"coalesce":["extras_total",0]},{"coalesce":["charges_total",0]}]},{"coalesce":["credits_total",0]}]},{"coalesce":["discount",0]}]} },
     { table: "stays", column: "tax", scale: "currency", expr: {"round":{"div":[{"mul":["subtotal",{"coalesce":["tax_rate",0]}]},100]}} },
     { table: "stays", column: "total", scale: "currency", expr: {"add":["subtotal",{"coalesce":["tax",0]}]} },
     { table: "stay_extras", column: "nightly", scale: "currency", expr: {"if":[{"eq":["per","person_night"]},{"mul":["each",{"coalesce":["guests",1]}]},{"if":[{"eq":["per","night"]},"each",0]}]} },
@@ -232,6 +233,7 @@ export const RULES: Rules = {
     { table: "stay_credits", column: "amount", scale: "currency", expr: {"add":["room_amount",{"mul":[{"coalesce":["extras_nightly",0]},{"coalesce":["nights",0]}]}]} },
     { table: "stay_credits", column: "line_amount", scale: "currency", expr: {"sub":[0,"amount"]} },
     { table: "payments", column: "signed", scale: "currency", expr: {"if":[{"eq":["kind","given_back"]},{"sub":[0,"amount"]},"amount"]} },
+    { table: "payments", column: "settle_as", scale: 2, expr: {"if":[{"eq":["method","gift_card"]},{"if":[{"eq":["kind","given_back"]},2,1]},0]} },
   ],
   rollups: [
     { table: "stays", column: "extras_total", child: "stay_extras", via: "stay_id", sum: "amount", scale: "currency", where: {"column":"state","eq":"on"} },

@@ -124,6 +124,12 @@ export const MANIFEST_RULES = {
         "on": "create"
       }
     },
+    "stay_codes": {
+      "created_at": {
+        "set": "now",
+        "on": "create"
+      }
+    },
     "charges": {
       "charged_on": {
         "set": "today",
@@ -271,6 +277,7 @@ export const MANIFEST_RULES = {
         "stay"
       ]
     },
+    "stay_codes": {},
     "charges": {},
     "stay_credits": {
       "reason": [
@@ -286,7 +293,8 @@ export const MANIFEST_RULES = {
       "method": [
         "card",
         "cash",
-        "transfer"
+        "transfer",
+        "gift_card"
       ]
     },
     "messages": {
@@ -623,6 +631,13 @@ export const MANIFEST_RULES = {
             "in_house"
           ]
         },
+        "stay_codes": {
+          "via": "stay_id",
+          "parentIn": [
+            "booked",
+            "in_house"
+          ]
+        },
         "charges": {
           "via": "stay_id",
           "createIn": [
@@ -799,6 +814,8 @@ export const MANIFEST_RULES = {
         "extras_total",
         "charges_total",
         "credits_total",
+        "discount",
+        "room_discount",
         "subtotal",
         "tax_rate",
         "tax_label",
@@ -886,6 +903,8 @@ export const MANIFEST_RULES = {
         "extras_total",
         "charges_total",
         "credits_total",
+        "discount",
+        "room_discount",
         "subtotal",
         "tax_rate",
         "tax_label",
@@ -936,7 +955,8 @@ export const MANIFEST_RULES = {
         "per",
         "nights",
         "guests",
-        "amount"
+        "amount",
+        "discount"
       ],
       "writable": [
         "stay_id",
@@ -974,7 +994,8 @@ export const MANIFEST_RULES = {
         "per",
         "nights",
         "guests",
-        "amount"
+        "amount",
+        "discount"
       ],
       "writable": [
         "state"
@@ -1055,7 +1076,8 @@ export const MANIFEST_RULES = {
         "amount",
         "method",
         "paid_on",
-        "voided"
+        "voided",
+        "card_last4"
       ]
     },
     {
@@ -1219,6 +1241,8 @@ export const MANIFEST_RULES = {
         "extras_total",
         "charges_total",
         "credits_total",
+        "discount",
+        "room_discount",
         "subtotal",
         "tax_rate",
         "tax_label",
@@ -1312,9 +1336,20 @@ export const MANIFEST_RULES = {
             "per",
             "nights",
             "guests",
-            "amount"
+            "amount",
+            "discount"
           ],
           "max": 8
+        },
+        "stay_codes": {
+          "via": "stay_id",
+          "writable": [
+            "typed"
+          ],
+          "select": [
+            "id"
+          ],
+          "max": 12
         }
       },
       "dryRun": true,
@@ -1349,6 +1384,8 @@ export const MANIFEST_RULES = {
         "extras_total",
         "charges_total",
         "credits_total",
+        "discount",
+        "room_discount",
         "subtotal",
         "tax_rate",
         "tax_label",
@@ -1430,7 +1467,8 @@ export const MANIFEST_RULES = {
         "per",
         "nights",
         "guests",
-        "amount"
+        "amount",
+        "discount"
       ],
       "writable": [
         "stay_id",
@@ -1469,7 +1507,8 @@ export const MANIFEST_RULES = {
         "per",
         "nights",
         "guests",
-        "amount"
+        "amount",
+        "discount"
       ],
       "writable": [
         "state"
@@ -1553,7 +1592,8 @@ export const MANIFEST_RULES = {
         "amount",
         "method",
         "paid_on",
-        "voided"
+        "voided",
+        "card_last4"
       ]
     },
     {
@@ -1632,6 +1672,10 @@ export const MANIFEST_RULES = {
           "create",
           "update"
         ],
+        "stay_codes": [
+          "read",
+          "create"
+        ],
         "charges": [
           "read",
           "create"
@@ -1690,6 +1734,56 @@ export const MANIFEST_RULES = {
         "stay_extras": {
           "writable": [
             "state"
+          ]
+        },
+        "stay_codes": {
+          "readable": [
+            "id",
+            "stay_id",
+            "code_id",
+            "voucher_id",
+            "removed_at",
+            "created_at"
+          ],
+          "creatable": [
+            "stay_id",
+            "typed"
+          ]
+        },
+        "payments": {
+          "readable": [
+            "id",
+            "stay_id",
+            "kind",
+            "amount",
+            "method",
+            "reference",
+            "note",
+            "signed",
+            "paid_on",
+            "recorded_at",
+            "recorded_by",
+            "voided",
+            "void_reason",
+            "voided_at",
+            "voided_by",
+            "settle_as",
+            "card_id",
+            "card_last4",
+            "card_balance_after",
+            "asked",
+            "against_id"
+          ],
+          "creatable": [
+            "stay_id",
+            "kind",
+            "amount",
+            "method",
+            "reference",
+            "note",
+            "card_code",
+            "asked",
+            "against_id"
           ]
         },
         "rooms": {
@@ -1842,6 +1936,12 @@ export const MANIFEST_RULES = {
           "update",
           "delete"
         ],
+        "stay_codes": [
+          "read",
+          "create",
+          "update",
+          "delete"
+        ],
         "charges": [
           "read",
           "create",
@@ -1867,7 +1967,43 @@ export const MANIFEST_RULES = {
           "read_pii"
         ]
       },
-      "limits": null
+      "limits": {
+        "stay_codes": {
+          "readable": [
+            "id",
+            "stay_id",
+            "code_id",
+            "voucher_id",
+            "removed_at",
+            "created_at"
+          ]
+        },
+        "payments": {
+          "readable": [
+            "id",
+            "stay_id",
+            "kind",
+            "amount",
+            "method",
+            "reference",
+            "note",
+            "signed",
+            "paid_on",
+            "recorded_at",
+            "recorded_by",
+            "voided",
+            "void_reason",
+            "voided_at",
+            "voided_by",
+            "settle_as",
+            "card_id",
+            "card_last4",
+            "card_balance_after",
+            "asked",
+            "against_id"
+          ]
+        }
+      }
     }
   ],
   "producers": [

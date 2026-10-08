@@ -114,7 +114,8 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         const plan = ok(await staff.post<{ plan: { installable: boolean; checksum: string; addOns: { key: string; need: string; checked: boolean }[] } }>("/api/v1/apps/plan", body)).plan;
         expect(plan.installable).toBe(true);
         // Invoices & Receipts is offered, ticked, for the folio; nothing waits on it.
-        expect(plan.addOns.map((a) => [a.key, a.checked])).toEqual([["invoices", true]]);
+        // Inventory and Offers & gift cards are offered unticked: this contract installs neither, and the house runs as it always has.
+        expect(plan.addOns.map((a) => [a.key, a.checked])).toEqual([["invoices", true], ["inventory", false], ["offers", false]]);
         const installed = ok(
           await staff.post<{ rules: { skipped: unknown[] }; schema: { created: string[] }; publicAccess: { keys: Record<string, string> }; outbox: { defined: boolean } }>(
             "/api/v1/apps/install",
