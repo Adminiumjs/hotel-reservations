@@ -794,5 +794,6 @@
   "What came back": "Co se vrátilo",
   "Your code": "Váš kód",
   "The code is typed — press Apply.": "Kód je zadán — stiskněte Použít.",
-  "The code is typed — pick a room type, then press Apply.": "Kód je zadán — vyberte typ pokoje a stiskněte Použít."
+  "The code is typed — pick a room type, then press Apply.": "Kód je zadán — vyberte typ pokoje a stiskněte Použít.",
+  "First void what was given back to this card, then this payment.": "Nejprve stornujte, co bylo na tuto kartu vráceno, potom tuto platbu."
 }

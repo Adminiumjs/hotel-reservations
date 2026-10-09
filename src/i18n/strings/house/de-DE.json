@@ -794,5 +794,6 @@
   "What came back": "Was zurückkam",
   "Your code": "Ihr Code",
   "The code is typed — press Apply.": "Der Code ist eingegeben — drücken Sie Anwenden.",
-  "The code is typed — pick a room type, then press Apply.": "Der Code ist eingegeben — wählen Sie einen Zimmertyp und drücken Sie Anwenden."
+  "The code is typed — pick a room type, then press Apply.": "Der Code ist eingegeben — wählen Sie einen Zimmertyp und drücken Sie Anwenden.",
+  "First void what was given back to this card, then this payment.": "Stornieren Sie zuerst, was auf diese Karte zurückgegeben wurde, dann diese Zahlung."
 }

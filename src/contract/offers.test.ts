@@ -181,9 +181,13 @@ describe.skipIf(why !== null)(`codes, vouchers and gift cards on a built Adminiu
         const over = await refusal(desk.giveBackToCard(first.id, first.pay, "90.00", "Too much"));
         expect([over.status, over.code, over.params["reason"], cents(over.params["left"])], JSON.stringify(over.params)).toEqual([409, "POSTING_REFUSED", "refund-over", "80.00"]);
         expect(await balanceOf(card.id)).toBe("20.00");
-        // A manager voids the card payment: what it still held goes back to the card.
+        // A manager takes the payment back, in the order the desk's screen holds to: first what was given back
+        // (the card returns it), then the payment itself (the card gets all of it): the card is whole, the stay unpaid.
+        await desk.voidRow("payments", back.id, "Its payment is voided");
+        expect(await balanceOf(card.id)).toBe("0.00");
         await desk.voidRow("payments", first.pay, "Taken on the wrong stay");
         expect(await balanceOf(card.id)).toBe("100.00");
+        expect([cents((await stay(first.id))["paid"]), cents((await stay(first.id))["balance"])]).toEqual(["0.00", "362.97"]);
       }, 120_000);
 
       let second = 0;
@@ -219,6 +223,29 @@ describe.skipIf(why !== null)(`codes, vouchers and gift cards on a built Adminiu
         const text = flat((await stand.mailTo(mail("cole"), before)).text);
         for (const words of ["Midweek", "$37.00", "$362.97"]) expect(text, words).toContain(words);
       }, 240_000);
+
+      // KNOWN TO FAIL on Offers & gift cards 1.0.9: money "back to a card" that names a payment no card made (a cash payment)
+      // is saved and counted as given back, and no card is credited. No screen sends it (the desk offers it on a card's
+      // payment only); `it.fails` turns red the day the add-on refuses it.
+      it.fails("refuses money back 'to a card' that names a payment no card made", async () => {
+        const made = await desk.book({ ...body({ first_name: "Nia", last_name: "Arden" }, [], ["2026-11-02", "2026-11-04"]), clientKey: `nia-${engine}-${"n".repeat(30)}` });
+        const cash = await desk.recordPayment(made.data.id, { kind: "taken", amount: "50.00", method: "cash" });
+        const wrong = await refusal(desk.giveBackToCard(made.data.id, cash.id, "5.00", "Not a card's"));
+        expect(wrong.status).toBe(409);
+      }, 120_000);
+
+      // KNOWN TO FAIL on Offers & gift cards 1.0.9: a card payment voided BEFORE what was given back from it leaves the
+      // card short by what was given back once that row is voided too ($80.00, not $100.00). The desk's screen holds the
+      // order (give-backs first); the dashboard does not. `it.fails` turns red the day the add-on keeps the card whole.
+      it.fails("keeps a card whole when its payment is voided before what was given back from it", async () => {
+        const mine = await cardWith("100.00");
+        const made = await desk.book({ ...body({ first_name: "Odo", last_name: "Arden" }, [], ["2026-11-09", "2026-11-11"]), clientKey: `odo-${engine}-${"o".repeat(30)}` });
+        const paid = await desk.recordCardPayment(made.data.id, mine.code, "100.00");
+        const back = await desk.giveBackToCard(made.data.id, paid.id, "20.00", "A towel");
+        ok(await stand.staff.patch(`${stand.data("payments")}/${String(paid.id)}`, { values: { voided: true, void_reason: "Wrong stay" } }));
+        ok(await stand.staff.patch(`${stand.data("payments")}/${String(back.id)}`, { values: { voided: true, void_reason: "Its payment was voided" } }));
+        expect(await balanceOf(mine.id)).toBe("100.00");
+      }, 120_000);
 
       it("a card asked for more than it now holds gives nothing, and says what it has left", async () => {
         const small = await cardWith("30.00");

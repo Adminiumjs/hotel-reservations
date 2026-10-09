@@ -794,5 +794,6 @@
   "What came back": "送回的物品",
   "Your code": "您的代碼",
   "The code is typed — press Apply.": "代碼已輸入——請按「使用」。",
-  "The code is typed — pick a room type, then press Apply.": "代碼已輸入——選擇房型後按「使用」。"
+  "The code is typed — pick a room type, then press Apply.": "代碼已輸入——選擇房型後按「使用」。",
+  "First void what was given back to this card, then this payment.": "請先作廢退回此卡的款項，再作廢這筆付款。"
 }

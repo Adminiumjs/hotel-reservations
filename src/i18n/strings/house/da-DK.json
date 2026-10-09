@@ -794,5 +794,6 @@
   "What came back": "Hvad der kom tilbage",
   "Your code": "Din kode",
   "The code is typed — press Apply.": "Koden er skrevet — tryk på Anvend.",
-  "The code is typed — pick a room type, then press Apply.": "Koden er skrevet — vælg en værelsestype, og tryk på Anvend."
+  "The code is typed — pick a room type, then press Apply.": "Koden er skrevet — vælg en værelsestype, og tryk på Anvend.",
+  "First void what was given back to this card, then this payment.": "Annullér først det, der blev givet tilbage til dette kort, og derefter denne betaling."
 }

@@ -1076,6 +1076,8 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
       // The line's menu is there for the desk too when it can give money back to the card; voiding stays a manager's.
       ...(canReturn > 0.004 && !boss ? { menu: true, menuOpen: s.rowMenu === `pay:${String(p.id)}`, lockOn: false, tipOpen: false, toggleMenu: () => app.setState({ rowMenu: app.state.rowMenu === `pay:${String(p.id)}` ? null : `pay:${String(p.id)}` }) } : {}),
       canVoid: boss && !p.voided,
+      // A card's payment is voided after what was given back from it: the card gets all of its money that way.
+      ...(card && !back && returned > 0.004 && boss ? { askVoid: () => { app.setState({ rowMenu: null }); app.toast(tr("First void what was given back to this card, then this payment."), "warn"); } } : {}),
     });
   });
   const bal = fst.m.balance;

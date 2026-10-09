@@ -794,5 +794,6 @@
   "What came back": "ما عاد",
   "Your code": "رمزك",
   "The code is typed — press Apply.": "كُتب الرمز — اضغط تطبيق.",
-  "The code is typed — pick a room type, then press Apply.": "كُتب الرمز — اختر نوع الغرفة ثم اضغط تطبيق."
+  "The code is typed — pick a room type, then press Apply.": "كُتب الرمز — اختر نوع الغرفة ثم اضغط تطبيق.",
+  "First void what was given back to this card, then this payment.": "ألغِ أولًا ما أُعيد إلى هذه البطاقة، ثم هذه الدفعة."
 }
