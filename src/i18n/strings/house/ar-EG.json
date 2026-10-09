@@ -795,5 +795,15 @@
   "Your code": "رمزك",
   "The code is typed — press Apply.": "كُتب الرمز — اضغط تطبيق.",
   "The code is typed — pick a room type, then press Apply.": "كُتب الرمز — اختر نوع الغرفة ثم اضغط تطبيق.",
-  "First void what was given back to this card, then this payment.": "ألغِ أولًا ما أُعيد إلى هذه البطاقة، ثم هذه الدفعة."
+  "First void what was given back to this card, then this payment.": "ألغِ أولًا ما أُعيد إلى هذه البطاقة، ثم هذه الدفعة.",
+  "{away} → {store}": "{away} ← {store}",
+  "Put them back": "أعدها",
+  "Remove {code}": "إزالة {code}",
+  "That code takes nothing off this stay.": "هذا الرمز لا يخصم شيئًا من هذه الإقامة.",
+  "That is a discount code, not a gift card. A code is typed when the stay is booked.": "هذا رمز خصم وليس بطاقة هدية. يُكتب الرمز عند حجز الإقامة.",
+  "That is a voucher, not a gift card. A voucher is typed when the stay is booked.": "هذه قسيمة وليست بطاقة هدية. تُكتب القسيمة عند حجز الإقامة.",
+  "The account has changed since the card was checked. Check the card again.": "تغيّر الحساب منذ التحقق من البطاقة. تحقق من البطاقة مرة أخرى.",
+  "The house did not answer. Press again — nothing is put back twice.": "لم يُجب الفندق. اضغط مرة أخرى — لا شيء يُعاد مرتين.",
+  "The house did not answer. Press again — nothing is taken or given twice.": "لم يُجب الفندق. اضغط مرة أخرى — لا شيء يُخصم أو يُعاد مرتين.",
+  "We could not check that card just now. Try again in a moment.": "تعذّر علينا التحقق من هذه البطاقة الآن. حاول مجددًا بعد لحظة."
 }

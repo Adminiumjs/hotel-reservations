@@ -186,14 +186,19 @@ export interface DeskPort {
   /** What a gift card would pay of what the stay owes, written nowhere. */
   quoteCard(stayId: Id, code: string): Promise<CardCheck>;
   /** The card pays exactly what the check answered, or nothing (a card spent meanwhile is refused, saying what it has left). */
-  recordCardPayment(stayId: Id, code: string, amount: string): Promise<Row>;
-  /** Money back to the card a payment came from: the payment is named, never a code. */
-  giveBackToCard(stayId: Id, paymentId: Id, amount: string, note: string): Promise<Row>;
+  /** `key`: the dialog's retry key — the same save sent again answers the payment the first one made. */
+  recordCardPayment(stayId: Id, code: string, amount: string, key: string): Promise<Row>;
+  /** Money back to the card a payment came from: the payment is named, never a code. `key` as above: never given back twice. */
+  giveBackToCard(stayId: Id, paymentId: Id, amount: string, note: string, key: string): Promise<Row>;
 
   /** The linen the room types send to the laundry, with what the books hold in the store and away. Empty without Inventory. */
   linen(): Promise<LinenRow[]>;
-  /** Back from the laundry: each row's count moved to the store. `resume` continues a transfer a line of which failed. */
-  putBackLinen(rows: { itemId: Id; qty: number }[], resume?: Id): Promise<LinenReply>;
+  /**
+   * Back from the laundry: each row's count moved to its store, one transfer for each store and laundry.
+   * `key` is the sheet's retry key: sent again — after a lost reply, or a line that failed — it goes on with the
+   * transfers the first press made, and makes no second.
+   */
+  putBackLinen(rows: { itemId: Id; qty: number }[], key: string): Promise<LinenReply>;
 
   /** A manager's: a charge, a payment or a credit voided, with the reason. */
   voidRow(table: "charges" | "payments" | "stay_credits", id: Id, reason: string): Promise<Row>;

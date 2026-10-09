@@ -887,6 +887,9 @@ export const TABLES: Table[] = [
       amount("card_balance_after", "Left on the card"),
       // What the desk's check answered: the card is asked for exactly this, and gives it or nothing.
       amount("asked", "Asked of the card"),
+      // The desk's retry key for a gift card's payment and for money back to a card: a save sent again after a reply
+      // that never came is refused as the one already made, and never takes or gives twice.
+      text("client_key", 64, "Retry key", { ...opt, unique: true }),
       // The gift card payment a given-back row returns its money to.
       fk("against_id", "payments", "Returns to", { ...opt, rules: { requiredWhen: { column: "settle_as", in: [2] } } }),
     ],

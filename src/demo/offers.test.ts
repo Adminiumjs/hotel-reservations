@@ -82,18 +82,40 @@ describe("the demo's own gift cards", () => {
     const owed = Number(teodor["balance"]);
     const check = await h.a.desk.quoteCard(teodor.id, "gc-7k2m-w3hn-q4xp");
     expect([check.amount, check.balanceAfter, check.due]).toEqual(["150.00", "0.00", money(owed - 150)]);
-    const paid = await h.a.desk.recordCardPayment(teodor.id, "GC-7K2M-W3HN-Q4XP", check.amount);
+    const paid = await h.a.desk.recordCardPayment(teodor.id, "GC-7K2M-W3HN-Q4XP", check.amount, "k1");
+    // The same save sent again is the same payment: the card is debited once.
+    expect((await h.a.desk.recordCardPayment(teodor.id, "GC-7K2M-W3HN-Q4XP", check.amount, "k1")).id).toBe(paid.id);
     expect([money(paid["amount"]), paid["card_last4"], paid["method"]]).toEqual(["150.00", "Q4XP", "gift_card"]);
     expect(money(h.stay("WH-S3283")["balance"])).toBe(money(owed - 150));
     expect((await h.a.guest.cardBalance({ code: "GC-7K2M-W3HN-Q4XP" }))?.balance).toBe("0.00");
     // Empty now: said so, and nothing is taken.
     expect(await refusal(() => h.a.desk.quoteCard(teodor.id, "GC-7K2M-W3HN-Q4XP"))).toMatchObject({ code: "POSTING_REFUSED", params: { reason: "empty" } });
-    await h.a.desk.giveBackToCard(teodor.id, paid.id, "20.00", "One towel short");
+    const back = await h.a.desk.giveBackToCard(teodor.id, paid.id, "20.00", "One towel short", "k2");
+    expect((await h.a.desk.giveBackToCard(teodor.id, paid.id, "20.00", "One towel short", "k2")).id).toBe(back.id);
     expect((await h.a.guest.cardBalance({ code: "GC-7K2M-W3HN-Q4XP" }))?.balance).toBe("20.00");
-    expect(await refusal(() => h.a.desk.giveBackToCard(teodor.id, paid.id, "500.00", "Too much"))).toMatchObject({ code: "POSTING_REFUSED", params: { reason: "refund-over", left: "130.00" } });
+    expect(await refusal(() => h.a.desk.giveBackToCard(teodor.id, paid.id, "500.00", "Too much", "k3"))).toMatchObject({ code: "POSTING_REFUSED", params: { reason: "refund-over", left: "130.00" } });
     h.a.desk.person = PEOPLE.manager;
+    // Voiding what was given back takes it off the card again, as the live house does,
+    await h.a.desk.voidRow("payments", back.id, "Given back by mistake");
+    expect((await h.a.guest.cardBalance({ code: "GC-7K2M-W3HN-Q4XP" }))?.balance).toBe("0.00");
+    // and the payment can give it back once more.
+    const second = await h.a.desk.giveBackToCard(teodor.id, paid.id, "20.00", "One towel short", "k4");
     await h.a.desk.voidRow("payments", paid.id, "Wrong stay");
     expect((await h.a.guest.cardBalance({ code: "GC-7K2M-W3HN-Q4XP" }))?.balance).toBe("150.00");
+    // In the other order too the card ends whole: a give-back voided after its payment moves nothing.
+    await h.a.desk.voidRow("payments", second.id, "Its payment was voided");
+    expect((await h.a.guest.cardBalance({ code: "GC-7K2M-W3HN-Q4XP" }))?.balance).toBe("150.00");
+  });
+
+  it("refuses a card asked for more than is now owing as the live house does", async () => {
+    const h = house();
+    const teodor = h.stay("WH-S3283");
+    const owed = Number(teodor["balance"]);
+    const check = await h.a.desk.quoteCard(teodor.id, "GC-9D4T-K8RV-M2LX");
+    // Somebody pays most of it in cash between the check and the take.
+    await h.a.desk.recordPayment(teodor.id, { kind: "taken", amount: (owed - 10).toFixed(2), method: "cash" });
+    expect(await refusal(() => h.a.desk.recordCardPayment(teodor.id, "GC-9D4T-K8RV-M2LX", check.amount, "k9"))).toMatchObject({ code: "POSTING_REFUSED", params: { reason: "not-allowed" } });
+    expect((await h.a.guest.cardBalance({ code: "GC-9D4T-K8RV-M2LX" }))?.balance).toBe("1200.00");
   });
 
   it("covers a whole account from the bigger card and keeps the rest; a card it does not know is refused by its field", async () => {
@@ -112,7 +134,9 @@ describe("the demo's own linen", () => {
     const h = house();
     const count = async () => (await h.a.desk.linen()).map((row) => [row.name, row.inStore, row.atLaundry]);
     expect(await count()).toEqual([["Bath towel", 236, 24], ["Hand towel", 236, 24], ["Sheet set, double", 128, 12]]);
-    const reply = await h.a.desk.putBackLinen([{ itemId: 1, qty: 26 }, { itemId: 2, qty: 24 }, { itemId: 3, qty: 12 }]);
+    const reply = await h.a.desk.putBackLinen([{ itemId: 1, qty: 26 }, { itemId: 2, qty: 24 }, { itemId: 3, qty: 12 }], "sheet");
+    // Pressed again with the same key: nothing is put back twice.
+    await h.a.desk.putBackLinen([{ itemId: 1, qty: 26 }, { itemId: 2, qty: 24 }, { itemId: 3, qty: 12 }], "sheet");
     expect([reply.done, reply.over]).toEqual([true, [{ itemId: 1, by: 2 }]]);
     expect(await count()).toEqual([["Bath towel", 262, 0], ["Hand towel", 260, 0], ["Sheet set, double", 140, 0]]);
   });

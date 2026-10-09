@@ -795,5 +795,15 @@
   "Your code": "Ihr Code",
   "The code is typed — press Apply.": "Der Code ist eingegeben — drücken Sie Anwenden.",
   "The code is typed — pick a room type, then press Apply.": "Der Code ist eingegeben — wählen Sie einen Zimmertyp und drücken Sie Anwenden.",
-  "First void what was given back to this card, then this payment.": "Stornieren Sie zuerst, was auf diese Karte zurückgegeben wurde, dann diese Zahlung."
+  "First void what was given back to this card, then this payment.": "Stornieren Sie zuerst, was auf diese Karte zurückgegeben wurde, dann diese Zahlung.",
+  "{away} → {store}": "{away} → {store}",
+  "Put them back": "Zurücklegen",
+  "Remove {code}": "{code} entfernen",
+  "That code takes nothing off this stay.": "Dieser Code zieht bei diesem Aufenthalt nichts ab.",
+  "That is a discount code, not a gift card. A code is typed when the stay is booked.": "Das ist ein Rabattcode, keine Geschenkkarte. Ein Code wird bei der Buchung des Aufenthalts eingegeben.",
+  "That is a voucher, not a gift card. A voucher is typed when the stay is booked.": "Das ist ein Gutschein, keine Geschenkkarte. Ein Gutschein wird bei der Buchung des Aufenthalts eingegeben.",
+  "The account has changed since the card was checked. Check the card again.": "Das Konto hat sich geändert, seit die Karte geprüft wurde. Prüfen Sie die Karte erneut.",
+  "The house did not answer. Press again — nothing is put back twice.": "Das Haus hat nicht geantwortet. Drücken Sie erneut — nichts wird doppelt zurückgelegt.",
+  "The house did not answer. Press again — nothing is taken or given twice.": "Das Haus hat nicht geantwortet. Drücken Sie erneut — nichts wird doppelt abgebucht oder zurückgegeben.",
+  "We could not check that card just now. Try again in a moment.": "Wir konnten diese Karte gerade nicht prüfen. Versuchen Sie es gleich noch einmal."
 }

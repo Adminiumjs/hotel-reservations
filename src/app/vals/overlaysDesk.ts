@@ -10,11 +10,11 @@
 import { isApiError, type Id } from "../../data/wire.ts";
 import { tr } from "../../i18n/tr.ts";
 import { fD, fDW, fT, guestsW, fsi, iso, money, nights, nightsOf, plus, strip, taxWords } from "../fmt.ts";
-import type { HouseApp } from "../house.ts";
+import { mintKey, type HouseApp } from "../house.ts";
 import type { RoomV, StV, WorldV } from "../world.ts";
 import { DESK } from "../sides.ts";
 import { closedOn, firstClosed, floorInLine, floorName, freeAcross, hasExtra, heldForOther, holds, inRoom, nightFig, parseMoney, roomStatus, statusWord } from "./desk.ts";
-import { cardWords, checkCard, confirmCheckin, doCheckOut, emailFolio, linen, linenCount, openFolio, openSettle, printFolio, putBackLinen, setRoomStatus } from "../desk.ts";
+import { cardWords, checkCard, unsure, confirmCheckin, doCheckOut, emailFolio, linen, linenCount, openFolio, openSettle, printFolio, putBackLinen, setRoomStatus } from "../desk.ts";
 
 type V = Record<string, unknown>;
 
@@ -223,7 +223,8 @@ export function deskOverlayVals(app: HouseApp, w: WorldV, v: V): void {
   // ── back from the laundry
   if (DESK && s.linenOpen && desk && app.linenOn) {
     const rows = linen(app);
-    const resume = s.linenResume !== null;
+    const resume = s.linenSent;
+    const stores = [...new Set(rows.map((row) => row.store))];
     v["ln"] = {
       open: true,
       sub: iso(`${strip(fDW(today))} · ${strip(fT(app.time))}`),
@@ -231,18 +232,22 @@ export function deskOverlayVals(app: HouseApp, w: WorldV, v: V): void {
       away: rows[0]?.away ?? "",
       empty: rows.length === 0,
       close: () => {
-        if (!app.state.linenBusy) app.setState({ linenOpen: false, linenErr: "", linenResume: null });
+        if (!app.state.linenBusy) app.setState({ linenOpen: false, linenErr: "", linenSent: false, linenKey: "" });
       },
       rows: rows.map((row) => {
         const id = String(row.itemId);
         const typed = s.linenCounts[id] ?? "";
         const n = linenCount(typed);
-        const set = (value: string) => app.setState({ linenCounts: { ...app.state.linenCounts, [id]: value }, linenErr: "" });
+        const set = (value: string) => {
+          if (!app.state.linenBusy && !app.state.linenSent) app.setState({ linenCounts: { ...app.state.linenCounts, [id]: value }, linenErr: "" });
+        };
         return {
           id,
           fieldId: `ln-${id}`,
           errId: `ln-${id}-err`,
           label: row.name,
+          // More than one store: each row says where it goes back to.
+          where: stores.length > 1 ? tr("{away} → {store}", { away: row.away, store: row.store }) : "",
           value: typed,
           locked: s.linenBusy || resume,
           onChange: (e: { target: { value: string } }) => set(e.target.value.replace(/[^0-9]/g, "").slice(0, 6)),
@@ -260,7 +265,8 @@ export function deskOverlayVals(app: HouseApp, w: WorldV, v: V): void {
       err: s.linenErr,
       busy: s.linenBusy,
       busyAttr: s.linenBusy ? "true" : "false",
-      btnLabel: s.linenBusy ? tr("Putting them back") : resume ? tr("Try again") : tr("Put back in {place}", { place: rows[0]?.store ?? "" }),
+      btnLabel: s.linenBusy ? tr("Putting them back") : resume ? tr("Try again") : stores.length === 1 ? tr("Put back in {place}", { place: stores[0]! }) : tr("Put them back"),
+      manyStores: stores.length > 1,
       confirm: () => void putBackLinen(app),
     };
   }
@@ -289,7 +295,7 @@ export function deskOverlayVals(app: HouseApp, w: WorldV, v: V): void {
     // Money back to the gift card a payment came from: that payment is named, never a code.
     const toCard = back && s.settleAgainst !== null;
     const check = gift ? s.cardCheck : null;
-    const ok = gift ? check !== null && !s.cardBusy : !bad && !over && !(back && !s.settleNote.trim());
+    const ok = (gift ? check !== null && !s.cardBusy : !bad && !over && !(back && !s.settleNote.trim()));
     const METHODS: { id: "card" | "cash" | "transfer" | "gift_card"; label: string }[] = [
       { id: "card", label: tr("Card") },
       { id: "cash", label: tr("Cash") },
@@ -384,9 +390,17 @@ export function deskOverlayVals(app: HouseApp, w: WorldV, v: V): void {
       confirm: () => {
         if (!ok) return app.setState({ settleTouched: true });
         const S = app.state;
+        // A save whose answer never came may have been made. The account has been read again by now (every write
+        // is, before its failure is told): the dialog stays open on it, and pressed again the same key goes with the
+        // save, so the house never takes or gives twice.
+        const lost = () => {
+          const said = tr("The house did not answer. Press again — nothing is taken or given twice.");
+          if (gift) app.setState({ cardErr: said });
+          else app.toast(said, "warn");
+        };
         if (gift && check !== null) {
           void app.once("se", () => app.write(
-            () => desk.recordCardPayment(sst.id, S.cardCode, check.amount),
+            () => desk.recordCardPayment(sst.id, S.cardCode, check.amount, S.settleKey),
             (paid) => {
               app.setState({ settleOpen: false, settleCap: null, blockId: null, cardCode: "", cardCheck: null });
               const after = app.stay(sst.id);
@@ -394,18 +408,23 @@ export function deskOverlayVals(app: HouseApp, w: WorldV, v: V): void {
               app.toast(after !== null && after.m.balance > 0.004 ? tr("{amount} from the gift card — {left} still on the account.", { amount: taken, left: strip(money(after.m.balance)) }) : tr("{amount} from the gift card. Nothing owing.", { amount: taken }));
             },
             // The card was spent, or the account moved, since the check: it is said under the field, and checked again.
-            (error) => app.setState({ cardCheck: null, cardErr: cardWords(app, error) }),
+            (error) => (unsure(error) ? lost() : app.setState({ cardCheck: null, cardErr: cardWords(app, error), settleKey: mintKey() })),
           ));
           return;
         }
         if (toCard) {
           void app.once("se", () => app.write(
-            () => desk.giveBackToCard(sst.id, S.settleAgainst!, amt.toFixed(2), S.settleNote.trim()),
+            () => desk.giveBackToCard(sst.id, S.settleAgainst!, amt.toFixed(2), S.settleNote.trim(), S.settleKey),
             () => {
               app.setState({ settleOpen: false, settleCap: null, settleAgainst: null, blockId: null });
               app.toast(tr("{amount} back on the gift card.", { amount: strip(money(amt)) }));
             },
-            (error) => app.toast(cardWords(app, error), "warn"),
+            (error) => {
+              if (unsure(error)) return lost();
+              // Refused for good: nothing was given back, and the next try is a new one.
+              app.setState({ settleKey: mintKey() });
+              app.toast(cardWords(app, error), "warn");
+            },
           ));
           return;
         }

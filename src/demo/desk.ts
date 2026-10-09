@@ -60,7 +60,10 @@ export class DemoDesk implements DeskPort {
     if (stay === undefined) throw notFound("staff");
     return this.engine.addOns.check(stay, code);
   }
-  async recordCardPayment(stayId: Id, code: string, amount: string): Promise<Row> {
+  async recordCardPayment(stayId: Id, code: string, amount: string, key: string): Promise<Row> {
+    // The same save sent again answers the payment the first one made.
+    const known = this.engine.addOns.saved.get(key);
+    if (known !== undefined) return { ...known };
     return this.engine.write(() => {
       this.engine.judgeCreate("payments", this.writer);
       const stay = this.world.get("stays", stayId);
@@ -69,25 +72,36 @@ export class DemoDesk implements DeskPort {
       const row = this.world.insert("payments", { stay_id: stayId, kind: "taken", amount: took.amount, method: "gift_card", reference: null, note: null, voided: false, void_reason: null, voided_at: null, voided_by: null, card_last4: took.last4, card_balance_after: took.balanceAfter, asked: took.amount });
       Object.assign(row, this.engine.stampsFor("payments", null, row, this.writer));
       this.engine.addOns.spent(row.id, code, took.amount);
+      this.engine.addOns.saved.set(key, row);
       return { ...row };
     });
   }
-  async giveBackToCard(stayId: Id, paymentId: Id, amount: string, note: string): Promise<Row> {
+  async giveBackToCard(stayId: Id, paymentId: Id, amount: string, note: string, key: string): Promise<Row> {
+    const known = this.engine.addOns.saved.get(key);
+    if (known !== undefined) return { ...known };
     return this.engine.write(() => {
       this.engine.judgeCreate("payments", this.writer);
       if (empty(note)) throw refusedValue("note", "required", "staff");
       this.engine.addOns.giveBack(paymentId, amount);
       const row = this.world.insert("payments", { stay_id: stayId, kind: "given_back", amount: Number(amount), method: "gift_card", reference: null, note: note.trim(), voided: false, void_reason: null, voided_at: null, voided_by: null, against_id: paymentId });
       Object.assign(row, this.engine.stampsFor("payments", null, row, this.writer));
+      this.engine.addOns.gaveBack(row.id, paymentId, Number(amount));
+      this.engine.addOns.saved.set(key, row);
       return { ...row };
     });
   }
   async linen(): Promise<LinenRow[]> {
     return this.engine.addOns.linen();
   }
-  async putBackLinen(rows: { itemId: Id; qty: number }[]): Promise<LinenReply> {
+  private readonly linenDone = new Map<string, LinenReply>();
+  async putBackLinen(rows: { itemId: Id; qty: number }[], key: string): Promise<LinenReply> {
+    // Pressed again with the same key: the first press's answer, and nothing put back twice.
+    const known = this.linenDone.get(key);
+    if (known !== undefined) return known;
     const over = this.engine.addOns.putBack(rows);
-    return { done: true, transferId: 1, moved: rows.filter((row) => row.qty > 0).map((row) => row.itemId), left: [], over };
+    const reply: LinenReply = { done: true, transfers: [{ transferId: this.linenDone.size + 1, store: "Linen store", away: "At the laundry", done: true }], moved: rows.filter((row) => row.qty > 0).map((row) => row.itemId), left: [], over };
+    this.linenDone.set(key, reply);
+    return reply;
   }
 
   async house(): Promise<DeskHouse> {
@@ -416,6 +430,7 @@ export class DemoDesk implements DeskPort {
       const updated = this.world.update(table, id, { voided: true, void_reason: reason.trim() });
       Object.assign(updated, this.engine.stampsFor(table, before, updated, this.writer));
       if (table === "payments" && before["method"] === "gift_card" && before["kind"] === "taken") this.engine.addOns.voided(id);
+      if (table === "payments" && before["method"] === "gift_card" && before["kind"] === "given_back") this.engine.addOns.voidedBack(id);
       return { ...updated };
     });
   }

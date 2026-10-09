@@ -5,39 +5,65 @@
  * Every figure is Adminium's: a reduction's name and amount are the quote's
  * own (`applied`), in its order; the page adds nothing up. A code is shown as
  * the guest typed it, in capitals; a voucher only by its last four.
+ *
+ * WHICH CODE IS WHICH ROW is read from the answer, never from its order: a
+ * voucher's row carries the last four of its code; a code's row is paired
+ * with the typed code only when there is exactly one of each left. A typed
+ * code with no row of its own (a better offer took its place) is still
+ * listed, with its own "Remove": what is sent with the save can always be
+ * taken off.
  */
-import type { QuoteReply } from "../data/wire.ts";
+import type { Applied, QuoteReply } from "../data/wire.ts";
 import { tr } from "../i18n/tr.ts";
 import { iso, money, strip } from "./fmt.ts";
 import type { HouseApp } from "./house.ts";
 
 type V = Record<string, unknown>;
 
+const plain = (code: string) => code.replace(/[^A-Za-z0-9]/g, "").toUpperCase();
+
+/** Each reduction with the typed code it came from, where the answer says which; and the typed codes no row answers for. */
+export function pairCodes(applied: readonly Applied[], codes: readonly string[]): { rows: { one: Applied; code: string | undefined }[]; alone: string[] } {
+  const left = [...codes];
+  const rows = applied.map((one) => ({ one, code: undefined as string | undefined }));
+  for (const row of rows) {
+    if (!row.one.typed || row.one.codeLast4 === undefined) continue;
+    const at = left.findIndex((code) => plain(code).endsWith(plain(row.one.codeLast4!)));
+    if (at >= 0) row.code = left.splice(at, 1)[0];
+  }
+  const open = rows.filter((row) => row.one.typed && row.code === undefined && row.one.codeLast4 === undefined);
+  // One typed row and one typed code left: they are each other's. Any other count, and nothing is guessed.
+  if (open.length === 1 && left.length === 1) open[0]!.code = left.splice(0, 1)[0];
+  return { rows, alone: left };
+}
+
 export function codeVals(app: HouseApp, quote: QuoteReply | undefined, ask: (codes: string[]) => Promise<QuoteReply>, placeholder: string): V {
   const s = app.state;
-  const applied = quote?.applied ?? [];
-  // A typed reduction is one of the codes held here, in the order typed: each can be taken off again.
-  const typedOnes = applied.filter((one) => one.typed);
-  const rows = applied.map((one) => {
-    const at = typedOnes.indexOf(one);
-    const code = at >= 0 ? s.codes[at] : undefined;
+  const paired = pairCodes(quote?.applied ?? [], s.codes);
+  const rows = paired.rows.map(({ one, code }) => {
+    const voucher = one.kind === "voucher" || one.kind === "pack";
     return {
       // Adminium names a reduction whole ("Voucher · One night"): it is shown as said.
       name: one.name,
-      chip: one.kind === "voucher" || one.kind === "pack" ? (one.codeLast4 ? iso(`···· ${one.codeLast4}`) : "") : code === undefined ? "" : iso(code.toUpperCase()),
+      chip: voucher ? (one.codeLast4 ? iso(`···· ${one.codeLast4}`) : "") : code === undefined ? "" : iso(code.toUpperCase()),
       amount: iso(`− ${strip(money(Number(one.amount)))}`),
       canRemove: code !== undefined,
+      removeLabel: code === undefined ? "" : tr("Remove {code}", { code: voucher ? `···· ${plain(code).slice(-4)}` : code.toUpperCase() }),
       remove: () => (code === undefined ? undefined : app.removeCode(code)),
     };
   });
-  // No answer to show them in (the price is on its way, or these dates or this room refuse a code typed before):
-  // the codes are still listed as typed, so one can always be taken off.
-  if (quote === undefined) for (const code of s.codes) rows.push({ name: iso(code.toUpperCase()), chip: "", amount: "", canRemove: true, remove: () => app.removeCode(code) });
+  // A typed code no row answers for — beaten by a better offer, or the price still on its way: listed, and removable.
+  for (const code of paired.alone) {
+    const shown = plain(code).length > 8 ? `···· ${plain(code).slice(-4)}` : code.toUpperCase();
+    rows.push({ name: iso(shown), chip: "", amount: "", canRemove: true, removeLabel: tr("Remove {code}", { code: shown }), remove: () => app.removeCode(code) });
+  }
   const apply = () => void app.applyCode(ask);
   return {
     on: app.codesOn,
     rows,
     hasRows: rows.length > 0,
+    // What a screen reader is told when the reductions change: each by name and amount, or that there is none now.
+    said: rows.length === 0 ? "" : rows.map((row) => `${strip(String(row.name))} ${strip(String(row.amount))}`.trim()).join(", "),
     open: s.codeOpen,
     expanded: s.codeOpen ? "true" : "false",
     linkLabel: s.codes.length > 0 ? tr("Have another code?") : tr("Have a code?"),
@@ -47,7 +73,9 @@ export function codeVals(app: HouseApp, quote: QuoteReply | undefined, ask: (cod
     },
     text: s.codeText,
     placeholder,
-    onText: (e: { target: { value: string } }) => app.setState({ codeText: e.target.value, codeErr: "" }),
+    onText: (e: { target: { value: string } }) => {
+      if (!app.state.codeBusy) app.setState({ codeText: e.target.value, codeErr: "" });
+    },
     onKey: (e: { key: string; preventDefault(): void }) => {
       if (e.key !== "Enter") return;
       e.preventDefault();

@@ -28,7 +28,11 @@ export interface Form {
   extras: Record<string, boolean>;
 }
 /** A retry key a form mints once: 48 random characters. */
-export const mintKey = () => crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 16);
+/** A retry key: 48 hex characters from the browser's own random source (`randomUUID` is not there on a plain-http page). */
+export const mintKey = (): string => Array.from(crypto.getRandomValues(new Uint8Array(24)), (byte) => byte.toString(16).padStart(2, "0")).join("");
+
+/** No code in hand: the field shut, nothing typed, nothing said. */
+export const NO_CODES = { codes: [] as string[], codeOpen: false, codeText: "", codeErr: "", codeBusy: false };
 
 export interface Nb extends Form {
   /** The form's retry key: a save sent again after a reply that never came lands on the same stay. */
@@ -160,16 +164,20 @@ export function fresh(day: string) {
     cardErr: "",
     cardCheck: null as CardCheck | null,
     settleAgainst: null as Id | null,
+    /** The payment dialog's retry key: one for each time it opens, kept while a save is tried again. */
+    settleKey: "",
     /** "Back from the laundry": the counts typed, by item; a transfer a line of which is still to move. */
     linenOpen: false,
     linenCounts: {} as Record<string, string>,
     linenBusy: false,
     linenErr: "",
-    linenResume: null as Id | null,
+    /** The sheet's retry key, and whether it was pressed: pressed again, it goes on with the same transfers. */
+    linenKey: "",
+    linenSent: false,
     /** The gift card balance page: the code typed, and what the house answered. */
     gcCode: "",
     gcBusy: false,
-    gcAnswer: null as null | { kind: "card"; balance: string; expiresOn: string | null } | { kind: "none" } | { kind: "wait" } | { kind: "short" },
+    gcAnswer: null as null | { kind: "card"; balance: string; expiresOn: string | null } | { kind: "none" } | { kind: "wait" } | { kind: "short" } | { kind: "down" },
     /** The sheet whose write is on its way: its button waits. */
     sheetBusy: null as string | null,
     /** The desk's live stream is down and being opened again. */
@@ -308,6 +316,12 @@ export class HouseApp {
       return a.value;
     }
     return this.stale.get(key) as T | undefined;
+  }
+
+  /** An answer Adminium just gave to a question, kept as if it had been asked here. */
+  prime(key: string, value: unknown): void {
+    this.cache.set(key, { loading: false, value });
+    this.bump();
   }
 
   /** What Adminium last answered to a question, without asking it. */
@@ -471,9 +485,10 @@ export class HouseApp {
   // ── moving about ────────────────────────────────────────────────────────
 
   go(view: View, patch: Partial<State> = {}): void {
-    // A code belongs to the stay it was typed on: another screen starts with none.
-    const codes = view === this.state.view ? {} : { codes: [], codeOpen: false, codeText: "", codeErr: "", codeBusy: false };
-    this.setState({ view, navOpen: false, deskQuery: "", calDay: null, rowMenu: null, staffMenu: false, listMenu: false, newId: null, ...codes, ...patch });
+    // A code belongs to the stay it was typed on: going anywhere — to another screen, or to a fresh form on this one —
+    // starts with none, and lets go of a check that is still out.
+    this.codeAsk += 1;
+    this.setState({ view, navOpen: false, deskQuery: "", calDay: null, rowMenu: null, staffMenu: false, listMenu: false, newId: null, ...NO_CODES, ...patch });
     this.scrollTop();
     this.announce(view);
   }
@@ -486,6 +501,7 @@ export class HouseApp {
   }
   /** A new screen: its heading takes focus, so a screen reader says where it is. */
   private announce(_view: View): void {
+    if (typeof document === "undefined") return;
     setTimeout(() => {
       const h = document.querySelector<HTMLElement>("main h1, section h1");
       if (h !== null) {
@@ -505,6 +521,7 @@ export class HouseApp {
     setTimeout(() => this.setState((s) => ({ toasts: s.toasts.filter((x) => x.id !== id) })), 3600);
   }
   focusSoon(sel: string): void {
+    if (typeof document === "undefined") return;
     setTimeout(() => document.querySelector<HTMLElement>(sel)?.focus(), 40);
   }
   narrow(): boolean {
@@ -515,7 +532,7 @@ export class HouseApp {
     const K: [string, unknown][] = [
       ["rowMenu", null], ["voidT", null], ["settleOpen", false], ["chargeOpen", false], ["cancelId", null], ["ddOpen", false], ["expectId", null],
       ["moveId", null], ["blockId", null], ["checkinId", null], ["checkoutId", null], ["chg", null], ["roomN", null],
-      ["calDay", null], ["navOpen", false], ["staffMenu", false], ["listMenu", false], ["deskQuery", ""],
+      ["linenOpen", false], ["calDay", null], ["navOpen", false], ["staffMenu", false], ["listMenu", false], ["deskQuery", ""],
     ];
     for (const [k, off] of K) {
       if (!s[k]) continue;
@@ -615,7 +632,8 @@ export class HouseApp {
       values: { room_type_id: Number(type), arrive, depart, guests, ...more },
       children: { stay_extras: extras.map((extra_id) => ({ values: { extra_id: Number(extra_id) } })), ...this.typedCodes(codes) },
     };
-    return this.ask(`quote:${type}:${arrive}:${depart}:${String(guests)}:${extras.join(",")}${codes.length === 0 ? "" : `:${codes.join(",")}:${JSON.stringify(more)}`}`, () =>
+    const who = Object.keys(more).length === 0 ? "" : `:${JSON.stringify(more)}`;
+    return this.ask(`quote:${type}:${arrive}:${depart}:${String(guests)}:${extras.join(",")}${codes.length === 0 ? "" : `:${codes.join(",")}`}${who}`, () =>
       this.persona === "desk" ? this.ports.desk!.quote(body) : this.ports.guest!.quote(body),
     ) as { value: QuoteReply | undefined; error: unknown; loading: boolean };
   }
@@ -633,25 +651,72 @@ export class HouseApp {
    * is refused, or that another offer beats, is said under the field and
    * never sent with the save.
    */
-  async applyCode(ask: (codes: string[]) => Promise<QuoteReply>): Promise<void> {
+  async applyCode(ask: (codes: string[]) => Promise<QuoteReply>): Promise<QuoteReply | null> {
     const s = this.state;
     const typed = s.codeText.trim();
-    if (typed === "" || s.codeBusy) return;
-    if (s.codes.some((code) => code.toUpperCase() === typed.toUpperCase())) return this.setState({ codeText: "", codeOpen: false, codeErr: "" });
+    if (typed === "" || s.codeBusy) return null;
+    if (s.codes.some((code) => code.toUpperCase() === typed.toUpperCase())) {
+      this.setState({ codeText: "", codeOpen: false, codeErr: "" });
+      this.focusSoon("#code-link");
+      return null;
+    }
+    // The answer is for this question only: a form reset, another stay or another press since lets it go unheard.
+    const mine = (this.codeAsk += 1);
     this.setState({ codeBusy: true, codeErr: "" });
     try {
       const reply = await ask([...s.codes, typed]);
+      if (mine !== this.codeAsk) return null;
       const beaten = (reply.told ?? []).find((told) => told.note === "better-offer-applied");
-      if (beaten !== undefined) return this.setState({ codeBusy: false, codeErr: tr("{name} is already taking more off.", { name: beaten.name }) });
+      // It joins the stay's codes only when the answer has a reduction for it: one that takes nothing off is said so.
+      const taken = (reply.applied ?? []).filter((one) => one.typed).length > this.state.codes.length;
+      if (!taken) {
+        this.setState({ codeBusy: false, codeErr: beaten !== undefined ? tr("{name} is already taking more off.", { name: beaten.name }) : tr("That code takes nothing off this stay.") });
+        this.focusSoon("#code-field");
+        return null;
+      }
       this.setState({ codes: [...this.state.codes, typed], codeText: "", codeOpen: false, codeBusy: false, codeErr: "", rvAnswer: null });
+      // The field is gone: the link that opens it again takes the focus it had.
+      this.focusSoon("#code-link");
+      return reply;
     } catch (error) {
-      this.setState({ codeBusy: false, codeErr: this.codeWords(error, typed) });
+      if (mine !== this.codeAsk) return null;
+      this.setState({ codeBusy: false, codeOpen: true, codeErr: this.codeWords(error, typed) });
       this.focusSoon("#code-field");
+      return null;
     }
   }
+  private codeAsk = 0;
   removeCode(code: string): void {
-    this.setState({ codes: this.state.codes.filter((one) => one !== code), codeErr: "", rvAnswer: null });
+    this.codeAsk += 1;
+    this.setState({ codes: this.state.codes.filter((one) => one !== code), codeErr: "", codeBusy: false, rvAnswer: null });
+    this.focusSoon("#code-link");
   }
+  /** Whether a refusal is about a code on the stay (and not its dates, its room or its guest). */
+  aboutCode(error: unknown): boolean {
+    if (!isApiError(error)) return false;
+    const p = error.params as Record<string, unknown>;
+    if (error.code === "ADJUST_REFUSED") return p["reason"] !== "frozen";
+    return (error.code === "PUBLIC_WRITE_REFUSED" || error.code === "POSTING_REFUSED") && p["column"] === "typed";
+  }
+  /**
+   * A price refused because of a code already on the stay (the room or the dates changed under it): the codes
+   * come off, the reason is said under the field, and the stay is priced again without them.
+   */
+  dropRefusedCodes(error: unknown): void {
+    if (this.state.codes.length === 0 || !this.aboutCode(error)) return;
+    const last = this.state.codes[this.state.codes.length - 1] ?? "";
+    this.codeAsk += 1;
+    this.setState({ codes: [], codeOpen: true, codeText: "", codeBusy: false, codeErr: this.codeWords(error, last) });
+  }
+  /** The guest's stay in hand priced with these codes, written nowhere: what "Apply" asks. */
+  guestCodeAsk = (codes: string[]): Promise<QuoteReply> => {
+    const s = this.state;
+    const guests = s.pair === null ? s.search.guests : s.pair.guests[s.pair.step];
+    return this.ports.guest!.quote({
+      values: { room_type_id: Number(s.pickedType), arrive: s.search.arrive, depart: s.search.depart, guests },
+      children: { stay_extras: this.pickedExtras(s.form).map((extra_id) => ({ values: { extra_id: Number(extra_id) } })), stay_codes: codes.map((typed) => ({ values: { typed } })) },
+    });
+  };
   /** Why a code was not taken. A guest is told only what tells them nothing about anybody's code; the desk, the plain reason. */
   codeWords(error: unknown, typed: string): string {
     if (!isApiError(error)) return tr("The house did not answer. Try again in a moment.");
@@ -719,7 +784,10 @@ export class HouseApp {
       this.setState({ gcBusy: false, gcAnswer: found === null ? { kind: "none" } : { kind: "card", balance: found.balance, expiresOn: found.expiresOn } });
     } catch (error) {
       const wait = isApiError(error) && (error.status === 429 || error.code === "PUBLIC_RATE_LIMITED" || error.code === "RATE_LIMITED");
-      this.setState({ gcBusy: false, gcAnswer: wait ? { kind: "wait" } : { kind: "none" } });
+      // "Not valid" is said of a code the house answered about. One it could not ask about (no connection, a server
+      // that stumbled) is said as that: the card may be perfectly good.
+      const answered = isApiError(error) && error.status >= 400 && error.status < 500;
+      this.setState({ gcBusy: false, gcAnswer: wait ? { kind: "wait" } : answered ? { kind: "none" } : { kind: "down" } });
     }
   }
 
@@ -737,7 +805,20 @@ export class HouseApp {
       this.focusSoon(!f.first.trim() ? "#rv-first" : !f.last.trim() ? "#rv-last" : "#rv-email");
       return;
     }
-    void this.reserve(false);
+    void this.reserveWithCode();
+  }
+  /**
+   * Reserve, with a code still in the field: it is applied first, as "Apply" would — taken, the stay is reserved at
+   * the price the house then answered; refused, nothing is reserved and its reason is under the field.
+   */
+  async reserveWithCode(): Promise<void> {
+    if (this.codesOn && this.state.codeText.trim() !== "") {
+      this.setState({ codeOpen: true });
+      const reply = await this.applyCode(this.guestCodeAsk);
+      if (this.state.codeText.trim() !== "" || this.state.codeErr !== "") return;
+      if (reply !== null) this.setState({ rvShown: Number(reply.data["total"]).toFixed(2) });
+    }
+    await this.reserve(false);
   }
   private clientKey = "";
   async reserve(accepted: boolean): Promise<void> {
@@ -772,7 +853,7 @@ export class HouseApp {
       const guests = s.pair === null ? s.search.guests : s.pair.guests[s.pair.step];
       const quote = this.quote(t, s.search.arrive, s.search.depart, guests, this.pickedExtras(f), s.codes).value;
       // A code is for the stay it was typed on: the next one starts with none.
-      this.setState({ codes: [], codeOpen: false, codeText: "", codeErr: "" });
+      this.setState({ ...NO_CODES });
       this.forget("guest:mine");
       const ref = String(reply.data["ref"]);
       // The stay is made whatever happens next: its own link opens here if it can, and the email carries it anyway.

@@ -2132,7 +2132,7 @@ export function GuestView({ v }: { v: any }) {
                     </label>
                     <div style={st("display:flex;gap:8px;flex-wrap:wrap")}>
                       <input id="gc-code" value={v.gc.code ?? ""} onChange={v.gc.onCode} onKeyDown={v.gc.onKey} placeholder="GC-0000-0000-0000" autoComplete="off" autoCapitalize="characters" spellCheck={false} aria-invalid={v.gc.inv} aria-describedby="gc-err" style={st(`flex:1;min-inline-size:200px;padding:11px 12px;border:1px solid ${v.gc.border};border-radius:10px;background:var(--surface-2);color:var(--fg);font-family:var(--mono);font-size:14px;font-weight:600;text-transform:uppercase;direction:ltr`)} />
-                      <button type="button" onClick={v.gc.check} disabled={v.gc.busy} aria-busy={v.gc.busyAttr} style={st("padding:11px 16px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-fg);font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap")}>
+                      <button type="button" onClick={v.gc.check} aria-disabled={v.gc.busyAttr} aria-busy={v.gc.busyAttr} style={st("padding:11px 16px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-fg);font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap")}>
                         {v.gc.btnLabel}
                       </button>
                     </div>
@@ -2141,8 +2141,10 @@ export function GuestView({ v }: { v: any }) {
                         {v.gc.err}
                       </div>
                     ) : null}
-                    {v.gc.cardOn ? (
-                      <div role="status" style={st("margin-block-start:14px;padding:14px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border)")}>
+                    {/* Always there, empty until the house has answered: what arrives in it is read out. */}
+                    <div role="status" aria-live="polite" style={st(v.gc.cardOn ? "margin-block-start:14px;padding:14px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border)" : "")}>
+                      {v.gc.cardOn ? (
+                        <>
                         <div style={st("font-size:12px;font-weight:700;color:var(--fg-muted)")}>
                           {tr("On the card")}
                         </div>
@@ -2152,8 +2154,9 @@ export function GuestView({ v }: { v: any }) {
                         <div style={st("margin-block-start:6px;font-size:13px;color:var(--fg-muted)")}>
                           {v.gc.expiry}
                         </div>
-                      </div>
-                    ) : null}
+                                              </>
+                      ) : null}
+                    </div>
                   </div>
                 </section>
               </>

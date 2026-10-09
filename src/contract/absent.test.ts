@@ -34,6 +34,9 @@ if (why !== null && REQUIRED) throw new Error(`the absent-and-partial contract m
 const PORT_BASE = Number(process.env["CONTRACT_PORT_BASE"] ?? 8470) + 30;
 
 const cents = (value: unknown) => Number(value ?? 0).toFixed(2);
+/** A retry key of the dialog's kind: a new one for each save. */
+let keys = 0;
+const key = () => `contract-key-${String(Date.now())}-${String((keys += 1)).padStart(6, "0")}`;
 
 async function refusal(promise: Promise<unknown>): Promise<ApiError> {
   try {
@@ -134,13 +137,32 @@ describe.skipIf(why !== null)(`with the add-ons away, half there, or unable to a
         // A gift card's payment sent anyway (no screen offers one): nothing looks the code up, so the row names no card —
         // and a card's payment counts only once its card has answered. No card is debited and the stay owes what it owed.
         const owed = cents((await stand.one("stays", stay.id))["balance"]);
-        const sent = await desk.recordCardPayment(stay.id, card.code, "50.00").then((row) => row, (error: unknown) => error as ApiError);
+        const sent = await desk.recordCardPayment(stay.id, card.code, "50.00", key()).then((row) => row, (error: unknown) => error as ApiError);
         if (!(sent instanceof ApiError)) expect([sent["card_id"] ?? null, cents(sent["signed"]), sent["card_balance_after"] ?? null]).toEqual([null, "0.00", null]);
         expect(await balanceOf(card.id)).toBe("50.00");
         expect(cents((await stand.one("stays", stay.id))["balance"])).toBe(owed);
         // Money back "to a card" names a payment a card made: there is none, and none can be named.
-        const back = await refusal(desk.giveBackToCard(stay.id, 999_999, "5.00", "No such payment"));
+        const back = await refusal(desk.giveBackToCard(stay.id, 999_999, "5.00", "No such payment", key()));
         expect(back.status >= 400 && back.status < 500).toBe(true);
+      }, 240_000);
+
+      it("installed and not connected: the front desk cannot write what an add-on decides — a stay's reduction is nobody's to type", async () => {
+        const maeve = await stand.person("hotel-front-desk", mail("maeve"), "Maeve R.");
+        const before = (await stand.rows("stays")).length;
+        for (const column of ["discount", "room_discount", "customer_proved"]) {
+          const made = await maeve.caller.post(stand.data("stays"), { values: { room_type_id: garden.id, arrive: "2026-10-26", depart: "2026-10-28", guests: 2, first_name: "Kit", last_name: "Pascoe", channel: "desk", [column]: column === "customer_proved" ? true : 50 } });
+          expect([column, made.status >= 400 && made.status < 500], JSON.stringify(made.body).slice(0, 300)).toEqual([column, true]);
+        }
+        expect((await stand.rows("stays")).length).toBe(before);
+        const old = (await stand.rows("stays")).find((one) => one["email"] === mail("ana"))!;
+        for (const column of ["discount", "room_discount"]) {
+          const changed = await maeve.caller.patch(`${stand.data("stays")}/${String(old.id)}`, { values: { [column]: 50 } });
+          expect([column, changed.status >= 400 && changed.status < 500], JSON.stringify(changed.body).slice(0, 300)).toEqual([column, true]);
+        }
+        const extra = await maeve.caller.post(stand.data("payments"), { values: { stay_id: old.id, kind: "taken", method: "cash", amount: 5, card_balance_after: 99 } });
+        expect(extra.status >= 400 && extra.status < 500).toBe(true);
+        const now = await stand.one("stays", old.id);
+        expect([now["discount"] ?? null, now["room_discount"] ?? null, cents(now["total"])]).toEqual([null, null, "327.00"]);
       }, 240_000);
 
       // ── Offers & gift cards connected ───────────────────────────────────────
@@ -166,7 +188,7 @@ describe.skipIf(why !== null)(`with the add-ons away, half there, or unable to a
         expect(await guest.cardBalance({ code: card.code })).toEqual({ balance: expect.stringMatching(/^50(\.0+)?$/), expiresOn: null });
         const check = await desk.quoteCard(coded, card.code);
         expect([cents(check.amount), cents(check.due), cents(check.balanceAfter)]).toEqual(["50.00", "244.30", "0.00"]);
-        await desk.recordCardPayment(coded, card.code, check.amount);
+        await desk.recordCardPayment(coded, card.code, check.amount, key());
         expect(cents((await stand.one("stays", coded))["balance"])).toBe("244.30");
         // A stay from before it was connected is as it was: nothing was taken off it, and it still reads.
         const old = (await stand.rows("stays")).find((one) => one["email"] === mail("ana"))!;
@@ -178,12 +200,12 @@ describe.skipIf(why !== null)(`with the add-ons away, half there, or unable to a
         const card = await cardWith("100.00");
         const stays: number[] = [];
         for (const first of ["Elowen", "Ferris"]) stays.push((await desk.book({ ...body({ first_name: first, last_name: "Pascoe" }, [], ["2026-10-12", "2026-10-14"]), clientKey: `${first}-${engine}-${"e".repeat(28)}` })).data.id);
-        const tried = await Promise.all(stays.map((id) => desk.recordCardPayment(id, card.code, "100.00").then(() => "paid", (error: unknown) => `${String((error as ApiError).code)}:${String((error as ApiError).params?.["reason"] ?? "")}`)));
+        const tried = await Promise.all(stays.map((id) => desk.recordCardPayment(id, card.code, "100.00", key()).then(() => "paid", (error: unknown) => `${String((error as ApiError).code)}:${String((error as ApiError).params?.["reason"] ?? "")}`)));
         expect(tried.filter((one) => one === "paid").length, JSON.stringify(tried)).toBe(1);
         // The loser is told the card has nothing left (or, when the two met on the same lock, to try again — and then it is told so).
         const lost = tried.find((one) => one !== "paid")!;
         if (lost !== "POSTING_REFUSED:empty") {
-          const again = await refusal(desk.recordCardPayment(stays[tried.indexOf(lost)]!, card.code, "100.00"));
+          const again = await refusal(desk.recordCardPayment(stays[tried.indexOf(lost)]!, card.code, "100.00", key()));
           expect([again.code, again.params["reason"]]).toEqual(["POSTING_REFUSED", "empty"]);
         }
         expect(await balanceOf(card.id)).toBe("0.00");
@@ -221,7 +243,7 @@ describe.skipIf(why !== null)(`with the add-ons away, half there, or unable to a
         expect((await stand.rows("stays")).length).toBe(before);
         const card = await cardWith("20.00");
         const owed = cents((await stand.one("stays", coded))["balance"]);
-        const sent = await desk.recordCardPayment(coded, card.code, "20.00").then((row) => row, (error: unknown) => error as ApiError);
+        const sent = await desk.recordCardPayment(coded, card.code, "20.00", key()).then((row) => row, (error: unknown) => error as ApiError);
         if (!(sent instanceof ApiError)) expect([sent["card_id"] ?? null, cents(sent["signed"])]).toEqual([null, "0.00"]);
         expect(await balanceOf(card.id)).toBe("20.00");
         expect(cents((await stand.one("stays", coded))["balance"])).toBe(owed);

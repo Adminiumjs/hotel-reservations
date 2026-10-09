@@ -66,7 +66,7 @@ const NEW_TABLES = ["stay_codes"];
 const NEW_COLUMNS: Record<string, string[]> = {
   stays: ["customer_proved", "discount", "room_discount"],
   stay_extras: ["discount"],
-  payments: ["against_id", "asked", "card_balance_after", "card_code", "card_id", "card_last4", "settle_as"],
+  payments: ["against_id", "asked", "card_balance_after", "card_code", "card_id", "card_last4", "client_key", "settle_as"],
 };
 const NEW_ENUM_VALUES: Record<string, Record<string, string[]>> = {
   payments: { method: ["gift_card"] },

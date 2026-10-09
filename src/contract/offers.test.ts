@@ -38,6 +38,9 @@ if (why !== null && REQUIRED) throw new Error(`the offers contract must run here
 const PORT_BASE = Number(process.env["CONTRACT_PORT_BASE"] ?? 8470) + 10;
 
 const cents = (value: unknown) => Number(value ?? 0).toFixed(2);
+/** A retry key of the dialog's kind: a new one for each save. */
+let keys = 0;
+const key = () => `contract-key-${String(Date.now())}-${String((keys += 1)).padStart(6, "0")}`;
 const flat = (text: string) => text.replace(/[\s  ]+/g, " ").trim();
 const codeIn = (text: string) => /\b(\d{6})\b/.exec(text)?.[1] ?? "";
 const yes = (value: unknown) => value === true || value === 1;
@@ -158,7 +161,7 @@ describe.skipIf(why !== null)(`codes, vouchers and gift cards on a built Adminiu
         expect([cents(check.amount), cents(check.due), cents(check.balanceAfter)]).toEqual(["100.00", "262.97", "0.00"]);
         // A check takes nothing.
         expect(await balanceOf(card.id)).toBe("100.00");
-        const paid = await desk.recordCardPayment(first.id, card.code, check.amount);
+        const paid = await desk.recordCardPayment(first.id, card.code, check.amount, key());
         first.pay = paid.id;
         expect([cents(paid["amount"]), paid["card_last4"], cents(paid["card_balance_after"])]).toEqual(["100.00", card.code.slice(-4), "0.00"]);
         expect(await balanceOf(card.id)).toBe("0.00");
@@ -168,17 +171,17 @@ describe.skipIf(why !== null)(`codes, vouchers and gift cards on a built Adminiu
       it("an empty card is told so, and a card the house does not know is not valid: nothing is taken either way", async () => {
         const empty = await refusal(desk.quoteCard(first.id, card.code));
         expect([empty.status, empty.code, empty.params["reason"]], JSON.stringify(empty.params)).toEqual([409, "POSTING_REFUSED", "empty"]);
-        const unknown = await refusal(desk.recordCardPayment(first.id, "GC-AAAA-BBBB-CCCC", "10.00"));
+        const unknown = await refusal(desk.recordCardPayment(first.id, "GC-AAAA-BBBB-CCCC", "10.00", key()));
         expect([unknown.status, unknown.code, (unknown.params["fields"] as Record<string, { code: string }>)["card_code"]?.code], JSON.stringify(unknown.params)).toEqual([422, "VALIDATION_FAILED", "unknown"]);
         expect(cents((await stay(first.id))["balance"])).toBe("262.97");
       }, 120_000);
 
       it("gives $20.00 back to the card it came from, refuses $90.00 more, and a voided card payment returns the rest: the card is at $100.00 again", async () => {
-        const back = await desk.giveBackToCard(first.id, first.pay, "20.00", "One towel short");
+        const back = await desk.giveBackToCard(first.id, first.pay, "20.00", "One towel short", key());
         expect([back["kind"], cents(back["amount"]), Number(back["against_id"])]).toEqual(["given_back", "20.00", first.pay]);
         expect(await balanceOf(card.id)).toBe("20.00");
         expect(cents((await stay(first.id))["balance"])).toBe("282.97");
-        const over = await refusal(desk.giveBackToCard(first.id, first.pay, "90.00", "Too much"));
+        const over = await refusal(desk.giveBackToCard(first.id, first.pay, "90.00", "Too much", key()));
         expect([over.status, over.code, over.params["reason"], cents(over.params["left"])], JSON.stringify(over.params)).toEqual([409, "POSTING_REFUSED", "refund-over", "80.00"]);
         expect(await balanceOf(card.id)).toBe("20.00");
         // A manager takes the payment back, in the order the desk's screen holds to: first what was given back
@@ -203,7 +206,7 @@ describe.skipIf(why !== null)(`codes, vouchers and gift cards on a built Adminiu
         const other = await cardWith("100.00");
         const check = await desk.quoteCard(second, other.code);
         expect([cents(check.amount), cents(check.due), cents(check.balanceAfter)]).toEqual(["62.97", "0.00", "37.03"]);
-        const paid = await desk.recordCardPayment(second, other.code, check.amount);
+        const paid = await desk.recordCardPayment(second, other.code, check.amount, key());
         expect([cents(paid["amount"]), cents(paid["card_balance_after"])]).toEqual(["62.97", "37.03"]);
         expect(await balanceOf(other.id)).toBe("37.03");
         expect(cents((await stay(second))["balance"])).toBe("0.00");
@@ -231,7 +234,7 @@ describe.skipIf(why !== null)(`codes, vouchers and gift cards on a built Adminiu
         const mine = await cardWith("30.00");
         const made = await desk.book({ ...body({ first_name: "Nia", last_name: "Arden" }, [], ["2026-11-02", "2026-11-04"]), clientKey: `nia-${engine}-${"n".repeat(30)}` });
         const cash = await desk.recordPayment(made.data.id, { kind: "taken", amount: "50.00", method: "cash" });
-        await desk.giveBackToCard(made.data.id, cash.id, "5.00", "Not a card's");
+        await desk.giveBackToCard(made.data.id, cash.id, "5.00", "Not a card's", key());
         expect(await balanceOf(mine.id)).toBe("30.00");
       }, 120_000);
 
@@ -240,16 +243,32 @@ describe.skipIf(why !== null)(`codes, vouchers and gift cards on a built Adminiu
       it("keeps a card whole when its payment is voided before what was given back from it", async () => {
         const mine = await cardWith("100.00");
         const made = await desk.book({ ...body({ first_name: "Odo", last_name: "Arden" }, [], ["2026-11-09", "2026-11-11"]), clientKey: `odo-${engine}-${"o".repeat(30)}` });
-        const paid = await desk.recordCardPayment(made.data.id, mine.code, "100.00");
-        const back = await desk.giveBackToCard(made.data.id, paid.id, "20.00", "A towel");
+        const paid = await desk.recordCardPayment(made.data.id, mine.code, "100.00", key());
+        const back = await desk.giveBackToCard(made.data.id, paid.id, "20.00", "A towel", key());
         ok(await stand.staff.patch(`${stand.data("payments")}/${String(paid.id)}`, { values: { voided: true, void_reason: "Wrong stay" } }));
         ok(await stand.staff.patch(`${stand.data("payments")}/${String(back.id)}`, { values: { voided: true, void_reason: "Its payment was voided" } }));
         expect(await balanceOf(mine.id)).toBe("100.00");
       }, 120_000);
 
+      it("a save sent again with its key is the payment the first one made: a card is debited once, and given back to once", async () => {
+        const mine = await cardWith("60.00");
+        const made = await desk.book({ ...body({ first_name: "Pip", last_name: "Arden" }, [], ["2026-11-16", "2026-11-18"]), clientKey: `pip-${engine}-${"p".repeat(30)}` });
+        const payKey = key();
+        const paid = await desk.recordCardPayment(made.data.id, mine.code, "60.00", payKey);
+        const again = await desk.recordCardPayment(made.data.id, mine.code, "60.00", payKey);
+        expect([again.id, await balanceOf(mine.id)]).toEqual([paid.id, "0.00"]);
+        const backKey = key();
+        const back = await desk.giveBackToCard(made.data.id, paid.id, "15.00", "A late breakfast", backKey);
+        const backAgain = await desk.giveBackToCard(made.data.id, paid.id, "15.00", "A late breakfast", backKey);
+        expect([backAgain.id, await balanceOf(mine.id)]).toEqual([back.id, "15.00"]);
+        const rows = (await stand.rows("payments", { column: "stay_id", op: "eq", value: made.data.id })).map((one) => [one["kind"], cents(one["amount"])]);
+        expect(rows.sort()).toEqual([["given_back", "15.00"], ["taken", "60.00"]]);
+        expect(cents((await stay(made.data.id))["paid"])).toBe("45.00");
+      }, 180_000);
+
       it("a card asked for more than it now holds gives nothing, and says what it has left", async () => {
         const small = await cardWith("30.00");
-        const error = await refusal(desk.recordCardPayment(first.id, small.code, "50.00"));
+        const error = await refusal(desk.recordCardPayment(first.id, small.code, "50.00", key()));
         expect([error.status, error.code, error.params["reason"]], JSON.stringify(error.params)).toEqual([409, "POSTING_REFUSED", "empty"]);
         expect(await balanceOf(small.id)).toBe("30.00");
       }, 120_000);
@@ -265,6 +284,12 @@ describe.skipIf(why !== null)(`codes, vouchers and gift cards on a built Adminiu
         const moved = await desk.edit(first.id, { depart: "2026-10-08" }, "510.12");
         expect(figures(moved)).toEqual(["520.00", "52.00", "468.00", "42.12", "510.12"]);
         expect((await usesOf(first.id)).filter((use) => use["state"] === "counted").length).toBe(1);
+        // What Offers & gift cards keeps for the stay adds up to the stay's own figure after the re-price: no row of the
+        // old price is left beside the new ones.
+        const kept = (await offers("applied", { column: "source_row", op: "eq", value: String(first.id) })).filter((one) => one["source_table"] === "hotel:stays");
+        expect(kept.length).toBeGreaterThan(0);
+        expect((kept.reduce((sum, one) => sum + Math.round(Number(one["amount"]) * 100), 0) / 100).toFixed(2)).toBe(cents((await stay(first.id))["discount"]));
+        expect(cents((await stay(first.id))["discount"])).toBe("52.00");
       }, 120_000);
 
       it("gives the use back when the stay is cancelled, and keeps it through a no-show", async () => {
@@ -344,6 +369,13 @@ describe.skipIf(why !== null)(`codes, vouchers and gift cards on a built Adminiu
         expect([found?.kind, found?.last4, cents(found?.record["balance"])]).toEqual(["gift-card", mine.code.slice(-4), "10.00"]);
         expect(JSON.stringify(found)).not.toContain(mine.code);
         expect(await jory.desk.lookUpCode(mine.code)).toBeNull();
+        // The card field's own question — is this a gift card at all? — for a voucher and for a discount code, as the
+        // front desk: each read the role holds is one the look-up answers from.
+        const voucher = ok(await stand.staff.post<{ data: Row }>(stand.data("offers_vouchers"), { values: { worth: "amount", value: 5, public_name: "Five off", uses_total: 1 } }), 201).data;
+        const voucherCode = String((await stand.one("offers_vouchers", voucher.id))["code"]);
+        const asVoucher = await maeve.desk.lookUpCode(voucherCode);
+        expect([asVoucher?.kind, JSON.stringify(asVoucher).includes(voucherCode)]).toEqual(["voucher", false]);
+        expect((await maeve.desk.lookUpCode("MIDWEEK"))?.kind).toBe("code");
       }, 240_000);
 
       it("the front desk checks and takes a gift card itself, and what it reads back carries no code", async () => {
@@ -358,7 +390,7 @@ describe.skipIf(why !== null)(`codes, vouchers and gift cards on a built Adminiu
         expect(JSON.stringify(made)).not.toContain("MIDWEEK");
         const check = await maeve.desk.quoteCard(made.data.id, mine.code);
         expect([cents(check.amount), cents(check.balanceAfter)]).toEqual(["10.00", "0.00"]);
-        const paid = await maeve.desk.recordCardPayment(made.data.id, mine.code, check.amount);
+        const paid = await maeve.desk.recordCardPayment(made.data.id, mine.code, check.amount, key());
         expect([cents(paid["amount"]), paid["card_last4"], Object.keys(paid).includes("card_code")]).toEqual(["10.00", mine.code.slice(-4), false]);
         // What a card gave or kept is never the desk's to type.
         const typed = await maeve.caller.post(stand.data("payments"), { values: { stay_id: made.data.id, kind: "taken", method: "cash", amount: 5, card_balance_after: 99 } });

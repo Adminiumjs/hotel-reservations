@@ -795,5 +795,15 @@
   "Your code": "Váš kód",
   "The code is typed — press Apply.": "Kód je zadán — stiskněte Použít.",
   "The code is typed — pick a room type, then press Apply.": "Kód je zadán — vyberte typ pokoje a stiskněte Použít.",
-  "First void what was given back to this card, then this payment.": "Nejprve stornujte, co bylo na tuto kartu vráceno, potom tuto platbu."
+  "First void what was given back to this card, then this payment.": "Nejprve stornujte, co bylo na tuto kartu vráceno, potom tuto platbu.",
+  "{away} → {store}": "{away} → {store}",
+  "Put them back": "Vrátit je",
+  "Remove {code}": "Odebrat {code}",
+  "That code takes nothing off this stay.": "Tento kód z tohoto pobytu nic neodečte.",
+  "That is a discount code, not a gift card. A code is typed when the stay is booked.": "To je slevový kód, ne dárková karta. Kód se zadává při rezervaci pobytu.",
+  "That is a voucher, not a gift card. A voucher is typed when the stay is booked.": "To je poukaz, ne dárková karta. Poukaz se zadává při rezervaci pobytu.",
+  "The account has changed since the card was checked. Check the card again.": "Účet se od ověření karty změnil. Ověřte kartu znovu.",
+  "The house did not answer. Press again — nothing is put back twice.": "Dům neodpověděl. Stiskněte znovu — nic se nevrátí dvakrát.",
+  "The house did not answer. Press again — nothing is taken or given twice.": "Dům neodpověděl. Stiskněte znovu — nic se nestrhne ani nevrátí dvakrát.",
+  "We could not check that card just now. Try again in a moment.": "Tuto kartu se teď nepodařilo ověřit. Zkuste to za chvíli znovu."
 }

@@ -668,13 +668,11 @@ function reserveVals(app: HouseApp, w: WorldV, pt: TypeV, n: number, guests: num
   const qa = app.quote(pt.id, sr.arrive, sr.depart, guests, picked, s.codes);
   const q = qa.value;
   const wait = iso(q === undefined && qa.error ? "—" : "…");
+  // A price refused because of a code already applied (another room, other dates): the code comes off with its
+  // reason under the field, and the stay is priced again — never "we could not work out the price".
+  if (q === undefined && qa.error !== undefined && s.codes.length > 0 && app.aboutCode(qa.error)) queueMicrotask(() => app.dropRefusedCodes(qa.error));
   // "Apply" prices the same stay once more, with the typed code beside the ones it has.
-  const withCodes = (codes: string[]) =>
-    app.ports.guest!.quote({
-      values: { room_type_id: Number(pt.id), arrive: sr.arrive, depart: sr.depart, guests },
-      children: { stay_extras: picked.map((extra_id) => ({ values: { extra_id: Number(extra_id) } })), stay_codes: codes.map((typed) => ({ values: { typed } })) },
-    });
-  const code = codeVals(app, q, withCodes, tr("The code you were given"));
+  const code = codeVals(app, q, app.guestCodeAsk, tr("The code you were given"));
   const setF = (k: keyof typeof f) => (e: { target: { value: string } }) => app.setState({ form: { ...app.state.form, [k]: e.target.value } });
   const firstErr = s.formErr && !f.first.trim() ? tr("Your first name") : "";
   const lastErr = s.formErr && !f.last.trim() ? tr("Your surname") : "";
@@ -764,7 +762,7 @@ function reserveVals(app: HouseApp, w: WorldV, pt: TypeV, n: number, guests: num
     btnBg: s.rvBusy ? "var(--surface-3)" : "var(--accent)",
     btnFg: s.rvBusy ? "var(--fg-muted)" : "var(--accent-fg)",
     confirm: () => {
-      if (!app.state.rvBusy) app.tryReserve();
+      if (!app.state.rvBusy && !app.state.codeBusy) app.tryReserve();
     },
     goneOn: A?.kind === "gone",
     alts,
@@ -787,7 +785,7 @@ function giftCardVals(app: HouseApp): V {
   const s = app.state;
   const a = s.gcAnswer;
   const check = () => void app.cardBalance({ code: app.state.gcCode });
-  const bad = a?.kind === "none" || a?.kind === "short" || a?.kind === "wait";
+  const bad = a?.kind === "none" || a?.kind === "short" || a?.kind === "wait" || a?.kind === "down";
   return {
     code: s.gcCode,
     onCode: (e: { target: { value: string } }) => app.setState({ gcCode: e.target.value, gcAnswer: null }),
@@ -804,7 +802,7 @@ function giftCardVals(app: HouseApp): V {
     balance: a?.kind === "card" ? money(Number(a.balance)) : "",
     expiry: a?.kind === "card" ? (a.expiresOn === null ? tr("Does not expire") : tr("Use it by {date}", { date: strip(fDW(a.expiresOn)) })) : "",
     errOn: bad,
-    err: a?.kind === "wait" ? tr("Too many tries at once — wait a moment and try again.") : a?.kind === "short" ? tr("A gift card code has twelve letters and numbers after GC.") : a?.kind === "none" ? tr("That code is not valid.") : "",
+    err: a?.kind === "down" ? tr("We could not check that card just now. Try again in a moment.") : a?.kind === "wait" ? tr("Too many tries at once — wait a moment and try again.") : a?.kind === "short" ? tr("A gift card code has twelve letters and numbers after GC.") : a?.kind === "none" ? tr("That code is not valid.") : "",
     inv: bad ? "true" : "false",
     border: bad ? "var(--danger)" : "var(--border-strong)",
   };

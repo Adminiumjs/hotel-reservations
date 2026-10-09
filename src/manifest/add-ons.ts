@@ -21,6 +21,8 @@ export const ADD_ONS_RANGE = ">=1.0.6";
  * both away the house runs as it always has.
  */
 export const LEDGER_ADD_ONS_RANGE = ">=1.0.9";
+/** Offers & gift cards from the release that keeps a card whole in either order a payment and its give-back are voided. */
+export const OFFERS_RANGE = ">=1.0.10";
 
 export const ADD_ONS = {
   suggests: [
@@ -31,7 +33,7 @@ export const ADD_ONS = {
       reason: l("Print a guest's folio at the desk and email it at check-out, with a receipt for each payment."),
     },
     { key: "inventory", range: LEDGER_ADD_ONS_RANGE, reason: l("Count linen and amenities as guests leave.") },
-    { key: "offers", range: LEDGER_ADD_ONS_RANGE, reason: l("Take codes, vouchers and gift cards.") },
+    { key: "offers", range: OFFERS_RANGE, reason: l("Take codes, vouchers and gift cards.") },
   ],
   features: [
     { id: "folio", label: l("Folio and receipts"), requires: ["invoices"] },

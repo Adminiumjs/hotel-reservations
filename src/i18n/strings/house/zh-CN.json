@@ -795,5 +795,15 @@
   "Your code": "您的代码",
   "The code is typed — press Apply.": "代码已输入——请按“使用”。",
   "The code is typed — pick a room type, then press Apply.": "代码已输入——选择房型后按“使用”。",
-  "First void what was given back to this card, then this payment.": "请先作废退回此卡的款项，再作废这笔付款。"
+  "First void what was given back to this card, then this payment.": "请先作废退回此卡的款项，再作废这笔付款。",
+  "{away} → {store}": "{away} → {store}",
+  "Put them back": "全部放回",
+  "Remove {code}": "移除 {code}",
+  "That code takes nothing off this stay.": "此代码对本次入住没有减免。",
+  "That is a discount code, not a gift card. A code is typed when the stay is booked.": "这是折扣码，不是礼品卡。代码在预订入住时输入。",
+  "That is a voucher, not a gift card. A voucher is typed when the stay is booked.": "这是代金券，不是礼品卡。代金券在预订入住时输入。",
+  "The account has changed since the card was checked. Check the card again.": "查验此卡后账目已有变化。请重新查验。",
+  "The house did not answer. Press again — nothing is put back twice.": "酒店没有应答。请再按一次——不会重复放回。",
+  "The house did not answer. Press again — nothing is taken or given twice.": "酒店没有应答。请再按一次——不会重复扣款或退款。",
+  "We could not check that card just now. Try again in a moment.": "暂时无法查验此卡。请稍后再试。"
 }

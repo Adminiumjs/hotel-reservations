@@ -31,7 +31,11 @@ export class DemoAddOns {
     [plain("GC-9D4T-K8RV-M2LX"), { balance: 120_000 }],
   ]);
   /** What each card payment took, for money given back to it. */
-  private readonly spends = new Map<Id, { card: string; left: number }>();
+  private readonly spends = new Map<Id, { card: string; left: number; voided: boolean }>();
+  /** What each give-back row put back on a card, so that voiding it takes it off again. */
+  private readonly backs = new Map<Id, { payment: Id; amount: number }>();
+  /** Saves answered once, by the retry key they came with. */
+  readonly saved = new Map<string, Row>();
   private linenRows: LinenRow[] = [
     { itemId: 1, name: "Bath towel", storeId: 1, store: "Linen store", awayId: 2, away: "At the laundry", inStore: 236, atLaundry: 24 },
     { itemId: 2, name: "Hand towel", storeId: 1, store: "Linen store", awayId: 2, away: "At the laundry", inStore: 236, atLaundry: 24 },
@@ -102,13 +106,17 @@ export class DemoAddOns {
   spend(stay: Row, code: string, asked: string): { amount: number; last4: string; balanceAfter: number } {
     const card = this.card(code);
     const ask = cents(asked);
-    if (ask <= 0 || ask > Math.max(0, cents(stay["balance"]))) throw new ApiError(409, "POSTING_REFUSED", "Nothing is owing.", { ledger: "value", reason: "not-allowed" });
+    const due = Math.max(0, cents(stay["balance"]));
+    // As the add-on answers: nothing owing, an empty card, more asked than is owing, more asked than the card holds.
+    if (due <= 0) throw new ApiError(409, "POSTING_REFUSED", "Nothing is owing.", { ledger: "value", reason: "not-allowed" });
+    if (card.balance <= 0) throw new ApiError(409, "POSTING_REFUSED", "The card is empty.", { ledger: "value", reason: "empty", left: "0.00" });
+    if (ask <= 0 || ask > due) throw new ApiError(409, "POSTING_REFUSED", "More than is owing.", { ledger: "value", reason: "not-allowed" });
     if (card.balance < ask) throw new ApiError(409, "POSTING_REFUSED", "The card is empty.", { ledger: "value", reason: "empty", left: (card.balance / 100).toFixed(2) });
     card.balance -= ask;
     return { amount: ask / 100, last4: plain(code).slice(-4), balanceAfter: card.balance / 100 };
   }
   spent(paymentId: Id, code: string, amount: number): void {
-    this.spends.set(paymentId, { card: plain(code), left: cents(amount) });
+    this.spends.set(paymentId, { card: plain(code), left: cents(amount), voided: false });
   }
 
   /** Money back to the card a payment came from, up to what that payment can still return. */
@@ -119,12 +127,30 @@ export class DemoAddOns {
     spend.left -= back;
     this.cards.get(spend.card)!.balance += back;
   }
+  /** The give-back row a `giveBack` was saved as. */
+  gaveBack(rowId: Id, paymentId: Id, amount: number): void {
+    this.backs.set(rowId, { payment: paymentId, amount: cents(amount) });
+  }
   /** A voided card payment returns what it still holds. */
   voided(paymentId: Id): void {
     const spend = this.spends.get(paymentId);
-    if (spend === undefined) return;
+    if (spend === undefined || spend.voided) return;
     this.cards.get(spend.card)!.balance += spend.left;
     spend.left = 0;
+    spend.voided = true;
+  }
+  /**
+   * A voided give-back: the card returns what it was given, and the payment can give it back again. Once the payment
+   * itself is voided the card already holds all of it, and nothing more moves — in either order the card ends whole.
+   */
+  voidedBack(rowId: Id): void {
+    const back = this.backs.get(rowId);
+    const spend = back === undefined ? undefined : this.spends.get(back.payment);
+    if (back === undefined || spend === undefined) return;
+    this.backs.delete(rowId);
+    if (spend.voided) return;
+    this.cards.get(spend.card)!.balance -= back.amount;
+    spend.left += back.amount;
   }
 
   balance(code: string): { balance: string; expiresOn: string | null } | null {

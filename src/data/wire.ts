@@ -92,9 +92,11 @@ export interface LinenRow {
 
 /** What putting linen back answered: done, or which lines are still to move; and the lines above what the books held. */
 export interface LinenReply {
+  /** Every kind asked for is back in its store. */
   done: boolean;
-  transferId: Id;
-  /** The items moved, and those still to move (a failed line: pressing again sends only these). */
+  /** One transfer for each store the linen went back to. */
+  transfers: { transferId: Id; store: string; away: string; done: boolean }[];
+  /** The items moved, and those still to move (a failed line: pressing again, with the same key, sends only these). */
   moved: Id[];
   left: Id[];
   /** Per item, how many more than the books held at the laundry. */

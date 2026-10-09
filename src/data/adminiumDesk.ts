@@ -26,6 +26,8 @@ import { ApiError, yes, type Applied, type CardCheck, type CodeFound, type Id, t
 
 /** The app's key: its roles are named `hotel-<role>`, its tables `hotel_<table>` when the server does not say. */
 const APP_KEY = "hotel";
+/** How a transfer made by "Back from the laundry" is noted, before the sheet's retry key. */
+export const LINEN_NOTE = "Back from the laundry";
 const PAGE = 200;
 /** The most rows one read of the book brings back. */
 const MOST_ROWS = 10_000;
@@ -300,9 +302,9 @@ export class AdminiumDesk implements DeskPort {
         out.set(key, held);
       }
       return [...out.values()].map((one) => ({ line: null, name: one.name, kind: one.kind, amount: (one.cents / 100).toFixed(2), typed: one.typed }));
-    } catch (error) {
-      if (error instanceof SessionPortError && (error.status === 403 || error.status === 404)) return undefined;
-      throw error;
+    } catch {
+      // Whatever went wrong with that read hides the names, never the folio: the stay's own figure stands for them.
+      return undefined;
     }
   }
 
@@ -577,13 +579,28 @@ export class AdminiumDesk implements DeskPort {
     });
   }
 
-  recordCardPayment(stayId: Id, code: string, amount: string): Promise<Row> {
-    // The amount the check answered goes as what is asked of the card: it gives exactly that, or the save is refused.
-    return answer(() => this.create("payments", { stay_id: stayId, kind: "taken", method: "gift_card", card_code: code.trim(), amount: amount.trim(), asked: amount.trim() }));
+  /**
+   * A payment saved with the dialog's retry key. Sent again after a reply that never came, Adminium refuses the
+   * second as a duplicate of the first — and the first, found by its key, is the answer.
+   */
+  private async payOnce(values: Record<string, unknown>, key: string): Promise<Row> {
+    try {
+      return await this.create("payments", { ...values, client_key: key });
+    } catch (error) {
+      if (!refusedAs(error, "UNIQUE_VIOLATION")) throw error;
+      const made = (await this.list("payments", where("client_key", key)))[0];
+      if (made === undefined) throw error;
+      return made;
+    }
   }
 
-  giveBackToCard(stayId: Id, paymentId: Id, amount: string, note: string): Promise<Row> {
-    return answer(() => this.create("payments", { stay_id: stayId, kind: "given_back", method: "gift_card", against_id: paymentId, amount: amount.trim(), note: note.trim() }));
+  recordCardPayment(stayId: Id, code: string, amount: string, key: string): Promise<Row> {
+    // The amount the check answered goes as what is asked of the card: it gives exactly that, or the save is refused.
+    return answer(() => this.payOnce({ stay_id: stayId, kind: "taken", method: "gift_card", card_code: code.trim(), amount: amount.trim(), asked: amount.trim() }, key));
+  }
+
+  giveBackToCard(stayId: Id, paymentId: Id, amount: string, note: string, key: string): Promise<Row> {
+    return answer(() => this.payOnce({ stay_id: stayId, kind: "given_back", method: "gift_card", against_id: paymentId, amount: amount.trim(), note: note.trim() }, key));
   }
 
   // ── linen ─────────────────────────────────────────────────────────────────
@@ -645,47 +662,61 @@ export class AdminiumDesk implements DeskPort {
     });
   }
 
-  putBackLinen(rows: { itemId: Id; qty: number }[], resume?: Id): Promise<LinenReply> {
+  putBackLinen(rows: { itemId: Id; qty: number }[], key: string): Promise<LinenReply> {
     return answer(async () => {
       const linen = await this.linen();
       const wanted = rows.filter((row) => row.qty > 0).map((row) => ({ ...row, of: linen.find((one) => one.itemId === row.itemId) })).filter((row): row is { itemId: Id; qty: number; of: LinenRow } => row.of !== undefined);
-      let transferId = resume;
-      if (transferId === undefined) {
-        if (wanted.length === 0) throw new ApiError(422, "VALIDATION_FAILED", "Nothing to put back.", {});
-        const { awayId, storeId } = wanted[0]!.of;
-        const rel = await this.t.relation("inventory_transfer_lines", "transfer_id");
-        // One transfer, from the laundry to the store, its lines waiting.
-        const made = await this.mutate<{ data: Row }>(await this.stock("transfers"), "POST", {
-          values: { from_place_id: awayId, to_place_id: storeId },
-          children: { [rel]: wanted.filter((row) => row.of.awayId === awayId && row.of.storeId === storeId).map((row) => ({ values: { item_id: row.itemId, qty: row.qty } })) },
-        });
-        transferId = made.data.id;
+      // One transfer for each laundry-and-store pair: linen kept in two stores goes back to both.
+      const pairs = new Map<string, { awayId: Id; storeId: Id; store: string; away: string; rows: { itemId: Id; qty: number }[] }>();
+      for (const row of linen) {
+        const pair = `${String(row.awayId)}:${String(row.storeId)}`;
+        if (!pairs.has(pair)) pairs.set(pair, { awayId: row.awayId, storeId: row.storeId, store: row.store, away: row.away, rows: [] });
       }
-      const transfer = (await this.t.get<{ data: Row }>(await this.stock("transfers", `/${encodeURIComponent(String(transferId))}`))).data;
-      if (transfer["status"] === "draft") await this.mutate(await this.stock("transfers", `/${encodeURIComponent(String(transferId))}`), "PATCH", { values: { status: "posting" }, from: "draft" });
-      // Each line is its own move: one that fails leaves the others moved, and pressing again sends only what is left.
-      const waiting = (await this.stockRows("transfer_lines", { column: "transfer_id", op: "eq", value: transferId })).filter((line) => line["status"] === "draft");
-      const over: { itemId: Id; by: number }[] = [];
-      if (waiting.length > 0) {
-        const ran = await this.mutate<{ results: { id: unknown; ok: boolean; postings?: { notes?: { note?: string }[] }[] }[] }>(await this.stock("transfer_lines", "/one-by-one"), "POST", {
-          ids: waiting.map((line) => line.id),
-          values: { status: "posted" },
-          from: "draft",
-        });
-        for (const result of ran.results) {
-          const line = waiting.find((one) => String(one.id) === String(result.id));
-          if (!result.ok || line === undefined) continue;
-          if ((result.postings ?? []).some((posting) => (posting.notes ?? []).some((note) => note.note === "short"))) {
-            const before = linen.find((one) => one.itemId === Number(line["item_id"]))?.atLaundry ?? 0;
-            over.push({ itemId: Number(line["item_id"]), by: Math.max(0, Number(line["qty"]) - before) });
+      for (const row of wanted) pairs.get(`${String(row.of.awayId)}:${String(row.of.storeId)}`)!.rows.push({ itemId: row.itemId, qty: row.qty });
+      const reply: LinenReply = { done: true, transfers: [], moved: [], left: [], over: [] };
+      const rel = await this.t.relation("inventory_transfer_lines", "transfer_id");
+      for (const [pair, group] of pairs) {
+        // The transfer carries the sheet's key in its note: a press sent again finds the transfer the first one made.
+        const note = `${LINEN_NOTE} · ${key}:${pair}`;
+        let transfer = (await this.stockRows("transfers", { column: "note", op: "eq", value: note }))[0];
+        if (transfer === undefined) {
+          if (group.rows.length === 0) continue;
+          transfer = (
+            await this.mutate<{ data: Row }>(await this.stock("transfers"), "POST", {
+              values: { from_place_id: group.awayId, to_place_id: group.storeId, note },
+              children: { [rel]: group.rows.map((row) => ({ values: { item_id: row.itemId, qty: row.qty } })) },
+            })
+          ).data;
+        }
+        const at = `/${encodeURIComponent(String(transfer.id))}`;
+        if (transfer["status"] === "draft") await this.mutate(await this.stock("transfers", at), "PATCH", { values: { status: "posting" }, from: "draft" });
+        // Each line is its own move: one that fails leaves the others moved, and pressing again sends only what is left.
+        const waiting = (await this.stockRows("transfer_lines", { column: "transfer_id", op: "eq", value: transfer.id })).filter((line) => line["status"] === "draft");
+        if (waiting.length > 0) {
+          const ran = await this.mutate<{ results: { id: unknown; ok: boolean; postings?: { notes?: { note?: string }[] }[] }[] }>(await this.stock("transfer_lines", "/one-by-one"), "POST", {
+            ids: waiting.map((line) => line.id),
+            values: { status: "posted" },
+            from: "draft",
+          });
+          for (const result of ran.results) {
+            const line = waiting.find((one) => String(one.id) === String(result.id));
+            if (!result.ok || line === undefined) continue;
+            if ((result.postings ?? []).some((posting) => (posting.notes ?? []).some((said) => said.note === "short"))) {
+              const before = linen.find((one) => one.itemId === Number(line["item_id"]) && one.awayId === group.awayId)?.atLaundry ?? 0;
+              reply.over.push({ itemId: Number(line["item_id"]), by: Math.max(0, Number(line["qty"]) - before) });
+            }
           }
         }
+        const after = await this.stockRows("transfer_lines", { column: "transfer_id", op: "eq", value: transfer.id });
+        const left = after.filter((line) => line["status"] === "draft").map((line) => Number(line["item_id"]));
+        reply.left.push(...left);
+        reply.moved.push(...after.filter((line) => line["status"] !== "draft").map((line) => Number(line["item_id"])));
+        if (left.length === 0 && transfer["status"] !== "done") await this.mutate(await this.stock("transfers", at), "PATCH", { values: { status: "done" }, from: "posting" });
+        reply.transfers.push({ transferId: transfer.id, store: group.store, away: group.away, done: left.length === 0 });
+        if (left.length > 0) reply.done = false;
       }
-      const after = await this.stockRows("transfer_lines", { column: "transfer_id", op: "eq", value: transferId });
-      const left = after.filter((line) => line["status"] === "draft").map((line) => Number(line["item_id"]));
-      const moved = after.filter((line) => line["status"] !== "draft").map((line) => Number(line["item_id"]));
-      if (left.length === 0) await this.mutate(await this.stock("transfers", `/${encodeURIComponent(String(transferId))}`), "PATCH", { values: { status: "done" }, from: "posting" });
-      return { done: left.length === 0, transferId, moved, left, over };
+      if (reply.transfers.length === 0) throw new ApiError(422, "VALIDATION_FAILED", "Nothing to put back.", {});
+      return reply;
     });
   }
 

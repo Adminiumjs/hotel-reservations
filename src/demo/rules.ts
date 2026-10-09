@@ -1717,6 +1717,27 @@ export const MANIFEST_RULES = {
             "cancel_code",
             "customer_id"
           ],
+          "creatable": [
+            "status",
+            "room_type_id",
+            "room_id",
+            "arrive",
+            "depart",
+            "guests",
+            "first_name",
+            "last_name",
+            "email",
+            "mobile",
+            "arrival_time",
+            "note",
+            "expect_by",
+            "language",
+            "folio_sent_at",
+            "folio_so_far_at",
+            "cancel_code",
+            "customer_id",
+            "channel"
+          ],
           "writableValues": {
             "status": [
               "booked",
@@ -1733,6 +1754,11 @@ export const MANIFEST_RULES = {
         },
         "stay_extras": {
           "writable": [
+            "state"
+          ],
+          "creatable": [
+            "stay_id",
+            "extra_id",
             "state"
           ]
         },
@@ -1772,6 +1798,7 @@ export const MANIFEST_RULES = {
             "card_last4",
             "card_balance_after",
             "asked",
+            "client_key",
             "against_id"
           ],
           "creatable": [
@@ -1783,7 +1810,8 @@ export const MANIFEST_RULES = {
             "note",
             "card_code",
             "asked",
-            "against_id"
+            "against_id",
+            "client_key"
           ]
         },
         "rooms": {
@@ -2000,7 +2028,148 @@ export const MANIFEST_RULES = {
             "card_last4",
             "card_balance_after",
             "asked",
+            "client_key",
             "against_id"
+          ],
+          "writable": [
+            "stay_id",
+            "kind",
+            "amount",
+            "method",
+            "reference",
+            "note",
+            "paid_on",
+            "recorded_at",
+            "recorded_by",
+            "voided",
+            "void_reason",
+            "voided_at",
+            "voided_by",
+            "card_code",
+            "asked",
+            "client_key",
+            "against_id"
+          ],
+          "creatable": [
+            "stay_id",
+            "kind",
+            "amount",
+            "method",
+            "reference",
+            "note",
+            "paid_on",
+            "recorded_at",
+            "recorded_by",
+            "voided",
+            "void_reason",
+            "voided_at",
+            "voided_by",
+            "card_code",
+            "asked",
+            "client_key",
+            "against_id"
+          ]
+        },
+        "stays": {
+          "writable": [
+            "ref_seq",
+            "ref",
+            "status",
+            "room_type_id",
+            "room_id",
+            "arrive",
+            "depart",
+            "guests",
+            "first_name",
+            "last_name",
+            "email",
+            "mobile",
+            "arrival_time",
+            "note",
+            "expect_by",
+            "language",
+            "channel",
+            "tax_rate",
+            "tax_label",
+            "late_cancel",
+            "cancel_code",
+            "cancel_by",
+            "created_at",
+            "checked_in_at",
+            "checked_in_by",
+            "checked_out_at",
+            "checked_out_by",
+            "cancelled_at",
+            "cancelled_by",
+            "folio_sent_at",
+            "folio_so_far_at",
+            "no_show_marked_at",
+            "customer_id",
+            "link_token",
+            "link_stopped",
+            "client_key"
+          ],
+          "creatable": [
+            "ref_seq",
+            "ref",
+            "status",
+            "room_type_id",
+            "room_id",
+            "arrive",
+            "depart",
+            "guests",
+            "first_name",
+            "last_name",
+            "email",
+            "mobile",
+            "arrival_time",
+            "note",
+            "expect_by",
+            "language",
+            "channel",
+            "tax_rate",
+            "tax_label",
+            "late_cancel",
+            "cancel_code",
+            "cancel_by",
+            "created_at",
+            "checked_in_at",
+            "checked_in_by",
+            "checked_out_at",
+            "checked_out_by",
+            "cancelled_at",
+            "cancelled_by",
+            "folio_sent_at",
+            "folio_so_far_at",
+            "no_show_marked_at",
+            "customer_id",
+            "link_token",
+            "link_stopped",
+            "client_key"
+          ]
+        },
+        "stay_extras": {
+          "writable": [
+            "stay_id",
+            "extra_id",
+            "state",
+            "label",
+            "each",
+            "per",
+            "nights",
+            "guests",
+            "added_at"
+          ],
+          "creatable": [
+            "stay_id",
+            "extra_id",
+            "state",
+            "label",
+            "each",
+            "per",
+            "nights",
+            "guests",
+            "added_at"
           ]
         }
       }

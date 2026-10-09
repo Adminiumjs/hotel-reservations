@@ -13,7 +13,7 @@ import { codeVals } from "../codes.ts";
 import { okEmail, type HouseApp, type View } from "../house.ts";
 import type { RoomV, StV, WorldV } from "../world.ts";
 import { creditLabel, extraDetail, pillOf, timeOptions } from "./guest.ts";
-import { blankNb, cameAfterAll, counts, emailFolio, folio as folioOf, linen, markNoShow, nbChanged, openCheckin, openEdit, openFolio, openGiveBackToCard, openLinen, openRoom, openSettle, printFolio, saveNb, setRoomStatus, signOutStaff } from "../desk.ts";
+import { blankNb, cameAfterAll, counts, deskCodeAsk, emailFolio, folio as folioOf, linen, markNoShow, nbChanged, openCheckin, openEdit, openFolio, openGiveBackToCard, openLinen, openRoom, openSettle, printFolio, saveNb, setRoomStatus, signOutStaff } from "../desk.ts";
 
 type V = Record<string, unknown>;
 export type RoomState = "ready" | "occupied" | "cleaning" | "oos";
@@ -736,7 +736,9 @@ function nbVals(app: HouseApp, w: WorldV): V {
 
   // A guest the desk has linked the booking to is named in its price too: a code for one guest asks who it is for.
   const linkedTo = nb.link === "yes" && okEmail(nb.email.trim()) ? app.peek<{ customer: { id: number } } | null>(`guest-by-email:${nb.email.trim().toLowerCase()}`) : null;
-  const named: Record<string, unknown> = linkedTo === null || linkedTo === undefined ? {} : { customer_id: linkedTo.customer.id };
+  // Only while Offers & gift cards is in use: without it the price asks nothing of who is staying, and the question
+  // is the one 0.2 asked.
+  const named: Record<string, unknown> = !app.codesOn || linkedTo === null || linkedTo === undefined ? {} : { customer_id: linkedTo.customer.id };
   // What Adminium would write: a new stay's price, or the change to this one.
   let draft: QuoteReply | undefined;
   let draftErr: unknown;
@@ -745,6 +747,13 @@ function nbVals(app: HouseApp, w: WorldV): V {
       const a = app.quote(t.id, nb.arrive, nb.depart, nb.guests, picked, s.codes, named);
       draft = a.value;
       draftErr = a.error;
+      // Refused because of a code already applied (the room type or the dates changed under it): it comes off, with
+      // its reason under the field, and the booking is priced again.
+      if (draft === undefined && draftErr !== undefined && s.codes.length > 0 && app.aboutCode(draftErr)) {
+        const refusedBy = draftErr;
+        queueMicrotask(() => app.dropRefusedCodes(refusedBy));
+        draftErr = undefined;
+      }
     } else {
       const changed = nbChanged(ed, nb);
       const toggles = w.extras.filter((e) => !!nb.extras[e.id] !== ed.extras.includes(e.id)).map((e) => ({ extraId: Number(e.id), on: !!nb.extras[e.id] }));
@@ -883,16 +892,7 @@ function nbVals(app: HouseApp, w: WorldV): V {
     roomSub: draft === undefined ? "" : money(draft.data["room_total"]),
     // A code is typed when the booking is taken: a stay already on the books shows what it has, and no field.
     code: {
-      ...codeVals(
-        app,
-        draft,
-        (codes) =>
-          app.ports.desk!.quote({
-            values: { room_type_id: Number(t?.id), arrive: nb.arrive, depart: nb.depart, guests: nb.guests, ...named },
-            children: { stay_extras: picked.map((extra_id) => ({ values: { extra_id: Number(extra_id) } })), stay_codes: codes.map((typed) => ({ values: { typed } })) },
-          }),
-        tr("From the guest"),
-      ),
+      ...codeVals(app, draft, (codes) => deskCodeAsk(app, codes, named["customer_id"] as number | undefined), tr("From the guest")),
       field: ed === null && app.codesOn && t !== null,
     },
     extraLines: lines,

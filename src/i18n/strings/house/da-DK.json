@@ -795,5 +795,15 @@
   "Your code": "Din kode",
   "The code is typed — press Apply.": "Koden er skrevet — tryk på Anvend.",
   "The code is typed — pick a room type, then press Apply.": "Koden er skrevet — vælg en værelsestype, og tryk på Anvend.",
-  "First void what was given back to this card, then this payment.": "Annullér først det, der blev givet tilbage til dette kort, og derefter denne betaling."
+  "First void what was given back to this card, then this payment.": "Annullér først det, der blev givet tilbage til dette kort, og derefter denne betaling.",
+  "{away} → {store}": "{away} → {store}",
+  "Put them back": "Læg dem tilbage",
+  "Remove {code}": "Fjern {code}",
+  "That code takes nothing off this stay.": "Den kode trækker intet fra dette ophold.",
+  "That is a discount code, not a gift card. A code is typed when the stay is booked.": "Det er en rabatkode, ikke et gavekort. En kode skrives, når opholdet bookes.",
+  "That is a voucher, not a gift card. A voucher is typed when the stay is booked.": "Det er en voucher, ikke et gavekort. En voucher skrives, når opholdet bookes.",
+  "The account has changed since the card was checked. Check the card again.": "Kontoen har ændret sig, siden kortet blev tjekket. Tjek kortet igen.",
+  "The house did not answer. Press again — nothing is put back twice.": "Huset svarede ikke. Tryk igen — intet lægges tilbage to gange.",
+  "The house did not answer. Press again — nothing is taken or given twice.": "Huset svarede ikke. Tryk igen — intet tages eller gives to gange.",
+  "We could not check that card just now. Try again in a moment.": "Vi kunne ikke tjekke det kort lige nu. Prøv igen om lidt."
 }

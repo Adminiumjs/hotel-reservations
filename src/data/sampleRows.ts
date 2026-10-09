@@ -199,7 +199,7 @@ export const COLUMNS: Record<string, Record<string, Fill>> = {
   stay_codes: { stay_id: REQUIRED, typed: null, code_id: null, voucher_id: null, removed_at: null, created_at: null },
   charges: { stay_id: REQUIRED, charge_item_id: null, label: null, amount: REQUIRED, note: null, charged_on: null, recorded_by: null, voided: false, void_reason: null, voided_at: null, voided_by: null },
   stay_credits: { stay_id: REQUIRED, reason: "left_early", label: null, from_date: REQUIRED, to_date: REQUIRED, room_type_id: null, nights: null, room_amount: null, extras_nightly: null, amount: null, line_amount: null, recorded_by: null, created_at: null, voided: false, void_reason: null, voided_at: null, voided_by: null },
-  payments: { stay_id: REQUIRED, kind: "taken", amount: REQUIRED, method: "card", reference: null, note: null, signed: null, paid_on: null, recorded_at: null, recorded_by: null, voided: false, void_reason: null, voided_at: null, voided_by: null, settle_as: null, card_code: null, card_id: null, card_last4: null, card_balance_after: null, asked: null, against_id: null },
+  payments: { stay_id: REQUIRED, kind: "taken", amount: REQUIRED, method: "card", reference: null, note: null, signed: null, paid_on: null, recorded_at: null, recorded_by: null, voided: false, void_reason: null, voided_at: null, voided_by: null, settle_as: null, card_code: null, card_id: null, card_last4: null, card_balance_after: null, asked: null, client_key: null, against_id: null },
   messages: { kind: REQUIRED, status: "queued", to_address: null, language: null, stay_id: null, customer_id: null, due: null, created_at: null, sent_at: null, error: null, was: null, repeat_key: null, skip_reason: null },
 };
 

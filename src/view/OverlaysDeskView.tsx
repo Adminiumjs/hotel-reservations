@@ -306,13 +306,14 @@ export function OverlaysDeskView({ v }: { v: any }) {
                       <div data-linen-row style={st("display:flex;align-items:center;gap:10px;flex-wrap:wrap")}>
                         <label htmlFor={r.fieldId} style={st("flex:1;min-inline-size:120px;font-size:13.5px;font-weight:700")}>
                           {r.label}
+                          {r.where ? <span style={st("display:block;margin-block-start:2px;font-size:11.5px;font-weight:600;color:var(--fg-subtle)")}>{r.where}</span> : null}
                           {r.noteOn ? <span style={st("display:block;margin-block-start:2px;font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--warn)")}>{r.note}</span> : null}
                         </label>
                         <div style={st("display:flex;align-items:center;gap:6px;direction:ltr")}>
                           <button type="button" onClick={r.minus} disabled={r.locked} aria-label={tr("One fewer {item}", { item: r.label })} style={st("inline-size:34px;block-size:34px;border:1px solid var(--border-strong);border-radius:9px;background:var(--surface-2);color:var(--fg);font-size:16px;font-weight:700;cursor:pointer")}>
                             {"−"}
                           </button>
-                          <input id={r.fieldId} inputMode="numeric" value={r.value} onChange={r.onChange} disabled={r.locked} aria-invalid={r.inv} aria-describedby={r.errId} style={st(`inline-size:68px;padding:8px 6px;text-align:center;border:1px solid ${r.border};border-radius:9px;background:var(--surface-2);color:var(--fg);font-family:var(--mono);font-size:14px;font-weight:700`)} />
+                          <input id={r.fieldId} inputMode="numeric" value={r.value} onChange={r.onChange} readOnly={r.locked} aria-invalid={r.inv} aria-describedby={r.errId} style={st(`inline-size:68px;padding:8px 6px;text-align:center;border:1px solid ${r.border};border-radius:9px;background:var(--surface-2);color:var(--fg);font-family:var(--mono);font-size:14px;font-weight:700`)} />
                           <button type="button" onClick={r.plus} disabled={r.locked} aria-label={tr("One more {item}", { item: r.label })} style={st("inline-size:34px;block-size:34px;border:1px solid var(--border-strong);border-radius:9px;background:var(--surface-2);color:var(--fg);font-size:16px;font-weight:700;cursor:pointer")}>
                             {"+"}
                           </button>
@@ -338,7 +339,7 @@ export function OverlaysDeskView({ v }: { v: any }) {
               <div style={st("font-size:12px;line-height:1.5;color:var(--fg-subtle);flex:1;min-inline-size:160px")}>
                 {tr("The house adds them to the store as you put them back.")}
               </div>
-              <button onClick={v.ln.confirm} disabled={v.ln.busy || v.ln.empty} aria-busy={v.ln.busyAttr} style={st("padding:12px 18px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-fg);font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap")}>
+              <button onClick={v.ln.confirm} disabled={v.ln.empty} aria-disabled={v.ln.busyAttr} aria-busy={v.ln.busyAttr} style={st("padding:12px 18px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-fg);font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap")}>
                 {v.ln.btnLabel}
               </button>
             </div>
@@ -986,8 +987,8 @@ export function OverlaysDeskView({ v }: { v: any }) {
                       {tr("Gift card code")}
                     </label>
                     <div style={st("display:flex;gap:7px;flex-wrap:wrap")}>
-                      <input id="se-card" value={v.se.card.code ?? ""} onChange={v.se.card.onCode} onKeyDown={v.se.card.onKey} placeholder={tr("On the back of the card")} autoComplete="off" autoCapitalize="characters" spellCheck={false} aria-invalid={v.se.card.inv} aria-describedby="se-card-err" disabled={v.se.card.busy} style={st(`flex:1;min-inline-size:160px;padding:11px 12px;border:1px solid ${v.se.card.border};border-radius:10px;background:var(--surface-2);color:var(--fg);font-family:var(--mono);font-size:14px;font-weight:600;text-transform:uppercase;direction:ltr`)} />
-                      <button type="button" onClick={v.se.card.check} disabled={v.se.card.busy} aria-busy={v.se.card.busyAttr} style={st("padding:11px 14px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);color:var(--fg);font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap")}>
+                      <input id="se-card" value={v.se.card.code ?? ""} onChange={v.se.card.onCode} onKeyDown={v.se.card.onKey} placeholder={tr("On the back of the card")} autoComplete="off" autoCapitalize="characters" spellCheck={false} aria-invalid={v.se.card.inv} aria-describedby="se-card-err" readOnly={v.se.card.busy} aria-busy={v.se.card.busyAttr} style={st(`flex:1;min-inline-size:160px;padding:11px 12px;border:1px solid ${v.se.card.border};border-radius:10px;background:var(--surface-2);color:var(--fg);font-family:var(--mono);font-size:14px;font-weight:600;text-transform:uppercase;direction:ltr`)} />
+                      <button type="button" onClick={v.se.card.check} aria-disabled={v.se.card.busyAttr} aria-busy={v.se.card.busyAttr} style={st("padding:11px 14px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);color:var(--fg);font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap")}>
                         {v.se.card.checkLabel}
                       </button>
                     </div>
@@ -998,8 +999,10 @@ export function OverlaysDeskView({ v }: { v: any }) {
                       {v.se.card.err}
                     </div>
                   ) : null}
-                  {v.se.card.answerOn ? (
-                    <div role="status" style={st("margin-block-start:12px;padding:13px;border-radius:12px;background:var(--pos-soft, var(--surface-2));border:1px solid var(--border)")}>
+                  {/* Always there, empty until the card has answered: what arrives in it is read out. */}
+                  <div role="status" aria-live="polite" style={st(v.se.card.answerOn ? "margin-block-start:12px;padding:13px;border-radius:12px;background:var(--pos-soft, var(--surface-2));border:1px solid var(--border)" : "")}>
+                    {v.se.card.answerOn ? (
+                      <>
                       <div style={st("display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800")}>
                         <span data-icon="gift" style={st("display:inline-flex;inline-size:16px;block-size:16px;color:var(--pos)")}><Icon name={"gift"} /></span>
                         <span>{trx("{amount} from the card", { amount: <span style={st("font-family:var(--mono)")}>{v.se.card.taken}</span> })}</span>
@@ -1011,8 +1014,9 @@ export function OverlaysDeskView({ v }: { v: any }) {
                         <span>{tr("Left on the account")}</span>
                         <span style={st("margin-inline-start:auto;font-family:var(--mono);font-size:14px;font-weight:700;color:var(--fg)")}>{v.se.card.left}</span>
                       </div>
-                    </div>
-                  ) : null}
+                                          </>
+                    ) : null}
+                  </div>
                 </>
               ) : null}
               {v.se.showRef ? (

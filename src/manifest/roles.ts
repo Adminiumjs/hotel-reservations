@@ -77,7 +77,7 @@ const LINEN = [
     actions: ["read", "create", "update"],
     limit: { creatable: ["transfer_id", "item_id", "qty"], writable: ["status"], writableValues: { status: ["posted"] } },
   },
-  { addOn: "inventory", table: "links", actions: ["read"], limit: { readable: ["id", "source_table", "source_row", "kind", "kit_id", "item_id"] } },
+  { addOn: "inventory", table: "links", actions: ["read"], limit: { readable: ["id", "source_table", "source_row", "kind", "kit_id", "item_id", "place_id", "to_place_id"] } },
   { addOn: "inventory", table: "kits", actions: ["read"], limit: { readable: ["id", "name"] } },
   { addOn: "inventory", table: "kit_lines", actions: ["read"], limit: { readable: ["id", "kit_id", "item_id", "qty", "per", "action", "place_id", "to_place_id"] } },
   { addOn: "inventory", table: "items", actions: ["read"], limit: { readable: ["id", "name", "unit", "decimals"] } },
@@ -99,13 +99,24 @@ const OFFERS_AT_THE_DESK = [
   { addOn: "offers", table: "codes", actions: ["read"], limit: { readable: ["offer_id", "active", "valid_until"] } },
 ];
 
+/** What an add-on's answer fills, table by table: no role writes these. */
+export const DECIDED: Readonly<Record<string, readonly string[]>> = {
+  stays: ["discount", "room_discount", "customer_proved", "balance"],
+  stay_extras: ["discount"],
+  payments: ["card_id", "card_last4", "card_balance_after"],
+};
+/** The columns of a table a person may type: not its key, not one a rule works out, not one an add-on decides. */
+const typed = (table: string): string[] =>
+  TABLES.find((t) => t.ref === table)!
+    .columns.filter((c) => c.ref !== "id" && !(DECIDED[table] ?? []).includes(c.ref) && c.rules?.["formula"] === undefined && c.rules?.["rollup"] === undefined && c.rules?.["perNight"] === undefined && c.rules?.["codeLast4"] === undefined)
+    .map((c) => c.ref);
 const columnsOf = (table: string) => TABLES.find((t) => t.ref === table)!.columns.map((c) => c.ref);
 /** What anybody reads of a payment: never `card_code` — a gift card's whole code is typed once and shown again by no screen. */
 export const PAYMENT_READS = columnsOf("payments").filter((ref) => ref !== "card_code");
 /** What anybody reads of a code on a stay: never the code as typed. */
 export const STAY_CODE_READS = columnsOf("stay_codes").filter((ref) => ref !== "typed");
 /** What the desk sends with a payment: never what a card gave or kept, which Offers & gift cards decides. */
-export const DESK_PAYMENT_COLUMNS = ["stay_id", "kind", "amount", "method", "reference", "note", "card_code", "asked", "against_id"];
+export const DESK_PAYMENT_COLUMNS = ["stay_id", "kind", "amount", "method", "reference", "note", "card_code", "asked", "against_id", "client_key"];
 
 export const ROLES = [
   {
@@ -133,12 +144,15 @@ export const ROLES = [
       stay_credits: { writable: ["void_reason"] },
       stays: {
         writable: DESK_STAY_COLUMNS,
+        // A booking is made of the same columns it is changed by, and how it came in. Never a reduction: what a code
+        // takes off is Offers & gift cards' to decide — and nobody's to type while it is away.
+        creatable: [...DESK_STAY_COLUMNS, "channel"],
         writableValues: {
           status: ["booked", "in_house", "departed", "cancelled", "no_show"],
           cancel_code: DESK_CANCEL_CODES,
         },
       },
-      stay_extras: { writable: ["state"] },
+      stay_extras: { writable: ["state"], creatable: ["stay_id", "extra_id", "state"] },
       stay_codes: { readable: STAY_CODE_READS, creatable: ["stay_id", "typed"] },
       payments: { readable: PAYMENT_READS, creatable: DESK_PAYMENT_COLUMNS },
       rooms: { writable: ["status", "note"], writableValues: { status: ["ready", "cleaning"] } },
@@ -179,7 +193,11 @@ export const ROLES = [
     limits: {
       // A code's whole text is typed and never read back, by a manager either.
       stay_codes: { readable: STAY_CODE_READS },
-      payments: { readable: PAYMENT_READS },
+      payments: { readable: PAYMENT_READS, writable: typed("payments"), creatable: typed("payments") },
+      // Everything a person writes: never what Adminium works out, or what Offers & gift cards decides — which is
+      // nobody's to type, with the add-on connected or away.
+      stays: { writable: typed("stays"), creatable: typed("stays") },
+      stay_extras: { writable: typed("stay_extras"), creatable: typed("stay_extras") },
     },
     tables: [...LINEN, ...OFFERS_AT_THE_DESK],
   },

@@ -22,7 +22,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import type { AdminiumDesk } from "../data/adminiumDesk.ts";
+import { LINEN_NOTE, type AdminiumDesk } from "../data/adminiumDesk.ts";
 import type { Row } from "../data/wire.ts";
 import { ENGINES, missing, missingAddOn, ok, PORTS_PER_ENGINE, type Engine } from "./harness.ts";
 import { standUp, type Stand } from "./stand.ts";
@@ -81,36 +81,66 @@ describe.skipIf(why !== null)(`linen and supplies on a built Adminium${why === n
 
       it("puts 24, 24 and 12 back in the Linen store: 260, 260 and 140 there, nothing at the laundry", async () => {
         const linen = await desk.linen();
-        const reply = await desk.putBackLinen(linen.map((row) => ({ itemId: row.itemId, qty: row.atLaundry })));
+        const reply = await desk.putBackLinen(linen.map((row) => ({ itemId: row.itemId, qty: row.atLaundry })), "linen-contract-key-000001");
         expect([reply.done, reply.left, reply.over, reply.moved.length]).toEqual([true, [], [], 3]);
         expect(await counts()).toEqual([
           ["Bath towel", "Linen store", 260, "At the laundry", 0],
           ["Hand towel", "Linen store", 260, "At the laundry", 0],
           ["Sheet set, double", "Linen store", 140, "At the laundry", 0],
         ]);
-        const transfer = await stand.one("inventory_transfers", reply.transferId);
+        expect(reply.transfers.map((one) => [one.store, one.away, one.done])).toEqual([["Linen store", "At the laundry", true]]);
+        const transfer = await stand.one("inventory_transfers", reply.transfers[0]!.transferId);
         expect(transfer["status"]).toBe("done");
+        // The same press sent again (its answer never came): the transfer it made is found by its key, and nothing moves twice.
+        const again = await desk.putBackLinen(linen.map((row) => ({ itemId: row.itemId, qty: row.atLaundry })), "linen-contract-key-000001");
+        expect([again.done, again.transfers.map((one) => one.transferId)]).toEqual([true, [transfer.id]]);
+        expect(await counts()).toEqual([
+          ["Bath towel", "Linen store", 260, "At the laundry", 0],
+          ["Hand towel", "Linen store", 260, "At the laundry", 0],
+          ["Sheet set, double", "Linen store", 140, "At the laundry", 0],
+        ]);
+        expect((await stand.rows("inventory_transfers", { column: "note", op: "eq", value: transfer["note"] })).length).toBe(1);
       }, 180_000);
 
       it("allows two more than the books held, and says so", async () => {
         const bath = (await desk.linen()).find((row) => row.name === "Bath towel")!;
-        const reply = await desk.putBackLinen([{ itemId: bath.itemId, qty: 2 }, { itemId: 0, qty: 5 }]);
+        const reply = await desk.putBackLinen([{ itemId: bath.itemId, qty: 2 }, { itemId: 0, qty: 5 }], "linen-contract-key-000002");
         expect([reply.done, reply.over]).toEqual([true, [{ itemId: bath.itemId, by: 2 }]]);
         const at = await held();
         expect(at("Bath towel", "Linen store")).toBe(262);
       }, 180_000);
 
-      it("finishes a transfer that stopped half-way when the button is pressed again", async () => {
+      it("finishes a transfer that stopped half-way when the button is pressed again: the same transfer, no second one", async () => {
         const linen = await desk.linen();
         const hand = linen.find((row) => row.name === "Hand towel")!;
         const rel = await stand.relation("inventory_transfer_lines", "transfer_id");
-        // A transfer whose header moved on and whose line did not: what a lost connection leaves behind.
-        const stuck = ok(await stand.staff.post<{ data: Row }>(stand.data("inventory_transfers"), { values: { from_place_id: hand.awayId, to_place_id: hand.storeId }, children: { [rel]: [{ values: { item_id: hand.itemId, qty: 1 } }] } }), 201).data;
+        const key = "linen-contract-key-000003";
+        // What a lost connection leaves behind: the sheet's transfer made and started, its line not yet moved.
+        const note = `${LINEN_NOTE} · ${key}:${String(hand.awayId)}:${String(hand.storeId)}`;
+        const stuck = ok(await stand.staff.post<{ data: Row }>(stand.data("inventory_transfers"), { values: { from_place_id: hand.awayId, to_place_id: hand.storeId, note }, children: { [rel]: [{ values: { item_id: hand.itemId, qty: 1 } }] } }), 201).data;
         ok(await stand.staff.patch(`${stand.data("inventory_transfers")}/${String(stuck.id)}`, { values: { status: "posting" }, from: "draft" }));
-        const reply = await desk.putBackLinen([], stuck.id);
-        expect([reply.done, reply.transferId, reply.left]).toEqual([true, stuck.id, []]);
+        const before = (await stand.rows("inventory_transfers")).length;
+        const reply = await desk.putBackLinen([{ itemId: hand.itemId, qty: 1 }], key);
+        expect([reply.done, reply.transfers.map((one) => one.transferId), reply.left]).toEqual([true, [stuck.id], []]);
         expect((await stand.one("inventory_transfers", stuck.id))["status"]).toBe("done");
+        expect((await stand.rows("inventory_transfers")).length).toBe(before);
         expect((await held())("Hand towel", "Linen store")).toBe(261);
+      }, 180_000);
+
+      it("puts linen kept in a second store back there too: one transfer for each store, and each said", async () => {
+        const each = (await stand.rows("inventory_units"))[0]!;
+        const laundry = (await stand.rows("inventory_places")).find((place) => place["name"] === "At the laundry")!;
+        const annex = ok(await stand.staff.post<{ data: Row }>(stand.data("inventory_places"), { values: { name: "Annex store", for_sale: false } }), 201).data;
+        const robe = ok(await stand.staff.post<{ data: Row }>(stand.data("inventory_items"), { values: { name: "Annex robe", sku: "ANX-ROBE", unit_id: each.id } }), 201).data;
+        const kit = (await stand.rows("inventory_kits")).find((one) => one["name"] === "Room turnover")!;
+        ok(await stand.staff.post(stand.data("inventory_kit_lines"), { values: { kit_id: kit.id, item_id: robe.id, qty: 1, per: "unit", action: "move", place_id: annex.id, to_place_id: laundry.id } }), 201);
+        const linen = await desk.linen();
+        expect(linen.map((row) => [row.name, row.store]).sort()).toEqual([["Annex robe", "Annex store"], ["Bath towel", "Linen store"], ["Hand towel", "Linen store"], ["Sheet set, double", "Linen store"]]);
+        const bath = linen.find((row) => row.name === "Bath towel")!;
+        const reply = await desk.putBackLinen([{ itemId: bath.itemId, qty: 1 }, { itemId: robe.id, qty: 3 }], "linen-contract-key-000005");
+        expect([reply.done, reply.transfers.map((one) => [one.store, one.done]).sort()]).toEqual([true, [["Annex store", true], ["Linen store", true]]]);
+        const at = await held();
+        expect([at("Annex robe", "Annex store"), at("Bath towel", "Linen store")]).toEqual([3, 263]);
       }, 180_000);
 
       it("checks a Garden double out after two nights: 2 bath towels, 2 hand towels and 1 sheet set go to the laundry; 1 amenity kit, 2 soaps and 2 tea boxes are used", async () => {
@@ -160,9 +190,9 @@ describe.skipIf(why !== null)(`linen and supplies on a built Adminium${why === n
       it("holds housekeeping to the linen: a transfer and the linen's counts, no cost, no movement, no receipt, nothing of a stay's money", async () => {
         const jory = await stand.person("hotel-housekeeping", `jory.linen.${engine}@wren-guests.dev`, "Jory");
         const linen = await jory.desk.linen();
-        expect(linen.map((row) => row.name).sort()).toEqual(["Bath towel", "Hand towel", "Sheet set, double"]);
+        expect(linen.map((row) => row.name).sort()).toEqual(["Annex robe", "Bath towel", "Hand towel", "Sheet set, double"]);
         const sheets = linen.find((row) => row.name === "Sheet set, double")!;
-        const reply = await jory.desk.putBackLinen([{ itemId: sheets.itemId, qty: 1 }]);
+        const reply = await jory.desk.putBackLinen([{ itemId: sheets.itemId, qty: 1 }], "linen-contract-key-000004");
         expect(reply.done).toBe(true);
         const read = async (table: string) => jory.caller.get<{ data?: Row[] }>(`${stand.data(table)}?limit=5`);
         // What it reads of an item: its name and unit, never what it cost.
@@ -180,7 +210,10 @@ describe.skipIf(why !== null)(`linen and supplies on a built Adminium${why === n
           expect([table, (await jory.caller.post(stand.data(table), { values })).status]).toEqual([table, 403]);
         }
         // A transfer's line goes forward only: taking it back is a manager's.
-        const lines = await stand.rows("inventory_transfer_lines", { column: "transfer_id", op: "eq", value: reply.transferId });
+        // Where a link says the linen is kept is the role's to read: the sheet reads it.
+        const links = ok(await read("inventory_links")).data!;
+        expect(Object.keys(links[0]!)).toEqual(expect.arrayContaining(["place_id", "to_place_id", "kit_id", "source_table", "source_row"]));
+        const lines = await stand.rows("inventory_transfer_lines", { column: "transfer_id", op: "eq", value: reply.transfers[0]!.transferId });
         const back = await jory.caller.patch(`${stand.data("inventory_transfer_lines")}/${String(lines[0]!.id)}`, { values: { status: "reversed" } });
         expect(back.status).toBeGreaterThanOrEqual(400);
       }, 240_000);

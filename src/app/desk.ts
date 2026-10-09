@@ -11,7 +11,7 @@ import { isApiError, type Id, type LinenRow, type QuoteReply, type StayBody } fr
 import { tr } from "../i18n/tr.ts";
 import { mailable } from "../lib/mail.ts";
 import { money, nightsOf, plus, strip } from "./fmt.ts";
-import { blankForm, mintKey, type HouseApp, type Nb, type View } from "./house.ts";
+import { blankForm, mintKey, NO_CODES, type HouseApp, type Nb, type View } from "./house.ts";
 import type { StV } from "./world.ts";
 
 export function openFolio(app: HouseApp, id: Id, from?: View): void {
@@ -67,6 +67,7 @@ export function openSettle(app: HouseApp, id: Id, amount?: string, cap?: number,
     cardErr: "",
     cardCheck: null,
     settleAgainst: null,
+    settleKey: mintKey(),
   });
 }
 
@@ -81,14 +82,27 @@ export async function checkCard(app: HouseApp, stayId: Id): Promise<void> {
   const code = app.state.cardCode.trim();
   if (code === "" || app.state.cardBusy) return;
   app.setState({ cardBusy: true, cardErr: "", cardCheck: null });
+  // The answer is for the card typed on the dialog that asked: closed, or another code typed since, it goes unheard.
+  const still = () => app.state.settleOpen && app.state.settleId === stayId && app.state.settleMethod === "gift_card" && app.state.cardCode.trim() === code;
   try {
+    // What the code is, as this person may know it: a voucher or a discount code typed here is said to be one.
+    const found = await app.ports.desk!.lookUpCode(code).catch(() => null);
+    if (!still()) return;
+    if (found !== null && found.kind !== "gift-card") {
+      app.setState({ cardBusy: false, cardErr: found.kind === "code" ? tr("That is a discount code, not a gift card. A code is typed when the stay is booked.") : tr("That is a voucher, not a gift card. A voucher is typed when the stay is booked.") });
+      return;
+    }
     const check = await app.ports.desk!.quoteCard(stayId, code);
+    if (!still()) return;
     app.setState({ cardBusy: false, cardCheck: check });
   } catch (error) {
+    if (!still()) return;
     app.setState({ cardBusy: false, cardErr: cardWords(app, error) });
-    app.focusSoon("#se-card");
   }
 }
+
+/** Whether a save may have been made though its answer never came: no answer at all, or a server that stumbled. */
+export const unsure = (error: unknown): boolean => !isApiError(error) || error.status === 0 || error.status >= 500 || error.status === 408;
 
 /** Why a card was not taken, in the desk's words. */
 export function cardWords(app: HouseApp, error: unknown): string {
@@ -97,7 +111,13 @@ export function cardWords(app: HouseApp, error: unknown): string {
     if (fields["card_code"] !== undefined) return tr("The house does not know that card. Check the code on the back.");
   }
   if (isApiError(error) && (error.code === "COLUMN_FORBIDDEN" || error.code === "FORBIDDEN")) return tr("That is not for your role.");
-  if (isApiError(error) && error.code === "POSTING_REFUSED") return app.postingWords(error);
+  if (isApiError(error) && error.code === "POSTING_REFUSED") {
+    // "Not allowed" is the card's answer both when nothing is owing and when less is owing than was asked of it
+    // (somebody paid since the check): the account as it stands says which.
+    const owing = app.stay(app.state.settleId)?.m.balance ?? 0;
+    if (error.params["reason"] === "not-allowed" && owing > 0.004) return tr("The account has changed since the card was checked. Check the card again.");
+    return app.postingWords(error);
+  }
   return app.refused(error);
 }
 
@@ -201,6 +221,15 @@ export function nbValues(nb: Nb): Record<string, unknown> {
   };
 }
 
+/** The booking in the form priced with these codes, written nowhere: what the desk's "Apply" asks. */
+export function deskCodeAsk(app: HouseApp, codes: string[], customerId?: Id): Promise<QuoteReply> {
+  const nb = app.state.nb!;
+  return app.ports.desk!.quote({
+    values: { room_type_id: Number(nb.type), arrive: nb.arrive, depart: nb.depart, guests: nb.guests, ...(customerId === undefined ? {} : { customer_id: customerId }) },
+    children: { stay_extras: app.pickedExtras(nb).map((extra_id) => ({ values: { extra_id: Number(extra_id) } })), stay_codes: codes.map((typed) => ({ values: { typed } })) },
+  });
+}
+
 /** The columns a change to a stay writes: only what the form moved. A new arrival lets go of the day the room was kept to. */
 export function nbChanged(old: StV, nb: Nb): Record<string, unknown> {
   const was: Record<string, unknown> = {
@@ -240,6 +269,15 @@ export async function saveNb(app: HouseApp, andCheckIn: boolean, known: { custom
     app.focusSoon(!nb.first.trim() ? "#nb-first" : "#nb-last");
     return;
   }
+  // A code still in the field is applied first, as "Apply" would: refused, nothing is saved and its reason is under
+  // the field; taken, the booking is saved at the price the house then answered.
+  if (s.editId === null && app.codesOn && s.codeText.trim() !== "") {
+    app.setState({ codeOpen: true });
+    const reply = await app.applyCode((codes) => deskCodeAsk(app, codes, known?.customerId));
+    if (app.state.codeText.trim() !== "" || app.state.codeErr !== "") return;
+    if (reply !== null) expectTotal = Number(reply.data["total"]).toFixed(2);
+    if (app.state.nb === null || app.state.nbBusy) return;
+  }
   app.setState({ nbBusy: true, nbErr: "", nbTouched: false });
   const desk = app.ports.desk!;
   const values = nbValues(nb);
@@ -268,7 +306,7 @@ export async function saveNb(app: HouseApp, andCheckIn: boolean, known: { custom
   const key = nb.key || mintKey();
   const body: StayBody = {
     values: { ...values, ...(known !== null && nb.link === "yes" ? { customer_id: known.customerId } : {}) },
-    children: { stay_extras: app.pickedExtras(nb).map((extra_id) => ({ values: { extra_id: Number(extra_id) } })), ...app.typedCodes(s.codes) },
+    children: { stay_extras: app.pickedExtras(nb).map((extra_id) => ({ values: { extra_id: Number(extra_id) } })), ...app.typedCodes(app.state.codes) },
     ...(expectTotal ? { expect: { total: expectTotal } } : {}),
     clientKey: key,
   };
@@ -277,7 +315,7 @@ export async function saveNb(app: HouseApp, andCheckIn: boolean, known: { custom
     (reply) => {
       const id = reply.data.id;
       const ref = String(reply.data["ref"]);
-      app.setState({ nbBusy: false, nb: null, codes: [], codeOpen: false, codeText: "", codeErr: "" });
+      app.setState({ nbBusy: false, nb: null, ...NO_CODES });
       app.toast(tr("{ref} · {name} · {nights} in the book.", { ref, name: `${nb.first.trim()} ${nb.last.trim()}`.trim(), nights: strip(tr("{n} night|{n} nights", { n: nightsOf(nb.arrive, nb.depart) })) }));
       if (andCheckIn) {
         app.go("today", { newId: id });
@@ -339,15 +377,25 @@ export function linen(app: HouseApp): LinenRow[] {
   return app.get("desk:linen", () => app.ports.desk!.linen()) ?? [];
 }
 
-/** "Back from the laundry": the sheet opens on what the books say is there. */
+/** "Back from the laundry": the sheet opens on what the books say is there, with a retry key of its own. */
 export function openLinen(app: HouseApp): void {
+  const start = linen(app);
   const counts = (rows: LinenRow[]) => Object.fromEntries(rows.map((row) => [String(row.itemId), String(row.atLaundry)]));
-  app.setState({ linenOpen: true, linenCounts: counts(linen(app)), linenBusy: false, linenErr: "", linenResume: null });
-  // Asked afresh as it opens: the counts it starts from are the books' as they stand now, not as Today last read them.
-  app.forget("desk:linen");
+  app.setState({ linenOpen: true, linenCounts: counts(start), linenBusy: false, linenErr: "", linenKey: mintKey(), linenSent: false });
+  // Asked afresh as it opens, beside what Today last read (which stays on the sheet meanwhile): a count nobody has
+  // touched moves to the books' figure as it stands now; one already typed is left as typed.
   void app.ports.desk!.linen().then(
     (rows) => {
-      if (app.state.linenOpen && !app.state.linenBusy) app.setState({ linenCounts: counts(rows) });
+      const now = app.state;
+      if (!now.linenOpen || now.linenBusy || now.linenSent) return;
+      const next = { ...now.linenCounts };
+      for (const row of rows) {
+        const id = String(row.itemId);
+        const was = start.find((one) => one.itemId === row.itemId);
+        if (next[id] === undefined || (was !== undefined && next[id] === String(was.atLaundry))) next[id] = String(row.atLaundry);
+      }
+      app.prime("desk:linen", rows);
+      app.setState({ linenCounts: next });
     },
     () => undefined,
   );
@@ -356,25 +404,31 @@ export function openLinen(app: HouseApp): void {
 /** A count as typed: a whole number of 0 or more, or null. */
 export const linenCount = (typed: string | undefined): number | null => (typed !== undefined && /^\d{1,6}$/.test(typed.trim()) ? Number(typed.trim()) : null);
 
-/** "Put back": one transfer to the store, each kind its own line; a line that failed is sent again by pressing again. */
+/**
+ * "Put back": one transfer to each store, each kind its own line. Pressed again — after a reply that never came,
+ * or a line that failed — the same key goes with it, so the house goes on with the transfers it has and makes no
+ * second.
+ */
 export async function putBackLinen(app: HouseApp): Promise<void> {
   const s = app.state;
   const rows = linen(app);
   if (s.linenBusy) return;
   const counts = rows.map((row) => ({ row, qty: linenCount(s.linenCounts[String(row.itemId)]) }));
-  if (s.linenResume === null && counts.some((one) => one.qty === null)) return app.setState({ linenErr: tr("A count of 0 or more.") });
-  if (s.linenResume === null && counts.every((one) => one.qty === 0)) return app.setState({ linenErr: tr("Nothing to put back.") });
-  app.setState({ linenBusy: true, linenErr: "" });
+  if (!s.linenSent && counts.some((one) => one.qty === null)) return app.setState({ linenErr: tr("A count of 0 or more.") });
+  if (!s.linenSent && counts.every((one) => one.qty === 0)) return app.setState({ linenErr: tr("Nothing to put back.") });
+  const key = s.linenKey || mintKey();
+  app.setState({ linenBusy: true, linenErr: "", linenKey: key, linenSent: true });
   try {
-    const reply = await app.ports.desk!.putBackLinen(counts.map((one) => ({ itemId: one.row.itemId, qty: one.qty ?? 0 })), s.linenResume ?? undefined);
+    const reply = await app.ports.desk!.putBackLinen(counts.map((one) => ({ itemId: one.row.itemId, qty: one.qty ?? 0 })), key);
     app.forget("desk:linen");
-    if (!reply.done) return app.setState({ linenBusy: false, linenResume: reply.transferId, linenErr: tr("Some of it did not go through. Press again to finish.") });
-    const place = rows[0]?.store ?? "";
+    if (!reply.done) return app.setState({ linenBusy: false, linenErr: tr("Some of it did not go through. Press again to finish.") });
+    const stores = [...new Set(reply.transfers.map((one) => one.store))];
     const over = reply.over.map((one) => tr("{n} more {item} than the house had there", { n: one.by, item: rows.find((row) => row.itemId === one.itemId)?.name ?? "" }));
-    app.setState({ linenOpen: false, linenBusy: false, linenResume: null, linenCounts: {} });
-    app.toast([tr("Back in {place}.", { place }), ...over].join(" "));
+    app.setState({ linenOpen: false, linenBusy: false, linenSent: false, linenKey: "", linenCounts: {} });
+    app.toast([tr("Back in {place}.", { place: stores.join(", ") }), ...over].join(" "));
   } catch (error) {
     app.forget("desk:linen");
-    app.setState({ linenBusy: false, linenErr: isApiError(error) && error.code === "POSTING_REFUSED" ? tr("The house could not record that. Try again in a moment.") : app.refused(error) });
+    // Nothing is known of what was made: the counts stay as sent, and pressing again goes on from wherever it stopped.
+    app.setState({ linenBusy: false, linenErr: unsure(error) ? tr("The house did not answer. Press again — nothing is put back twice.") : isApiError(error) && error.code === "POSTING_REFUSED" ? tr("The house could not record that. Try again in a moment.") : app.refused(error) });
   }
 }

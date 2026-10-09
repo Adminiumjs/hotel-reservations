@@ -12,9 +12,11 @@ import { Icon, st } from "./dom.tsx";
 
 /** One row a reduction: its name, the code as a chip, "Remove", and what it takes off. */
 export function CodeRows({ v }: { v: any }) {
-  if (!v?.on || !v.hasRows) return null;
+  if (!v?.on) return null;
   return (
     <>
+      {/* Always there, empty until a reduction is: what changes in it is read out, and it takes no room. */}
+      <span className="wh-sr" role="status" aria-live="polite" data-code-said>{v.said}</span>
       {(v.rows ?? []).map((r: any, i: number) => (
         <Fragment key={i}>
           <div data-code-row style={st("display:flex;align-items:center;gap:8px;flex-wrap:wrap")}>
@@ -22,7 +24,7 @@ export function CodeRows({ v }: { v: any }) {
             <span style={st("font-size:12.5px;font-weight:700;color:var(--fg);min-inline-size:0")}>{r.name}</span>
             {r.chip ? <span style={st("padding:2px 7px;border-radius:999px;background:var(--surface-3);font-family:var(--mono);font-size:10.5px;font-weight:700;color:var(--fg-muted)")}>{r.chip}</span> : null}
             {r.canRemove ? (
-              <button type="button" onClick={r.remove} style={st("padding:0;border:0;background:transparent;font-size:12px;font-weight:700;color:var(--fg-muted);text-decoration:underline;cursor:pointer")}>
+              <button type="button" onClick={r.remove} aria-label={r.removeLabel} style={st("padding:0;border:0;background:transparent;font-size:12px;font-weight:700;color:var(--fg-muted);text-decoration:underline;cursor:pointer")}>
                 {tr("Remove")}
               </button>
             ) : null}
@@ -39,7 +41,7 @@ export function CodeField({ v }: { v: any }) {
   if (!v?.on) return null;
   return (
     <div style={st("margin-block-start:12px")}>
-      <button type="button" onClick={v.toggle} aria-expanded={v.expanded} aria-controls="code-box" style={st("display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:transparent;font-size:12.5px;font-weight:700;color:var(--accent);cursor:pointer")}>
+      <button id="code-link" type="button" onClick={v.toggle} aria-expanded={v.expanded} aria-controls="code-box" style={st("display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:transparent;font-size:12.5px;font-weight:700;color:var(--accent);cursor:pointer")}>
         <span data-icon="tag" style={st("display:inline-flex;inline-size:13px;block-size:13px")}><Icon name={"tag"} /></span>
         {v.linkLabel}
       </button>
@@ -49,16 +51,14 @@ export function CodeField({ v }: { v: any }) {
             {tr("Your code")}
           </label>
           <div style={st("display:flex;gap:7px")}>
-            <input id="code-field" value={v.text ?? ""} onChange={v.onText} onKeyDown={v.onKey} placeholder={v.placeholder} autoComplete="off" autoCapitalize="characters" spellCheck={false} aria-invalid={v.inv} aria-describedby="code-err" disabled={v.busy} style={st(`flex:1;min-inline-size:0;padding:10px 12px;border:1px solid ${v.border};border-radius:10px;background:var(--surface-2);color:var(--fg);font-family:var(--mono);font-size:13px;font-weight:600;text-transform:uppercase`)} />
-            <button type="button" onClick={v.apply} disabled={v.busy} aria-busy={v.busyAttr} style={st("padding:10px 14px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);color:var(--fg);font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap")}>
+            <input id="code-field" value={v.text ?? ""} onChange={v.onText} onKeyDown={v.onKey} placeholder={v.placeholder} autoComplete="off" autoCapitalize="characters" spellCheck={false} aria-invalid={v.inv} aria-describedby="code-err" readOnly={v.busy} aria-busy={v.busyAttr} style={st(`flex:1;min-inline-size:0;padding:10px 12px;border:1px solid ${v.border};border-radius:10px;background:var(--surface-2);color:var(--fg);font-family:var(--mono);font-size:13px;font-weight:600;text-transform:uppercase`)} />
+            <button type="button" onClick={v.apply} aria-disabled={v.busyAttr} aria-busy={v.busyAttr} style={st("padding:10px 14px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);color:var(--fg);font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap")}>
               {v.applyLabel}
             </button>
           </div>
-          {v.errOn ? (
-            <div id="code-err" role="alert" style={st("margin-block-start:7px;font-size:12.5px;font-weight:700;line-height:1.5;color:var(--danger)")}>
-              {v.err}
-            </div>
-          ) : null}
+          <div id="code-err" role="alert" style={st(`margin-block-start:${v.errOn ? "7px" : "0"};font-size:12.5px;font-weight:700;line-height:1.5;color:var(--danger)`)}>
+            {v.errOn ? v.err : ""}
+          </div>
         </div>
       ) : null}
     </div>
