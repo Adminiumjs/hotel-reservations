@@ -112,6 +112,18 @@ export async function standUp(engine: Engine, port: number, database: string, op
     if (asked.status >= 300) throw new Error(`the sample: ${JSON.stringify(asked.body).slice(0, 600)}`);
     await until(async () => (ok(await staff.get<{ loaded: boolean }>("/api/v1/apps/hotel/sample-data")).loaded ? true : undefined), "the sample to be added", 300_000);
   }
+  // The app's own rows in an add-on's tables (each room type linked to its kit) go in a moment after the sample says it is loaded.
+  if (options.noSample !== true && (options.addOnSamples ?? []).includes("inventory") && (options.addOns ?? []).includes("inventory")) {
+    await learn();
+    await until(
+      async () => {
+        const links = ok(await staff.get<{ data: Row[] }>(`/api/v1/data/${connectionId}/${encodeURIComponent(ids["inventory_links"]!)}?limit=50`)).data;
+        return links.some((link) => link["source_table"] === "hotel:room_types") ? true : undefined;
+      },
+      "the room types to be linked to their kit",
+      120_000,
+    );
+  }
   ok(await staff.put("/api/v1/public-api", { enabled: true }));
   // Where the links in its emails point.
   ok(await staff.put("/api/v1/settings/email", { publicOrigin: server.base }));
