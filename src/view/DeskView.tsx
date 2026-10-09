@@ -3,6 +3,7 @@
 import { Fragment } from "react";
 
 import { tr } from "../i18n/tr.ts";
+import { CodeField, CodeRows } from "./CodeBox.tsx";
 import { fx, Icon, st, trx } from "./dom.tsx";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -250,6 +251,27 @@ export function DeskView({ v }: { v: any }) {
                       ))}
                     </div>
                     {" "}
+                    {v.linenOn ? (
+                      <div data-linen-strip style={st("display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-block-start:10px;padding:11px 15px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px")}>
+                        <span data-icon="bath" style={st("display:inline-flex;inline-size:15px;block-size:15px;color:var(--fg-subtle)")}><Icon name={"bath"} /></span>
+                        <span style={st("font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-subtle)")}>
+                          {tr("Linen")}
+                        </span>
+                        {(v.linen ?? []).map((l: any) => (
+                          <Fragment key={l.id}>
+                            <span style={st("font-size:12.5px;color:var(--fg-muted)")}>
+                              {trx("{n} {item} in {place} · {m} {toPlace}", {
+                                n: <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>{l.inStore}</span>,
+                                item: l.item,
+                                place: l.store,
+                                m: <span style={st("font-family:var(--mono);font-weight:700;color:var(--fg)")}>{l.atLaundry}</span>,
+                                toPlace: l.away,
+                              })}
+                            </span>
+                          </Fragment>
+                        ))}
+                      </div>
+                    ) : null}
                     <div style={st("display:flex;gap:9px;flex-wrap:wrap;margin-block-start:10px;align-items:stretch")}>
                       <div style={st("flex:1 1 440px;min-inline-size:0;display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:11px 15px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px")}>
                         <span style={st("font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-subtle)")}>
@@ -738,7 +760,13 @@ export function DeskView({ v }: { v: any }) {
                               </Fragment>
                             ))}
                             {" "}
-                            <div style={st("padding:12px 17px;border-block-end:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--fg-muted)")}>
+                            {v.nb.code?.on && (v.nb.code.hasRows || v.nb.code.field) ? (
+                              <div style={st("padding:11px 17px;border-block-end:1px solid var(--border);display:flex;flex-direction:column;gap:7px")}>
+                                <CodeRows v={v.nb.code} />
+                                {v.nb.code.field ? <CodeField v={v.nb.code} /> : null}
+                              </div>
+                            ) : null}
+                            <div style={st(`padding:12px 17px;border-block-end:1px solid var(--border);display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--fg-muted);opacity:${v.nb.code?.dim ?? "1"}`)}>
                               <span>
                                 {v.nb.taxLabel}
                               </span>
@@ -869,6 +897,12 @@ export function DeskView({ v }: { v: any }) {
                             {tr("Housekeeping")}
                           </span>
                         </>
+                      ) : null}
+                      {v.linenBtn ? (
+                        <button type="button" onClick={v.openLinen} style={st("margin-inline-start:auto;display:flex;align-items:center;gap:7px;padding:8px 13px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);color:var(--fg);font-size:12.5px;font-weight:700;cursor:pointer")}>
+                          <span data-icon="washing-machine" style={st("display:inline-flex;inline-size:14px;block-size:14px")}><Icon name={"washing-machine"} /></span>
+                          {tr("Back from the laundry")}
+                        </button>
                       ) : null}
                     </div>
                     {" "}
@@ -1495,7 +1529,15 @@ export function DeskView({ v }: { v: any }) {
                               {" "}
                               {r.menuOpen ? (
                                 <>
-                                  <div role="menu" style={st("position:absolute;inset-block-start:calc(100% - 4px);inset-inline-end:0;z-index:20;inline-size:170px;padding:5px;border-radius:11px;background:var(--surface);border:1px solid var(--border-strong);box-shadow:var(--shadow-lift);animation:wh-pop .14s ease-out")}>
+                                  <div role="menu" style={st("position:absolute;inset-block-start:calc(100% - 4px);inset-inline-end:0;z-index:20;inline-size:200px;padding:5px;border-radius:11px;background:var(--surface);border:1px solid var(--border-strong);box-shadow:var(--shadow-lift);animation:wh-pop .14s ease-out")}>
+                                    {r.backToCard ? (
+                                      <button role="menuitem" onClick={r.giveBackToCard} style={st("inline-size:100%;display:flex;align-items:center;gap:8px;padding:8px 9px;border:0;border-radius:8px;background:transparent;color:var(--fg);font-size:12.5px;font-weight:700;cursor:pointer;text-align:start")}>
+                                        <span data-icon="gift" style={st("display:inline-flex;inline-size:14px;block-size:14px")}><Icon name={"gift"} /></span>
+                                        {tr("Give back to the card")}
+                                      </button>
+                                    ) : null}
+                                    {r.canVoid ? (
+                                      <>
                                     <div style={st("padding:5px 8px 6px;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-subtle)")}>
                                       {tr("Manager")}
                                     </div>
@@ -1504,6 +1546,8 @@ export function DeskView({ v }: { v: any }) {
                                       <span data-icon="ban" style={st("display:inline-flex;inline-size:14px;block-size:14px")}><Icon name={"ban"} /></span>
                                       {tr("Void…")}
                                     </button>
+                                      </>
+                                    ) : null}
                                   </div>
                                 </>
                               ) : null}

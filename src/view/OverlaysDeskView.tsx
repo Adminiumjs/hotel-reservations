@@ -5,7 +5,7 @@ import { Fragment } from "react";
 
 import { DESK } from "../app/sides.ts";
 import { tr } from "../i18n/tr.ts";
-import { fx, Icon, st } from "./dom.tsx";
+import { fx, Icon, st, trx } from "./dom.tsx";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function OverlaysDeskView({ v }: { v: any }) {
@@ -265,6 +265,81 @@ export function OverlaysDeskView({ v }: { v: any }) {
               {" "}
               <button onClick={v.ci.confirm} disabled={v.ci.cantConfirm} style={st(`padding:12px 18px;border:0;border-radius:10px;background:${v.ci.confirmBg};color:${v.ci.confirmFg};font-size:13.5px;font-weight:700;cursor:${v.ci.confirmCursor};white-space:nowrap;transition:filter .14s`)} className={fx("filter:brightness(1.08)", "transform:scale(.97)")}>
                 {v.ci.confirmLabel}
+              </button>
+            </div>
+          </aside>
+        </div>
+      </>
+    ) : null}
+    {" "}
+    {DESK && v.ln.open ? (
+      <>
+        <div onClick={v.ln.close} style={st("position:fixed;inset:0;z-index:75;background:rgba(10,10,15,.55);backdrop-filter:blur(3px);display:flex;justify-content:flex-end")}>
+          <aside data-sheet="" role="dialog" aria-modal="true" aria-labelledby="ln-title" onClick={v.stop} style={st("inline-size:min(520px,100%);background:var(--bg);block-size:100%;overflow:auto;border-inline-start:1px solid var(--border-strong);display:flex;flex-direction:column")}>
+            <div style={st("position:sticky;inset-block-start:0;background:var(--surface);border-block-end:1px solid var(--border);padding:16px 20px;display:flex;align-items:flex-start;gap:12px;z-index:5")}>
+              <span style={st("inline-size:44px;block-size:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--info, var(--accent)));flex:0 0 auto;display:grid;place-items:center")}>
+                <span data-icon="washing-machine" style={st("display:inline-flex;inline-size:22px;block-size:22px;color:rgba(255,255,255,.9)")}><Icon name={"washing-machine"} /></span>
+              </span>
+              <div style={st("min-inline-size:0;flex:1")}>
+                <div id="ln-title" style={st("font-size:16.5px;font-weight:800;letter-spacing:-.015em")}>
+                  {tr("Back from the laundry")}
+                </div>
+                <div style={st("font-family:var(--mono);font-size:11.5px;color:var(--fg-subtle);margin-block-start:3px")}>
+                  {v.ln.sub}
+                </div>
+              </div>
+              <button onClick={v.ln.close} aria-label={tr("Close")} style={st("inline-size:31px;block-size:31px;border:1px solid var(--border-strong);border-radius:8px;background:var(--surface-2);display:grid;place-items:center;cursor:pointer;color:var(--fg-muted)")}>
+                <span data-icon="x" style={st("display:inline-flex;inline-size:15px;block-size:15px")}><Icon name={"x"} /></span>
+              </button>
+            </div>
+            <div style={st("padding:18px 20px;display:flex;flex-direction:column;gap:16px;flex:1")}>
+              <div style={st("background:var(--surface);border:1px solid var(--border);border-radius:13px;padding:15px")}>
+                <div style={st("font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--fg-subtle)")}>
+                  {tr("What came back")}
+                </div>
+                <p style={st("margin:6px 0 0;font-size:13px;line-height:1.55;color:var(--fg-muted);text-wrap:pretty")}>
+                  {v.ln.empty ? tr("No linen is linked to the room types yet. The owner sets that up in Inventory.") : tr("The counts on the laundry's note. Change any that do not match the trolley.")}
+                </p>
+                <div style={st("display:flex;flex-direction:column;gap:10px;margin-block-start:13px")}>
+                  {(v.ln.rows ?? []).map((r: any) => (
+                    <Fragment key={r.id}>
+                      <div data-linen-row style={st("display:flex;align-items:center;gap:10px;flex-wrap:wrap")}>
+                        <label htmlFor={r.fieldId} style={st("flex:1;min-inline-size:120px;font-size:13.5px;font-weight:700")}>
+                          {r.label}
+                          {r.noteOn ? <span style={st("display:block;margin-block-start:2px;font-family:var(--mono);font-size:11.5px;font-weight:600;color:var(--warn)")}>{r.note}</span> : null}
+                        </label>
+                        <div style={st("display:flex;align-items:center;gap:6px;direction:ltr")}>
+                          <button type="button" onClick={r.minus} disabled={r.locked} aria-label={tr("One fewer {item}", { item: r.label })} style={st("inline-size:34px;block-size:34px;border:1px solid var(--border-strong);border-radius:9px;background:var(--surface-2);color:var(--fg);font-size:16px;font-weight:700;cursor:pointer")}>
+                            {"−"}
+                          </button>
+                          <input id={r.fieldId} inputMode="numeric" value={r.value} onChange={r.onChange} disabled={r.locked} aria-invalid={r.inv} aria-describedby={r.errId} style={st(`inline-size:68px;padding:8px 6px;text-align:center;border:1px solid ${r.border};border-radius:9px;background:var(--surface-2);color:var(--fg);font-family:var(--mono);font-size:14px;font-weight:700`)} />
+                          <button type="button" onClick={r.plus} disabled={r.locked} aria-label={tr("One more {item}", { item: r.label })} style={st("inline-size:34px;block-size:34px;border:1px solid var(--border-strong);border-radius:9px;background:var(--surface-2);color:var(--fg);font-size:16px;font-weight:700;cursor:pointer")}>
+                            {"+"}
+                          </button>
+                        </div>
+                        {r.errOn ? (
+                          <span id={r.errId} role="alert" style={st("flex:1 1 100%;font-size:12px;font-weight:700;color:var(--danger)")}>
+                            {tr("A count of 0 or more.")}
+                          </span>
+                        ) : null}
+                      </div>
+                    </Fragment>
+                  ))}
+                </div>
+              </div>
+              {v.ln.errOn ? (
+                <div role="alert" style={st("display:flex;align-items:flex-start;gap:8px;font-size:12.5px;font-weight:700;line-height:1.5;color:var(--danger)")}>
+                  <span data-icon="circle-alert" style={st("display:inline-flex;inline-size:14px;block-size:14px;flex:0 0 auto;margin-block-start:2px")}><Icon name={"circle-alert"} /></span>
+                  {v.ln.err}
+                </div>
+              ) : null}
+            </div>
+            <div style={st("position:sticky;inset-block-end:0;padding:14px 20px;border-block-start:1px solid var(--border);background:var(--surface);display:flex;align-items:center;gap:12px;flex-wrap:wrap")}>
+              <div style={st("font-size:12px;line-height:1.5;color:var(--fg-subtle);flex:1;min-inline-size:160px")}>
+                {tr("The house adds them to the store as you put them back.")}
+              </div>
+              <button onClick={v.ln.confirm} disabled={v.ln.busy || v.ln.empty} aria-busy={v.ln.busyAttr} style={st("padding:12px 18px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-fg);font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap")}>
+                {v.ln.btnLabel}
               </button>
             </div>
           </aside>
@@ -857,11 +932,13 @@ export function OverlaysDeskView({ v }: { v: any }) {
                 </span>
               </div>
               {" "}
+              {v.se.showMethods ? (
               <div id="se-how" style={st("font-size:12px;font-weight:700;color:var(--fg-muted);margin:15px 0 7px")}>
                 {v.se.back ? tr("How did it go back?") : tr("How did they pay?")}
               </div>
+              ) : null}
               {" "}
-              <div role="group" aria-labelledby="se-how" style={st("display:flex;gap:7px;flex-wrap:wrap")}>
+              <div role="group" aria-labelledby="se-how" style={st(`display:${v.se.showMethods ? "flex" : "none"};gap:7px;flex-wrap:wrap`)}>
                 {(v.se.methods ?? []).map((m: any, i_m: number) => (
                   <Fragment key={i_m}>
                     <button onClick={m.pick} aria-pressed={m.pressed} style={st(`flex:1;min-inline-size:88px;padding:10px;border:1px solid ${m.border};border-radius:10px;background:${m.bg};color:${m.fg};font-size:12.5px;font-weight:700;cursor:pointer`)}>
@@ -871,6 +948,8 @@ export function OverlaysDeskView({ v }: { v: any }) {
                 ))}
               </div>
               {" "}
+              {v.se.showAmount ? (
+                <>
               <div style={st("display:flex;flex-direction:column;gap:6px;margin-block-start:15px")}>
                 <label htmlFor="se-amt" style={st("font-size:12px;font-weight:700;color:var(--fg-muted)")}>
                   {tr("How much")}
@@ -898,6 +977,46 @@ export function OverlaysDeskView({ v }: { v: any }) {
                 </>
               ) : null}
               {" "}
+                </>
+              ) : null}
+              {v.se.gift ? (
+                <>
+                  <div style={st("display:flex;flex-direction:column;gap:6px;margin-block-start:15px")}>
+                    <label htmlFor="se-card" style={st("font-size:12px;font-weight:700;color:var(--fg-muted)")}>
+                      {tr("Gift card code")}
+                    </label>
+                    <div style={st("display:flex;gap:7px;flex-wrap:wrap")}>
+                      <input id="se-card" value={v.se.card.code ?? ""} onChange={v.se.card.onCode} onKeyDown={v.se.card.onKey} placeholder={tr("On the back of the card")} autoComplete="off" autoCapitalize="characters" spellCheck={false} aria-invalid={v.se.card.inv} aria-describedby="se-card-err" disabled={v.se.card.busy} style={st(`flex:1;min-inline-size:160px;padding:11px 12px;border:1px solid ${v.se.card.border};border-radius:10px;background:var(--surface-2);color:var(--fg);font-family:var(--mono);font-size:14px;font-weight:600;text-transform:uppercase;direction:ltr`)} />
+                      <button type="button" onClick={v.se.card.check} disabled={v.se.card.busy} aria-busy={v.se.card.busyAttr} style={st("padding:11px 14px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);color:var(--fg);font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap")}>
+                        {v.se.card.checkLabel}
+                      </button>
+                    </div>
+                  </div>
+                  {v.se.card.errOn ? (
+                    <div id="se-card-err" role="alert" style={st("display:flex;align-items:flex-start;gap:8px;margin-block-start:10px;font-size:12.5px;font-weight:700;line-height:1.5;color:var(--danger)")}>
+                      <span data-icon="circle-alert" style={st("display:inline-flex;inline-size:14px;block-size:14px;flex:0 0 auto;margin-block-start:2px")}><Icon name={"circle-alert"} /></span>
+                      {v.se.card.err}
+                    </div>
+                  ) : null}
+                  {v.se.card.answerOn ? (
+                    <div role="status" style={st("margin-block-start:12px;padding:13px;border-radius:12px;background:var(--pos-soft, var(--surface-2));border:1px solid var(--border)")}>
+                      <div style={st("display:flex;align-items:center;gap:8px;font-size:14px;font-weight:800")}>
+                        <span data-icon="gift" style={st("display:inline-flex;inline-size:16px;block-size:16px;color:var(--pos)")}><Icon name={"gift"} /></span>
+                        <span>{trx("{amount} from the card", { amount: <span style={st("font-family:var(--mono)")}>{v.se.card.taken}</span> })}</span>
+                      </div>
+                      <div style={st("margin-block-start:5px;font-size:12.5px;color:var(--fg-muted)")}>
+                        {v.se.card.keeps}
+                      </div>
+                      <div style={st("margin-block-start:9px;padding-block-start:9px;border-block-start:1px solid var(--border);display:flex;align-items:baseline;gap:8px;font-size:12.5px;color:var(--fg-muted)")}>
+                        <span>{tr("Left on the account")}</span>
+                        <span style={st("margin-inline-start:auto;font-family:var(--mono);font-size:14px;font-weight:700;color:var(--fg)")}>{v.se.card.left}</span>
+                      </div>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+              {v.se.showRef ? (
+                <>
               <div style={st("display:flex;flex-direction:column;gap:6px;margin-block-start:15px")}>
                 <label htmlFor="se-ref" style={st("font-size:12px;font-weight:700;color:var(--fg-muted)")}>
                   {tr("Reference (for a transfer)")}{" "}
@@ -908,6 +1027,8 @@ export function OverlaysDeskView({ v }: { v: any }) {
                 {" "}
                 <input id="se-ref" value={v.se.refNo ?? ""} onChange={v.se.onRefNo} placeholder={tr("From the bank statement")} style={st("padding:10px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2);font-family:var(--mono);font-size:13px")} />
               </div>
+                </>
+              ) : null}
               {v.se.back ? (
                 <div style={st("display:flex;flex-direction:column;gap:6px;margin-block-start:15px")}>
                   <label htmlFor="se-note" style={st("font-size:12px;font-weight:700;color:var(--fg-muted)")}>

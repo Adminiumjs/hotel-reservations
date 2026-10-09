@@ -7,7 +7,7 @@
  * DESK ONLY: the guest's build never imports this module, so a guest's page
  * carries none of it (the surface gate holds that, `surface-nav.ts`).
  */
-import { isApiError, type Id, type QuoteReply, type StayBody } from "../data/wire.ts";
+import { isApiError, type Id, type LinenRow, type QuoteReply, type StayBody } from "../data/wire.ts";
 import { tr } from "../i18n/tr.ts";
 import { mailable } from "../lib/mail.ts";
 import { money, nightsOf, plus, strip } from "./fmt.ts";
@@ -62,7 +62,43 @@ export function openSettle(app: HouseApp, id: Id, amount?: string, cap?: number,
     settleTouched: false,
     settleKind: kind,
     settleNote: "",
+    cardCode: "",
+    cardBusy: false,
+    cardErr: "",
+    cardCheck: null,
+    settleAgainst: null,
   });
+}
+
+/** "Give back to the card": money back to the gift card one payment came from, up to what that payment can still return. */
+export function openGiveBackToCard(app: HouseApp, stayId: Id, paymentId: Id, cap: number): void {
+  openSettle(app, stayId, cap.toFixed(2), cap, "given_back");
+  app.setState({ settleAgainst: paymentId, settleMethod: "gift_card", rowMenu: null });
+}
+
+/** "Check the card": what it would pay of what the stay owes, written nowhere. */
+export async function checkCard(app: HouseApp, stayId: Id): Promise<void> {
+  const code = app.state.cardCode.trim();
+  if (code === "" || app.state.cardBusy) return;
+  app.setState({ cardBusy: true, cardErr: "", cardCheck: null });
+  try {
+    const check = await app.ports.desk!.quoteCard(stayId, code);
+    app.setState({ cardBusy: false, cardCheck: check });
+  } catch (error) {
+    app.setState({ cardBusy: false, cardErr: cardWords(app, error) });
+    app.focusSoon("#se-card");
+  }
+}
+
+/** Why a card was not taken, in the desk's words. */
+export function cardWords(app: HouseApp, error: unknown): string {
+  if (isApiError(error) && error.code === "VALIDATION_FAILED") {
+    const fields = (error.params["fields"] ?? {}) as Record<string, { code?: string }>;
+    if (fields["card_code"] !== undefined) return tr("The house does not know that card. Check the code on the back.");
+  }
+  if (isApiError(error) && (error.code === "COLUMN_FORBIDDEN" || error.code === "FORBIDDEN")) return tr("That is not for your role.");
+  if (isApiError(error) && error.code === "POSTING_REFUSED") return app.postingWords(error);
+  return app.refused(error);
 }
 
 export function openCheckin(app: HouseApp, id: Id): void {
@@ -232,7 +268,7 @@ export async function saveNb(app: HouseApp, andCheckIn: boolean, known: { custom
   const key = nb.key || mintKey();
   const body: StayBody = {
     values: { ...values, ...(known !== null && nb.link === "yes" ? { customer_id: known.customerId } : {}) },
-    children: { stay_extras: app.pickedExtras(nb).map((extra_id) => ({ values: { extra_id: Number(extra_id) } })) },
+    children: { stay_extras: app.pickedExtras(nb).map((extra_id) => ({ values: { extra_id: Number(extra_id) } })), ...app.typedCodes(s.codes) },
     ...(expectTotal ? { expect: { total: expectTotal } } : {}),
     clientKey: key,
   };
@@ -241,7 +277,7 @@ export async function saveNb(app: HouseApp, andCheckIn: boolean, known: { custom
     (reply) => {
       const id = reply.data.id;
       const ref = String(reply.data["ref"]);
-      app.setState({ nbBusy: false, nb: null });
+      app.setState({ nbBusy: false, nb: null, codes: [], codeOpen: false, codeText: "", codeErr: "" });
       app.toast(tr("{ref} · {name} · {nights} in the book.", { ref, name: `${nb.first.trim()} ${nb.last.trim()}`.trim(), nights: strip(tr("{n} night|{n} nights", { n: nightsOf(nb.arrive, nb.depart) })) }));
       if (andCheckIn) {
         app.go("today", { newId: id });
@@ -293,4 +329,49 @@ export async function emailFolio(app: HouseApp, st: StV): Promise<void> {
       () => (mailable(st.email) ? app.toast(tr("The folio is on its way to {email}.", { email: st.email })) : app.toast(tr("No email was sent: {email} is a sample address.", { email: st.email }), "warn")),
     ),
   );
+}
+
+// ── linen ───────────────────────────────────────────────────────────────────
+
+/** The linen the house sends to the laundry, and what the books hold of it; none without Inventory. */
+export function linen(app: HouseApp): LinenRow[] {
+  if (!app.linenOn) return [];
+  return app.get("desk:linen", () => app.ports.desk!.linen()) ?? [];
+}
+
+/** "Back from the laundry": the sheet opens on what the books say is there. */
+export function openLinen(app: HouseApp): void {
+  app.setState({
+    linenOpen: true,
+    linenCounts: Object.fromEntries(linen(app).map((row) => [String(row.itemId), String(row.atLaundry)])),
+    linenBusy: false,
+    linenErr: "",
+    linenResume: null,
+  });
+}
+
+/** A count as typed: a whole number of 0 or more, or null. */
+export const linenCount = (typed: string | undefined): number | null => (typed !== undefined && /^\d{1,6}$/.test(typed.trim()) ? Number(typed.trim()) : null);
+
+/** "Put back": one transfer to the store, each kind its own line; a line that failed is sent again by pressing again. */
+export async function putBackLinen(app: HouseApp): Promise<void> {
+  const s = app.state;
+  const rows = linen(app);
+  if (s.linenBusy) return;
+  const counts = rows.map((row) => ({ row, qty: linenCount(s.linenCounts[String(row.itemId)]) }));
+  if (s.linenResume === null && counts.some((one) => one.qty === null)) return app.setState({ linenErr: tr("A count of 0 or more.") });
+  if (s.linenResume === null && counts.every((one) => one.qty === 0)) return app.setState({ linenErr: tr("Nothing to put back.") });
+  app.setState({ linenBusy: true, linenErr: "" });
+  try {
+    const reply = await app.ports.desk!.putBackLinen(counts.map((one) => ({ itemId: one.row.itemId, qty: one.qty ?? 0 })), s.linenResume ?? undefined);
+    app.forget("desk:linen");
+    if (!reply.done) return app.setState({ linenBusy: false, linenResume: reply.transferId, linenErr: tr("Some of it did not go through. Press again to finish.") });
+    const place = rows[0]?.store ?? "";
+    const over = reply.over.map((one) => tr("{n} more {item} than the house had there", { n: one.by, item: rows.find((row) => row.itemId === one.itemId)?.name ?? "" }));
+    app.setState({ linenOpen: false, linenBusy: false, linenResume: null, linenCounts: {} });
+    app.toast([tr("Back in {place}.", { place }), ...over].join(" "));
+  } catch (error) {
+    app.forget("desk:linen");
+    app.setState({ linenBusy: false, linenErr: isApiError(error) && error.code === "POSTING_REFUSED" ? tr("The house could not record that. Try again in a moment.") : app.refused(error) });
+  }
 }

@@ -9,7 +9,7 @@
  * `balance`); nothing here prices anything.
  */
 import type { DeskHouse, House, StayWithLines } from "../data/ports.ts";
-import { yes, type Id, type Row } from "../data/wire.ts";
+import { yes, type Applied, type Id, type Row } from "../data/wire.ts";
 import { venueDay, venueMinutes } from "../lib/venueTime.ts";
 import { tr } from "../i18n/tr.ts";
 import { fsi } from "./fmt.ts";
@@ -110,6 +110,10 @@ export interface PayV {
   voidReason: string;
   refNo: string;
   note: string;
+  /** A gift card's payment: the last four of its code. Empty for any other. */
+  last4: string;
+  /** Money given back to a card: the card payment it went back to. */
+  against: Id | null;
 }
 export interface Moment {
   date: string;
@@ -151,7 +155,9 @@ export interface StV {
   charges: ChargeV[];
   credits: CreditV[];
   pays: PayV[];
-  m: { room: number; extras: number; charges: number; credits: number; sub: number; tax: number; total: number; paid: number; balance: number; taxRate: number; taxLabel: string };
+  m: { room: number; extras: number; charges: number; credits: number; discount: number; sub: number; tax: number; total: number; paid: number; balance: number; taxRate: number; taxLabel: string };
+  /** What codes and vouchers took off, by name, as Adminium answered it; empty when nothing was, or it does not say. */
+  applied: Applied[];
 }
 
 /** The house's settings, as the screens read them. */
@@ -372,12 +378,16 @@ export function worldOf(house: House | DeskHouse, stays: StayWithLines[], zone: 
         voidReason: str(p["void_reason"]),
         refNo: str(p["reference"]),
         note: str(p["note"]),
+        last4: str(p["card_last4"]),
+        against: p["against_id"] === null || p["against_id"] === undefined ? null : Number(p["against_id"]),
       })),
+      applied: w.applied ?? [],
       m: {
         room: n(s["room_total"]),
         extras: n(s["extras_total"]),
         charges: n(s["charges_total"]),
         credits: n(s["credits_total"]),
+        discount: n(s["discount"]),
         sub: n(s["subtotal"]),
         tax: n(s["tax"]),
         total: n(s["total"]),

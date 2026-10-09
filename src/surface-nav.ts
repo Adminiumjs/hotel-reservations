@@ -48,6 +48,8 @@ export const SURFACE_NAV = [
   { id: "rooms", path: "rooms", view: "rooms", side: "customer", labelKey: "chrome.nav.rooms" },
   { id: "myreservation", path: "my-reservation", view: "signin", side: "customer", labelKey: "chrome.nav.myreservation" },
   { id: "findus", path: "find-us", view: "find", side: "customer", labelKey: "chrome.nav.findus" },
+  // A gift card's balance: where Offers & gift cards' own email sends its holder. Without it, the page says it is not here.
+  { id: "giftcard", path: "gift-card", view: "giftcard", side: "customer", labelKey: "chrome.nav.giftcard" },
 ] as const satisfies readonly Entry[];
 
 /**

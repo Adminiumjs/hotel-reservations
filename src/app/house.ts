@@ -9,7 +9,7 @@
  * refusal's words.
  */
 import type { DeskPort, GuestPort, StayWithLines } from "../data/ports.ts";
-import { isApiError, type Id, type LiveFrame, type NightAnswer, type QuoteReply, type StayBody } from "../data/wire.ts";
+import { isApiError, type CardCheck, type Id, type LiveFrame, type NightAnswer, type QuoteReply, type StayBody } from "../data/wire.ts";
 import { tr, setLocale } from "../i18n/tr.ts";
 import { venueDay, venueMinutes } from "../lib/venueTime.ts";
 import { fDW, money, nightsOf, plus, setCurrency, strip } from "./fmt.ts";
@@ -116,7 +116,7 @@ export function fresh(day: string) {
     settleId: null as Id | null,
     settleCap: null as number | null,
     settleAmount: "",
-    settleMethod: "card" as "card" | "cash" | "transfer",
+    settleMethod: "card" as "card" | "cash" | "transfer" | "gift_card",
     settleRefNo: "",
     settleTouched: false,
     settleKind: "taken" as "taken" | "given_back",
@@ -148,6 +148,28 @@ export function fresh(day: string) {
     oosTried: false,
     rackFilter: null as string | null,
     staffMenu: false,
+    /** The codes applied to the stay being reserved or booked, in the order typed; and the field they are typed in. */
+    codes: [] as string[],
+    codeOpen: false,
+    codeText: "",
+    codeBusy: false,
+    codeErr: "",
+    /** A gift card in the payment dialog: its code as typed, what the house answered, and the payment money goes back to. */
+    cardCode: "",
+    cardBusy: false,
+    cardErr: "",
+    cardCheck: null as CardCheck | null,
+    settleAgainst: null as Id | null,
+    /** "Back from the laundry": the counts typed, by item; a transfer a line of which is still to move. */
+    linenOpen: false,
+    linenCounts: {} as Record<string, string>,
+    linenBusy: false,
+    linenErr: "",
+    linenResume: null as Id | null,
+    /** The gift card balance page: the code typed, and what the house answered. */
+    gcCode: "",
+    gcBusy: false,
+    gcAnswer: null as null | { kind: "card"; balance: string; expiresOn: string | null } | { kind: "none" } | { kind: "wait" } | { kind: "short" },
     /** The sheet whose write is on its way: its button waits. */
     sheetBusy: null as string | null,
     /** The desk's live stream is down and being opened again. */
@@ -181,6 +203,11 @@ export class HouseApp {
   zone = "UTC";
   /** Invoices & Receipts is attached: the folio prints and emails. */
   folioOn = false;
+  /** Inventory is in use: Today counts the linen, the rack puts it back. */
+  linenOn = false;
+  /** Offers & gift cards is in use: a booking takes a code, a payment a gift card, the guest site reads a balance. */
+  codesOn = false;
+  cardsOn = false;
   now = Date.now();
   private skew = 0;
   private version = 0;
@@ -296,6 +323,9 @@ export class HouseApp {
       const config = this.persona === "desk" ? await this.ports.desk!.config() : await this.ports.guest!.config();
       this.zone = config.timezone ?? "UTC";
       this.folioOn = "folio" in config && config.folio === true;
+      this.linenOn = "linen" in config && config.linen === true;
+      this.codesOn = ("codes" in config && config.codes === true) || ("offers" in config && config.offers === true);
+      this.cardsOn = ("giftCards" in config && config.giftCards === true) || ("offers" in config && config.offers === true);
       setCurrency(config.currency);
       if (config.now) this.skew = Date.parse(config.now) - Date.now();
       this.now = Date.now() + this.skew;
@@ -441,7 +471,9 @@ export class HouseApp {
   // ── moving about ────────────────────────────────────────────────────────
 
   go(view: View, patch: Partial<State> = {}): void {
-    this.setState({ view, navOpen: false, deskQuery: "", calDay: null, rowMenu: null, staffMenu: false, listMenu: false, newId: null, ...patch });
+    // A code belongs to the stay it was typed on: another screen starts with none.
+    const codes = view === this.state.view ? {} : { codes: [], codeOpen: false, codeText: "", codeErr: "", codeBusy: false };
+    this.setState({ view, navOpen: false, deskQuery: "", calDay: null, rowMenu: null, staffMenu: false, listMenu: false, newId: null, ...codes, ...patch });
     this.scrollTop();
     this.announce(view);
   }
@@ -508,6 +540,11 @@ export class HouseApp {
         return tr("Someone changed this a moment ago — here it is now.");
       case "BALANCE_EXCEEDED":
         return tr("That would leave more paid than the stay costs.");
+      case "ADJUST_REFUSED":
+        if (p["reason"] === "frozen") return tr("This stay is closed, and is not priced again.");
+        return this.codeWords(error, this.state.codes[this.state.codes.length - 1] ?? "");
+      case "POSTING_REFUSED":
+        return this.postingWords(error);
       case "CAPACITY_FULL":
       case "PUBLIC_NO_ROOM":
         return p["column"] === "room_id" ? tr("That room is taken on those nights.") : tr("There is no room of that type on those nights.");
@@ -573,14 +610,117 @@ export class HouseApp {
     ) as { value: NightAnswer | undefined; error: unknown; loading: boolean };
   }
   /** Adminium's price for a stay of a type, with extras, written nowhere. */
-  quote(type: string, arrive: string, depart: string, guests: number, extras: string[] = []) {
+  quote(type: string, arrive: string, depart: string, guests: number, extras: string[] = [], codes: string[] = [], more: Record<string, unknown> = {}) {
     const body: StayBody = {
-      values: { room_type_id: Number(type), arrive, depart, guests },
-      children: { stay_extras: extras.map((extra_id) => ({ values: { extra_id: Number(extra_id) } })) },
+      values: { room_type_id: Number(type), arrive, depart, guests, ...more },
+      children: { stay_extras: extras.map((extra_id) => ({ values: { extra_id: Number(extra_id) } })), ...this.typedCodes(codes) },
     };
-    return this.ask(`quote:${type}:${arrive}:${depart}:${String(guests)}:${extras.join(",")}`, () =>
+    return this.ask(`quote:${type}:${arrive}:${depart}:${String(guests)}:${extras.join(",")}${codes.length === 0 ? "" : `:${codes.join(",")}:${JSON.stringify(more)}`}`, () =>
       this.persona === "desk" ? this.ports.desk!.quote(body) : this.ports.guest!.quote(body),
     ) as { value: QuoteReply | undefined; error: unknown; loading: boolean };
+  }
+
+  // ── a code on a stay ────────────────────────────────────────────────────
+
+  /** The codes a save or a quote carries: none sent when none was typed, so a stay with no code is the stay it always was. */
+  typedCodes(codes: string[]): { stay_codes?: { values: { typed: string } }[] } {
+    return this.codesOn && codes.length > 0 ? { stay_codes: codes.map((typed) => ({ values: { typed } })) } : {};
+  }
+
+  /**
+   * "Apply": the stay priced once more with the typed code beside the ones
+   * already applied. It joins them only when the house takes it; a code that
+   * is refused, or that another offer beats, is said under the field and
+   * never sent with the save.
+   */
+  async applyCode(ask: (codes: string[]) => Promise<QuoteReply>): Promise<void> {
+    const s = this.state;
+    const typed = s.codeText.trim();
+    if (typed === "" || s.codeBusy) return;
+    if (s.codes.some((code) => code.toUpperCase() === typed.toUpperCase())) return this.setState({ codeText: "", codeOpen: false, codeErr: "" });
+    this.setState({ codeBusy: true, codeErr: "" });
+    try {
+      const reply = await ask([...s.codes, typed]);
+      const beaten = (reply.told ?? []).find((told) => told.note === "better-offer-applied");
+      if (beaten !== undefined) return this.setState({ codeBusy: false, codeErr: tr("{name} is already taking more off.", { name: beaten.name }) });
+      this.setState({ codes: [...this.state.codes, typed], codeText: "", codeOpen: false, codeBusy: false, codeErr: "", rvAnswer: null });
+    } catch (error) {
+      this.setState({ codeBusy: false, codeErr: this.codeWords(error, typed) });
+      this.focusSoon("#code-field");
+    }
+  }
+  removeCode(code: string): void {
+    this.setState({ codes: this.state.codes.filter((one) => one !== code), codeErr: "", rvAnswer: null });
+  }
+  /** Why a code was not taken. A guest is told only what tells them nothing about anybody's code; the desk, the plain reason. */
+  codeWords(error: unknown, typed: string): string {
+    if (!isApiError(error)) return tr("The house did not answer. Try again in a moment.");
+    const p = error.params as Record<string, unknown>;
+    const reason = String(p["reason"] ?? "");
+    if (error.code === "RATE_LIMITED" || error.code === "PUBLIC_RATE_LIMITED" || error.status === 429) return tr("Too many tries at once — wait a moment and try again.");
+    if (reason === "add-on-unavailable") return this.persona === "desk" ? tr("Codes cannot be checked right now. Ask the owner.") : tr("That code is not valid.");
+    if (reason === "needs-minimum") return tr("This code needs a stay of {amount} or more.", { amount: strip(money(Number(p["amount"] ?? 0))) });
+    if (reason === "not-for-these-items") return tr("This code is not for this room.");
+    if (reason === "needs-sign-in") return tr("Sign in to use this code.");
+    if (this.persona === "desk") {
+      if (reason === "needs-customer") return tr("{code} is for a named guest · Add the guest's email", { code: typed.toUpperCase() });
+      if (reason === "used-up") return tr("That code has been used up.");
+      if (reason === "expired") return tr("That code has run out.");
+      if (reason === "over-limit") return tr("This guest has used that code already.");
+      if (reason === "inactive" || reason === "void" || reason === "not-yet") return tr("That code is not in use.");
+    }
+    return tr("That code is not valid.");
+  }
+
+  /** What an add-on's ledger refused, in the desk's words: a gift card, a code used too late, or a rule that could not run. */
+  postingWords(error: unknown): string {
+    const p = isApiError(error) ? (error.params as Record<string, unknown>) : {};
+    const reason = String(p["reason"] ?? "");
+    const card = p["ledger"] === "value" || p["posting"] === "card" || p["posting"] === "card-refund";
+    switch (reason) {
+      case "not-valid":
+      case "unknown":
+        return tr("The house does not know that card. Check the code on the back.");
+      case "void":
+        return tr("This card was cancelled.");
+      case "inactive":
+        return tr("This card is not active yet.");
+      case "expired":
+        return tr("This card has run out.");
+      case "empty":
+        return tr("Nothing left on this card.");
+      case "not-allowed":
+        return tr("Nothing is owing on this stay.");
+      case "refund-over":
+        return tr("That is more than the {left} this card payment can take back.", { left: strip(money(Number(p["left"] ?? 0))) });
+      case "receipt-open":
+        return tr("A code can be used only when the stay is booked.");
+      case "mapped-changed":
+        return tr("This is recorded already, and is not changed.");
+      case "add-on-unavailable":
+        if (p["column"] === "typed") return tr("Codes cannot be checked right now. Ask the owner.");
+        return card ? tr("Gift cards are switched off. Take the payment another way.") : tr("Offers can't answer right now, so this stay can't be saved. Ask the owner.");
+      default:
+        return p["ledger"] === "stock" || p["posting"] === "turnover"
+          ? tr("The linen could not be recorded, so the guest is not checked out yet. Try again; if it keeps happening, ask the owner to switch the stock rule off.")
+          : tr("The house could not record that. Try again in a moment.");
+    }
+  }
+
+  // ── the guest's side: a gift card's balance ────────────────────────────
+
+  /** What is on a gift card, by the code typed or the link its email carried. One sentence for everything that is not a card in use. */
+  async cardBalance(by: { code: string } | { token: string }): Promise<void> {
+    if (this.state.gcBusy) return;
+    if ("code" in by && by.code.replace(/[^A-Za-z0-9]/g, "").replace(/^GC/i, "").length !== 12) return this.setState({ gcAnswer: { kind: "short" } });
+    this.setState({ gcBusy: true, gcAnswer: null });
+    try {
+      const found = await this.ports.guest!.cardBalance(by);
+      this.setState({ gcBusy: false, gcAnswer: found === null ? { kind: "none" } : { kind: "card", balance: found.balance, expiresOn: found.expiresOn } });
+    } catch (error) {
+      const wait = isApiError(error) && (error.status === 429 || error.code === "PUBLIC_RATE_LIMITED" || error.code === "RATE_LIMITED");
+      this.setState({ gcBusy: false, gcAnswer: wait ? { kind: "wait" } : { kind: "none" } });
+    }
   }
 
   // ── the guest's side: reserving ────────────────────────────────────────
@@ -623,14 +763,17 @@ export class HouseApp {
         language: this.state.lang,
         client_key: this.clientKey,
       },
-      children: { stay_extras: this.pickedExtras(f).map((extra_id) => ({ values: { extra_id: Number(extra_id) } })) },
+      children: { stay_extras: this.pickedExtras(f).map((extra_id) => ({ values: { extra_id: Number(extra_id) } })), ...this.typedCodes(s.codes) },
       ...(shown ? { expect: { total: shown } } : {}),
     };
     try {
       const reply = await this.ports.guest!.reserve(body, this.clientKey);
       this.clientKey = "";
       const guests = s.pair === null ? s.search.guests : s.pair.guests[s.pair.step];
-      const quote = this.quote(t, s.search.arrive, s.search.depart, guests, this.pickedExtras(f)).value;
+      const quote = this.quote(t, s.search.arrive, s.search.depart, guests, this.pickedExtras(f), s.codes).value;
+      // A code is for the stay it was typed on: the next one starts with none.
+      this.setState({ codes: [], codeOpen: false, codeText: "", codeErr: "" });
+      this.forget("guest:mine");
       const ref = String(reply.data["ref"]);
       // The stay is made whatever happens next: its own link opens here if it can, and the email carries it anyway.
       const linked = reply.link === undefined ? false : await this.ports.guest!.openLink(reply.link.token).then(() => true, () => false);
@@ -657,9 +800,16 @@ export class HouseApp {
         this.clientKey = "";
         this.forget("avail:");
         this.setState({ rvBusy: false, rvAnswer: { kind: "gone" } });
+      } else if (code === "PUBLIC_WRITE_REFUSED" && (error as { params: Record<string, unknown> }).params["column"] === "typed") {
+        // A code that stopped being good between the price and the save: it is taken off, and said under its field.
+        this.clientKey = "";
+        this.forget("quote:");
+        this.setState({ rvBusy: false, codes: [], codeOpen: true, codeErr: this.codeWords(error, s.codes[s.codes.length - 1] ?? "") });
       } else if (code === "PUBLIC_WRITE_REFUSED") {
         this.clientKey = "";
-        this.setState({ rvBusy: false, rvAnswer: { kind: "rule", msg: this.ruleWords(error) } });
+        // The house cannot price a stay just now (what it asks of an add-on is not answering): said plainly, nothing named.
+        const unable = (error as { params: Record<string, unknown> }).params["reason"] === "add-on-unavailable";
+        this.setState({ rvBusy: false, rvAnswer: { kind: "rule", msg: unable ? tr("We can't take reservations right now — please try again soon.") : this.ruleWords(error) } });
       } else {
         // The house did not answer: the retry key is kept, so trying again cannot make a second stay.
         this.setState({ rvBusy: false, rvAnswer: { kind: "down" } });
@@ -754,9 +904,15 @@ export class HouseApp {
    * Where a guest's page was opened from: a sign-in link (`c#<code>`) waits for Continue; a stay's own link
    * (`r#<code>`) opens that stay; otherwise a session this tab kept brings the guest back as they were.
    */
-  async arrive(place: "c" | "r" | null, token: string | null): Promise<void> {
+  async arrive(place: "c" | "r" | "g" | null, token: string | null): Promise<void> {
     const guest = this.ports.guest;
     if (guest === undefined) return;
+    if (place === "g") {
+      // A gift card's own link, from its email: its balance, read once by the link's code.
+      this.go("giftcard");
+      if (token !== null) void this.cardBalance({ token });
+      return;
+    }
     if (place === "c" && token !== null) {
       this.setState({ auth: { ...blankAuth(), stage: "link", token } });
       this.go("signin");

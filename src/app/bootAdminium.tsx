@@ -19,10 +19,11 @@ import { HouseApp } from "./house.ts";
 export type StartupFailure = (detail: string, code: string | null) => void;
 
 /** Where a guest's page was opened: a sign-in link (`…/c#<code>`), a stay's own link (`…/r#<code>`), or neither. */
-export function entryOf(pathname: string, hash: string): { place: "c" | "r" | null; token: string | null } {
+export function entryOf(pathname: string, hash: string): { place: "c" | "r" | "g" | null; token: string | null } {
   const last = pathname.replace(/\/+$/, "").split("/").pop() ?? "";
   const token = hash.replace(/^#/, "").split("&")[0] ?? "";
-  const place = last === "c" || last === "r" ? last : null;
+  // A gift card's emailed link lands on the balance page (`…/gift-card#<code>`), with or without a code.
+  const place = last === "c" || last === "r" ? last : last === "gift-card" && token !== "" ? "g" : null;
   return { place, token: place !== null && /^[A-Za-z0-9_-]{8,128}$/.test(token) ? token : null };
 }
 
@@ -66,7 +67,8 @@ export async function bootAdminium(mount: HTMLElement, fail: StartupFailure): Pr
   await app.start();
   const entry = app.persona === "guest" ? entryOf(window.location.pathname, window.location.hash) : { place: null, token: null };
   // The link's code leaves the address bar at once: a reload must not spend it again.
-  if (entry.place !== null) window.history.replaceState(window.history.state, "", window.location.pathname.replace(/\/(c|r)\/?$/, "/"));
+  if (entry.place === "g") window.history.replaceState(window.history.state, "", window.location.pathname);
+  else if (entry.place !== null) window.history.replaceState(window.history.state, "", window.location.pathname.replace(/\/(c|r)\/?$/, "/"));
   // The address bar's screen first, then where the guest's link or kept session takes them: the link wins.
   if (HOSTED) await attachToHost(app);
   if (app.persona === "guest") {

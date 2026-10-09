@@ -14,7 +14,7 @@ import type { HouseApp } from "../house.ts";
 import type { RoomV, StV, WorldV } from "../world.ts";
 import { DESK } from "../sides.ts";
 import { closedOn, firstClosed, floorInLine, floorName, freeAcross, hasExtra, heldForOther, holds, inRoom, nightFig, parseMoney, roomStatus, statusWord } from "./desk.ts";
-import { confirmCheckin, doCheckOut, emailFolio, openFolio, openSettle, printFolio, setRoomStatus } from "../desk.ts";
+import { cardWords, checkCard, confirmCheckin, doCheckOut, emailFolio, linen, linenCount, openFolio, openSettle, printFolio, putBackLinen, setRoomStatus } from "../desk.ts";
 
 type V = Record<string, unknown>;
 
@@ -220,6 +220,51 @@ export function deskOverlayVals(app: HouseApp, w: WorldV, v: V): void {
     };
   }
 
+  // ── back from the laundry
+  if (DESK && s.linenOpen && desk && app.linenOn) {
+    const rows = linen(app);
+    const resume = s.linenResume !== null;
+    v["ln"] = {
+      open: true,
+      sub: iso(`${strip(fDW(today))} · ${strip(fT(app.time))}`),
+      store: rows[0]?.store ?? "",
+      away: rows[0]?.away ?? "",
+      empty: rows.length === 0,
+      close: () => {
+        if (!app.state.linenBusy) app.setState({ linenOpen: false, linenErr: "", linenResume: null });
+      },
+      rows: rows.map((row) => {
+        const id = String(row.itemId);
+        const typed = s.linenCounts[id] ?? "";
+        const n = linenCount(typed);
+        const set = (value: string) => app.setState({ linenCounts: { ...app.state.linenCounts, [id]: value }, linenErr: "" });
+        return {
+          id,
+          fieldId: `ln-${id}`,
+          errId: `ln-${id}-err`,
+          label: row.name,
+          value: typed,
+          locked: s.linenBusy || resume,
+          onChange: (e: { target: { value: string } }) => set(e.target.value.replace(/[^0-9]/g, "").slice(0, 6)),
+          minus: () => set(String(Math.max(0, (n ?? 0) - 1))),
+          plus: () => set(String((n ?? 0) + 1)),
+          // What the row started at: said when the count typed is another.
+          noteOn: n !== null && n !== row.atLaundry,
+          note: iso(tr("The house had {n}", { n: row.atLaundry })),
+          errOn: n === null,
+          inv: n === null ? "true" : "false",
+          border: n === null ? "var(--danger)" : "var(--border-strong)",
+        };
+      }),
+      errOn: s.linenErr !== "",
+      err: s.linenErr,
+      busy: s.linenBusy,
+      busyAttr: s.linenBusy ? "true" : "false",
+      btnLabel: s.linenBusy ? tr("Putting them back") : resume ? tr("Try again") : tr("Put back in {place}", { place: rows[0]?.store ?? "" }),
+      confirm: () => void putBackLinen(app),
+    };
+  }
+
   // ── record a payment, or money given back
   const sst = app.stay(s.settleId) ?? fst;
   if (DESK && s.settleOpen && sst !== null && desk) {
@@ -239,12 +284,20 @@ export function deskOverlayVals(app: HouseApp, w: WorldV, v: V): void {
           : "";
     // Money given back says why: Adminium keeps the reason on the line.
     const noteErr = back && s.settleTouched && !s.settleNote.trim() ? tr("Say why it goes back") : "";
-    const ok = !bad && !over && !(back && !s.settleNote.trim());
-    const METHODS = [
-      { id: "card" as const, label: tr("Card") },
-      { id: "cash" as const, label: tr("Cash") },
-      { id: "transfer" as const, label: tr("Transfer") },
+    // A gift card pays what the house says it does: no amount is typed, the card is checked and then taken.
+    const gift = !back && s.settleMethod === "gift_card";
+    // Money back to the gift card a payment came from: that payment is named, never a code.
+    const toCard = back && s.settleAgainst !== null;
+    const check = gift ? s.cardCheck : null;
+    const ok = gift ? check !== null && !s.cardBusy : !bad && !over && !(back && !s.settleNote.trim());
+    const METHODS: { id: "card" | "cash" | "transfer" | "gift_card"; label: string }[] = [
+      { id: "card", label: tr("Card") },
+      { id: "cash", label: tr("Cash") },
+      { id: "transfer", label: tr("Transfer") },
+      // Only while Offers & gift cards is in use: without it there is no such way to pay.
+      ...(app.cardsOn && !back ? [{ id: "gift_card" as const, label: tr("Gift card") }] : []),
     ];
+    const runCheck = () => void checkCard(app, sst.id);
     v["se"] = {
       open: true,
       busy: s.sheetBusy === "se",
@@ -261,6 +314,32 @@ export function deskOverlayVals(app: HouseApp, w: WorldV, v: V): void {
       noteInv: noteErr ? "true" : "false",
       noteBorder: noteErr ? "var(--danger)" : "var(--border-strong)",
       isTransfer: s.settleMethod === "transfer",
+      gift,
+      toCard,
+      showMethods: !toCard,
+      showAmount: !gift,
+      showRef: !gift && !toCard,
+      card: {
+        code: s.cardCode,
+        onCode: (e: { target: { value: string } }) => app.setState({ cardCode: e.target.value, cardErr: "", cardCheck: null }),
+        onKey: (e: { key: string; preventDefault(): void }) => {
+          if (e.key !== "Enter") return;
+          e.preventDefault();
+          runCheck();
+        },
+        check: runCheck,
+        busy: s.cardBusy,
+        busyAttr: s.cardBusy ? "true" : "false",
+        checkLabel: s.cardBusy ? tr("Checking the card") : tr("Check the card"),
+        errOn: s.cardErr !== "",
+        err: s.cardErr,
+        inv: s.cardErr !== "" ? "true" : "false",
+        border: s.cardErr !== "" ? "var(--danger)" : "var(--border-strong)",
+        answerOn: check !== null,
+        taken: check === null ? "" : money(Number(check.amount)),
+        keeps: check === null ? "" : Number(check.balanceAfter) > 0.004 ? tr("The card keeps {amount}", { amount: strip(money(Number(check.balanceAfter))) }) : tr("Nothing left on the card"),
+        left: check === null ? "" : money(Number(check.due)),
+      },
       close: () => app.setState({ settleOpen: false, settleCap: null }),
       onAmount: (e: { target: { value: string } }) => app.setState({ settleAmount: e.target.value, settleTouched: true }),
       onRefNo: (e: { target: { value: string } }) => app.setState({ settleRefNo: e.target.value }),
@@ -268,7 +347,7 @@ export function deskOverlayVals(app: HouseApp, w: WorldV, v: V): void {
         id: m.id,
         label: m.label,
         pressed: s.settleMethod === m.id ? "true" : "false",
-        pick: () => app.setState({ settleMethod: m.id }),
+        pick: () => app.setState({ settleMethod: m.id, cardErr: "", cardCheck: null }),
         bg: s.settleMethod === m.id ? "var(--accent-soft)" : "var(--surface-2)",
         fg: s.settleMethod === m.id ? "var(--accent)" : "var(--fg-muted)",
         border: s.settleMethod === m.id ? "var(--accent)" : "var(--border-strong)",
@@ -281,20 +360,61 @@ export function deskOverlayVals(app: HouseApp, w: WorldV, v: V): void {
       err,
       inv: err ? "true" : "false",
       inputBorder: err ? "var(--danger)" : "var(--border-strong)",
-      foot: back ? tr("Give the money back first — this records it.") : tr("Take the money on your card machine, in cash or by transfer first — this records it."),
-      btnLabel: ok ? tr("Record {amount}", { amount: strip(money(amt)) }) : back ? tr("Record the money given back") : tr("Record the payment"),
+      foot: toCard
+        ? tr("It goes back onto the gift card it came from.")
+        : gift
+          ? tr("The house takes it from the card as you record it.")
+          : back
+            ? tr("Give the money back first — this records it.")
+            : tr("Take the money on your card machine, in cash or by transfer first — this records it."),
+      btnLabel: gift
+        ? check !== null
+          ? tr("Take {amount} from the card", { amount: strip(money(Number(check.amount))) })
+          : tr("Take it from the card")
+        : toCard && ok
+          ? tr("Give {amount} back to the card", { amount: strip(money(amt)) })
+          : ok
+            ? tr("Record {amount}", { amount: strip(money(amt)) })
+            : back
+              ? tr("Record the money given back")
+              : tr("Record the payment"),
       btnBg: ok ? "var(--accent)" : "var(--surface-3)",
       btnFg: ok ? "var(--accent-fg)" : "var(--fg-subtle)",
       btnCursor: ok ? "pointer" : "not-allowed",
       confirm: () => {
         if (!ok) return app.setState({ settleTouched: true });
         const S = app.state;
+        if (gift && check !== null) {
+          void app.once("se", () => app.write(
+            () => desk.recordCardPayment(sst.id, S.cardCode, check.amount),
+            (paid) => {
+              app.setState({ settleOpen: false, settleCap: null, blockId: null, cardCode: "", cardCheck: null });
+              const after = app.stay(sst.id);
+              const taken = strip(money(Number(paid["amount"] ?? check.amount)));
+              app.toast(after !== null && after.m.balance > 0.004 ? tr("{amount} from the gift card — {left} still on the account.", { amount: taken, left: strip(money(after.m.balance)) }) : tr("{amount} from the gift card. Nothing owing.", { amount: taken }));
+            },
+            // The card was spent, or the account moved, since the check: it is said under the field, and checked again.
+            (error) => app.setState({ cardCheck: null, cardErr: cardWords(app, error) }),
+          ));
+          return;
+        }
+        if (toCard) {
+          void app.once("se", () => app.write(
+            () => desk.giveBackToCard(sst.id, S.settleAgainst!, amt.toFixed(2), S.settleNote.trim()),
+            () => {
+              app.setState({ settleOpen: false, settleCap: null, settleAgainst: null, blockId: null });
+              app.toast(tr("{amount} back on the gift card.", { amount: strip(money(amt)) }));
+            },
+            (error) => app.toast(cardWords(app, error), "warn"),
+          ));
+          return;
+        }
         void app.once("se", () => app.write(
           () =>
             desk.recordPayment(sst.id, {
               kind: S.settleKind,
               amount: amt.toFixed(2),
-              method: S.settleMethod,
+              method: S.settleMethod === "gift_card" ? "card" : S.settleMethod,
               reference: S.settleMethod === "transfer" && S.settleRefNo.trim() ? S.settleRefNo.trim() : null,
               note: S.settleNote.trim() || null,
             }),

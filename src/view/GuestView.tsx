@@ -3,6 +3,7 @@
 import { Fragment } from "react";
 
 import { tr } from "../i18n/tr.ts";
+import { CodeField, CodeRows } from "./CodeBox.tsx";
 import { fx, Icon, st, trx } from "./dom.tsx";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1249,7 +1250,7 @@ export function GuestView({ v }: { v: any }) {
                         </div>
                       </div>
                       {" "}
-                      <div style={st("margin-block-start:15px;padding-block-start:14px;border-block-start:1px solid var(--border);display:flex;flex-direction:column;gap:7px")}>
+                      <div style={st(`margin-block-start:15px;padding-block-start:14px;border-block-start:1px solid var(--border);display:flex;flex-direction:column;gap:7px;opacity:${v.rv.code?.dim ?? "1"};transition:opacity .15s`)}>
                         <div style={st("display:flex;align-items:center;gap:8px")}>
                           <span style={st("font-size:12.5px;font-weight:700;color:var(--fg-muted)")}>
                             {tr("{nights} of room", { nights: v.rv.nightsLabel })}
@@ -1274,6 +1275,7 @@ export function GuestView({ v }: { v: any }) {
                           </Fragment>
                         ))}
                         {" "}
+                        <CodeRows v={v.rv.code} />
                         <div style={st("display:flex;align-items:center;gap:8px")}>
                           <span style={st("font-size:12.5px;color:var(--fg-muted)")}>
                             {v.taxLabel}
@@ -1303,6 +1305,7 @@ export function GuestView({ v }: { v: any }) {
                       <p style={st("margin:8px 0 0;font-size:12.5px;font-weight:600;line-height:1.5;color:var(--fg-muted)")}>
                         {v.rv.payNote}
                       </p>
+                      <CodeField v={v.rv.code} />
                       {" "}
                       {v.rv.goneOn ? (
                         <>
@@ -2114,6 +2117,48 @@ export function GuestView({ v }: { v: any }) {
               </>
             ) : null}
             {" "}
+            {v.showGiftCard ? (
+              <>
+                <section style={st("animation:wh-fade .22s ease-out;max-inline-size:480px;margin-inline:auto;padding-block:20px")}>
+                  <h1 tabIndex={-1} style={st(`margin:0;font-size:${v.h1Size};font-weight:800;letter-spacing:-.02em`)}>
+                    {tr("Gift card balance")}
+                  </h1>
+                  <p style={st("margin:10px 0 0;font-size:14px;line-height:1.6;color:var(--fg-muted);text-wrap:pretty")}>
+                    {tr("Type the code on your gift card to see what is on it.")}
+                  </p>
+                  <div style={st("margin-block-start:18px;padding:18px;border:1px solid var(--border);border-radius:14px;background:var(--surface)")}>
+                    <label htmlFor="gc-code" style={st("display:block;font-size:12px;font-weight:700;color:var(--fg-muted);margin-block-end:6px")}>
+                      {tr("Gift card code")}
+                    </label>
+                    <div style={st("display:flex;gap:8px;flex-wrap:wrap")}>
+                      <input id="gc-code" value={v.gc.code ?? ""} onChange={v.gc.onCode} onKeyDown={v.gc.onKey} placeholder="GC-0000-0000-0000" autoComplete="off" autoCapitalize="characters" spellCheck={false} aria-invalid={v.gc.inv} aria-describedby="gc-err" style={st(`flex:1;min-inline-size:200px;padding:11px 12px;border:1px solid ${v.gc.border};border-radius:10px;background:var(--surface-2);color:var(--fg);font-family:var(--mono);font-size:14px;font-weight:600;text-transform:uppercase;direction:ltr`)} />
+                      <button type="button" onClick={v.gc.check} disabled={v.gc.busy} aria-busy={v.gc.busyAttr} style={st("padding:11px 16px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-fg);font-size:13.5px;font-weight:700;cursor:pointer;white-space:nowrap")}>
+                        {v.gc.btnLabel}
+                      </button>
+                    </div>
+                    {v.gc.errOn ? (
+                      <div id="gc-err" role="alert" style={st("margin-block-start:9px;font-size:13px;font-weight:700;line-height:1.5;color:var(--danger)")}>
+                        {v.gc.err}
+                      </div>
+                    ) : null}
+                    {v.gc.cardOn ? (
+                      <div role="status" style={st("margin-block-start:14px;padding:14px;border-radius:12px;background:var(--surface-2);border:1px solid var(--border)")}>
+                        <div style={st("font-size:12px;font-weight:700;color:var(--fg-muted)")}>
+                          {tr("On the card")}
+                        </div>
+                        <div style={st("margin-block-start:4px;font-family:var(--mono);font-size:26px;font-weight:700;letter-spacing:-.02em")}>
+                          {v.gc.balance}
+                        </div>
+                        <div style={st("margin-block-start:6px;font-size:13px;color:var(--fg-muted)")}>
+                          {v.gc.expiry}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                </section>
+              </>
+            ) : null}
+            {" "}
             {v.show404 ? (
               <>
                 <section style={st("animation:wh-fade .22s ease-out;max-inline-size:560px;margin-inline:auto;text-align:center;padding-block:40px 20px")}>
@@ -2150,7 +2195,12 @@ export function GuestView({ v }: { v: any }) {
               {v.footLine}
             </span>
             {" "}
-            <div style={st("display:flex;align-items:center;gap:12px")}>
+            <div style={st("display:flex;align-items:center;gap:12px;flex-wrap:wrap")}>
+              {v.cardsOn ? (
+                <button type="button" onClick={v.goGiftCard} style={st("padding:0;border:0;background:transparent;font-size:12.5px;font-weight:600;color:var(--fg-muted);text-decoration:underline;cursor:pointer")}>
+                  {tr("Gift card balance")}
+                </button>
+              ) : null}
               <label style={st("display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--fg-subtle)")}>
                 <span data-icon="languages" style={st("display:inline-flex;inline-size:14px;block-size:14px")}><Icon name={"languages"} /></span>
                 <span className="wh-sr">{v.langLabel}</span>

@@ -8,6 +8,7 @@
 import type { NightAnswer, QuoteReply, TypeAvailability } from "../../data/wire.ts";
 import { key, locale, tr } from "../../i18n/tr.ts";
 import { days, dow, fD, fDW, fT, guestsW, fsi, iso, money, money0, nights, nightsOf, people, plus, strip, taxWords } from "../fmt.ts";
+import { codeVals } from "../codes.ts";
 import { okEmail, type HouseApp } from "../house.ts";
 import type { ExtraV, StV, TypeV, WorldV } from "../world.ts";
 
@@ -152,7 +153,12 @@ export function guestVals(app: HouseApp, w: WorldV): V {
     showSignin: view === "signin" || ((view === "list" || view === "one") && !signedOk),
     showList: view === "list" && signedOk,
     showOne: view === "one" && signedOk,
-    show404: view === "404",
+    // The balance page is Offers & gift cards': without it in use, this house has no such page.
+    showGiftCard: view === "giftcard" && app.cardsOn,
+    show404: view === "404" || (view === "giftcard" && !app.cardsOn),
+    cardsOn: app.cardsOn,
+    goGiftCard: () => app.go("giftcard", { gcCode: "", gcAnswer: null }),
+    gc: giftCardVals(app),
     showLookup: false,
     h1Size: narrow ? "24px" : "29px",
     heroPad: narrow ? "26px 20px 54px" : "40px 34px 62px",
@@ -442,7 +448,7 @@ export function guestVals(app: HouseApp, w: WorldV): V {
       deskOnly: stage === "desk",
       cancelNote: cancelNote(app, bs.arrive, true, bs.cancelBy),
       nights: nightList({ nights: b.nights } as QuoteReply),
-      lines: lineRows(bs, H.lateUntil),
+      lines: [...lineRows(bs, H.lateUntil), ...reductionRows(bs)],
       tax: money(bs.m.tax),
       total: money(bs.m.total),
       emailLine: H.emailsOn
@@ -633,6 +639,23 @@ function offer(app: HouseApp, t: TypeV, a: TypeAvailability | undefined, q: Quot
   };
 }
 
+/**
+ * What codes and vouchers took off a stay, one line each as Adminium names
+ * them — a voucher as "Voucher · One night", with the last four of its code
+ * and never more. When Adminium no longer says what they were (Offers & gift
+ * cards has gone since), the stay's own figure stands as one line.
+ */
+export function reductionRows(st: StV) {
+  if (st.applied.length > 0) {
+    return st.applied.map((one) => {
+      const voucher = one.kind === "voucher" || one.kind === "pack";
+      const name = voucher ? tr("Voucher · {name}", { name: one.name }) : one.name;
+      return { label: voucher && one.codeLast4 ? `${name} ${iso(`···· ${one.codeLast4}`)}` : name, amount: iso(`− ${strip(money(Number(one.amount)))}`) };
+    });
+  }
+  return st.m.discount > 0.004 ? [{ label: tr("Reductions"), amount: iso(`− ${strip(money(st.m.discount))}`) }] : [];
+}
+
 /** A stay's extras as money lines: "Breakfast in the dining room · 2 people × 3 nights". */
 export function lineRows(st: StV, lateUntil: string) {
   return st.lines.filter((l) => l.on).map((l) => ({ label: `${l.label} · ${extraDetail(l.per, l.guests, l.nights, lateUntil)}`, amount: money(l.amount) }));
@@ -643,9 +666,16 @@ function reserveVals(app: HouseApp, w: WorldV, pt: TypeV, n: number, guests: num
   const sr = s.search;
   const f = s.form;
   const picked = app.pickedExtras(f);
-  const qa = app.quote(pt.id, sr.arrive, sr.depart, guests, picked);
+  const qa = app.quote(pt.id, sr.arrive, sr.depart, guests, picked, s.codes);
   const q = qa.value;
   const wait = iso(q === undefined && qa.error ? "—" : "…");
+  // "Apply" prices the same stay once more, with the typed code beside the ones it has.
+  const withCodes = (codes: string[]) =>
+    app.ports.guest!.quote({
+      values: { room_type_id: Number(pt.id), arrive: sr.arrive, depart: sr.depart, guests },
+      children: { stay_extras: picked.map((extra_id) => ({ values: { extra_id: Number(extra_id) } })), stay_codes: codes.map((typed) => ({ values: { typed } })) },
+    });
+  const code = codeVals(app, q, withCodes, tr("The code you were given"));
   const setF = (k: keyof typeof f) => (e: { target: { value: string } }) => app.setState({ form: { ...app.state.form, [k]: e.target.value } });
   const firstErr = s.formErr && !f.first.trim() ? tr("Your first name") : "";
   const lastErr = s.formErr && !f.last.trim() ? tr("Your surname") : "";
@@ -723,6 +753,7 @@ function reserveVals(app: HouseApp, w: WorldV, pt: TypeV, n: number, guests: num
     }),
     nightsLabel: nights(n),
     roomTotal: q === undefined ? wait : money(q.data["room_total"]),
+    code,
     lines,
     tax: q === undefined ? wait : money(q.data["tax"]),
     total: q === undefined ? wait : money(q.data["total"]),
@@ -741,7 +772,7 @@ function reserveVals(app: HouseApp, w: WorldV, pt: TypeV, n: number, guests: num
     hasAlts: alts.length > 0,
     priceOn: A?.kind === "price",
     priceMsg: A?.kind === "price" ? tr("The price for these dates is now {total} — it was {was} when you looked.", { total: strip(money(A.total)), was: strip(money(A.was)) }) : "",
-    priceRows: A?.kind === "price" ? nightList(app.quote(pt.id, sr.arrive, sr.depart, guests, picked).value) : [],
+    priceRows: A?.kind === "price" ? nightList(app.quote(pt.id, sr.arrive, sr.depart, guests, picked, s.codes).value) : [],
     acceptLabel: A?.kind === "price" ? tr("Reserve at {total}", { total: strip(money(A.total)) }) : "",
     accept: () => void app.reserve(true),
     ruleOn: A?.kind === "rule",
@@ -749,6 +780,34 @@ function reserveVals(app: HouseApp, w: WorldV, pt: TypeV, n: number, guests: num
     downOn: A?.kind === "down",
     changeDates: () => app.go("home", { rvAnswer: null }),
     payNote: tr("Nothing is taken online. You settle at the desk."),
+  };
+}
+
+/** The gift card balance page: one field, and one answer. */
+function giftCardVals(app: HouseApp): V {
+  const s = app.state;
+  const a = s.gcAnswer;
+  const check = () => void app.cardBalance({ code: app.state.gcCode });
+  const bad = a?.kind === "none" || a?.kind === "short" || a?.kind === "wait";
+  return {
+    code: s.gcCode,
+    onCode: (e: { target: { value: string } }) => app.setState({ gcCode: e.target.value, gcAnswer: null }),
+    onKey: (e: { key: string; preventDefault(): void }) => {
+      if (e.key !== "Enter") return;
+      e.preventDefault();
+      check();
+    },
+    check,
+    busy: s.gcBusy,
+    busyAttr: s.gcBusy ? "true" : "false",
+    btnLabel: s.gcBusy ? tr("Checking") : tr("See the balance"),
+    cardOn: a?.kind === "card",
+    balance: a?.kind === "card" ? money(Number(a.balance)) : "",
+    expiry: a?.kind === "card" ? (a.expiresOn === null ? tr("Does not expire") : tr("Use it by {date}", { date: strip(fDW(a.expiresOn)) })) : "",
+    errOn: bad,
+    err: a?.kind === "wait" ? tr("Too many tries at once — wait a moment and try again.") : a?.kind === "short" ? tr("A gift card code has twelve letters and numbers after GC.") : a?.kind === "none" ? tr("That code is not valid.") : "",
+    inv: bad ? "true" : "false",
+    border: bad ? "var(--danger)" : "var(--border-strong)",
   };
 }
 
@@ -779,6 +838,7 @@ function oneVals(app: HouseApp, w: WorldV, st: StV, gp: (x: StV) => [string, str
     .concat(lineRows(st, H.lateUntil).map((x, i) => ({ id: `x${String(i)}`, ...x })))
     .concat(st.charges.filter((x) => !x.voided).map((x, i) => ({ id: `c${String(i)}`, label: x.label + (x.note ? ` — ${x.note}` : ""), amount: money(x.amount) })))
     .concat(credits.map((x, i) => ({ id: `k${String(i)}`, label: creditLabel(x), amount: iso(`− ${strip(money(x.amount))}`) })))
+    .concat(reductionRows(st).map((x, i) => ({ id: `d${String(i)}`, ...x })))
     .concat([
       { id: "tx", label: taxWords(st.m.taxLabel || H.taxLabel, st.m.taxRate || H.taxRate), amount: money(st.m.tax) },
       { id: "tt", label: tr("Total"), amount: money(st.m.total) },

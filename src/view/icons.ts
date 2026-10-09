@@ -3,6 +3,8 @@
  * a name the house typed that is not here (an extra's or a note's icon) draws a plain circle.
  */
 import {
+  WashingMachine,
+  Gift,
   AppWindow,
   ArrowLeft,
   ArrowLeftRight,
@@ -178,6 +180,8 @@ export const ICONS: Record<string, LucideIcon> = {
   "sun": Sun,
   "sunrise": Sunrise,
   "tag": Tag,
+  "gift": Gift,
+  "washing-machine": WashingMachine,
   "train-front": TrainFront,
   "trash-2": Trash2,
   "trees": Trees,

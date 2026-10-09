@@ -9,10 +9,11 @@ import type { Id } from "../../data/wire.ts";
 import { LOCALE_TAGS } from "../../i18n/locales.ts";
 import { tr } from "../../i18n/tr.ts";
 import { dow, fD, fDW, fLong, fT, fWd, guestsW, fsi, iso, money, nights, nightsOf, pct, plus, runMoney, strip, taxWords } from "../fmt.ts";
+import { codeVals } from "../codes.ts";
 import { okEmail, type HouseApp, type View } from "../house.ts";
 import type { RoomV, StV, WorldV } from "../world.ts";
 import { creditLabel, extraDetail, pillOf, timeOptions } from "./guest.ts";
-import { blankNb, cameAfterAll, counts, emailFolio, folio as folioOf, markNoShow, nbChanged, openCheckin, openEdit, openFolio, openRoom, openSettle, printFolio, saveNb, setRoomStatus, signOutStaff } from "../desk.ts";
+import { blankNb, cameAfterAll, counts, emailFolio, folio as folioOf, linen, markNoShow, nbChanged, openCheckin, openEdit, openFolio, openGiveBackToCard, openLinen, openRoom, openSettle, printFolio, saveNb, setRoomStatus, signOutStaff } from "../desk.ts";
 
 type V = Record<string, unknown>;
 export type RoomState = "ready" | "occupied" | "cleaning" | "oos";
@@ -444,6 +445,17 @@ export function deskVals(app: HouseApp, w: WorldV): V {
   const tmrF = w.types.map((t) => nightFig(app, w, t.id, tmr));
   const tmrSell = tmrF.reduce((a, f) => a + f.cap, 0);
   const tmrSold = tmrF.reduce((a, f) => a + f.sold, 0);
+  // The linen, as Inventory's books hold it: nothing is shown without it, or before the house has linked its room types.
+  v["linen"] = linen(app).map((row) => ({
+    id: String(row.itemId),
+    text: tr("{n} {item} in {place} · {m} {toPlace}", { n: row.inStore, item: row.name, place: row.store, m: row.atLaundry, toPlace: row.away }),
+    inStore: iso(String(row.inStore)),
+    item: row.name,
+    store: row.store,
+    atLaundry: iso(String(row.atLaundry)),
+    away: row.away,
+  }));
+  v["linenOn"] = app.linenOn && (v["linen"] as unknown[]).length > 0;
   v["tomorrow"] = {
     label: iso(fLong(tmr)),
     arrivals: iso(String(stays.filter((x) => x.state === "booked" && x.arrive === tmr).length)),
@@ -479,6 +491,9 @@ export function deskVals(app: HouseApp, w: WorldV): V {
 
   // ── the rack
   v["hk"] = hk;
+  // "Back from the laundry": always there while Inventory is in use — more may come back than the books hold.
+  v["linenBtn"] = app.linenOn;
+  v["openLinen"] = () => openLinen(app);
   v["notHk"] = !hk;
   const statusOf = (r: RoomV) => roomStatus(r, today);
   v["rackLegend"] = (["ready", "occupied", "cleaning", "oos"] as RoomState[]).map((k) => {
@@ -719,12 +734,15 @@ function nbVals(app: HouseApp, w: WorldV): V {
   const type = inStay ? ed.type : nb.type;
   const t = type === null ? null : w.typeById[type] ?? null;
 
+  // A guest the desk has linked the booking to is named in its price too: a code for one guest asks who it is for.
+  const linkedTo = nb.link === "yes" && okEmail(nb.email.trim()) ? app.peek<{ customer: { id: number } } | null>(`guest-by-email:${nb.email.trim().toLowerCase()}`) : null;
+  const named: Record<string, unknown> = linkedTo === null || linkedTo === undefined ? {} : { customer_id: linkedTo.customer.id };
   // What Adminium would write: a new stay's price, or the change to this one.
   let draft: QuoteReply | undefined;
   let draftErr: unknown;
   if (t !== null && nbProblem === null) {
     if (ed === null) {
-      const a = app.quote(t.id, nb.arrive, nb.depart, nb.guests, picked);
+      const a = app.quote(t.id, nb.arrive, nb.depart, nb.guests, picked, s.codes, named);
       draft = a.value;
       draftErr = a.error;
     } else {
@@ -863,6 +881,20 @@ function nbVals(app: HouseApp, w: WorldV): V {
     nightsLabel: nbN >= 1 ? nights(nbN) : iso("—"),
     nightRows: (draft?.nights ?? []).map((r) => ({ id: r.date, label: iso(strip(fDW(r.date)) + (r.tags.length ? ` · ${r.tags.join(" · ")}` : "")), amount: money(r.rate) })),
     roomSub: draft === undefined ? "" : money(draft.data["room_total"]),
+    // A code is typed when the booking is taken: a stay already on the books shows what it has, and no field.
+    code: {
+      ...codeVals(
+        app,
+        draft,
+        (codes) =>
+          app.ports.desk!.quote({
+            values: { room_type_id: Number(t?.id), arrive: nb.arrive, depart: nb.depart, guests: nb.guests, ...named },
+            children: { stay_extras: picked.map((extra_id) => ({ values: { extra_id: Number(extra_id) } })), stay_codes: codes.map((typed) => ({ values: { typed } })) },
+          }),
+        tr("From the guest"),
+      ),
+      field: ed === null && app.codesOn && t !== null,
+    },
     extraLines: lines,
     knownOn: known !== null,
     knownLine: known === null ? "" : tr("{name} already stays with us ({n} reservation)|{name} already stays with us ({n} reservations)", { name: knownName, n: known.stays }),
@@ -929,7 +961,7 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
   let run = 0;
   const r2 = (x: number) => Math.round(x * 100) / 100;
   const row = (o: V) =>
-    rows.push({ hasDetail: !!o["detail"], weight: "600", labelFg: "var(--fg)", amountFg: "var(--fg)", rowBg: "transparent", strike: "none", menu: false, menuOpen: false, lockOn: false, tipOpen: false, ...o });
+    rows.push({ hasDetail: !!o["detail"], weight: "600", labelFg: "var(--fg)", amountFg: "var(--fg)", rowBg: "transparent", strike: "none", menu: false, menuOpen: false, lockOn: false, tipOpen: false, backToCard: false, canVoid: true, ...o });
   const boss = app.isManager();
   // Voids are a manager's: the desk sees why there is no menu on hover or focus.
   const voidable = (key: string, target: NonNullable<typeof s.voidT>) => ({
@@ -989,6 +1021,17 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
       ...(c.voided || !boss ? {} : { ...voidable(`credit:${String(c.id)}`, { table: "stay_credits", id: c.id, amount: c.amount, what: creditLabel(c), isPay: false, stay: fst.id }), lockOn: false }),
     });
   });
+  // What codes and vouchers took off, before the tax: by name while Adminium says what they were, else the stay's own figure.
+  if (fst.applied.length > 0) {
+    fst.applied.forEach((one, i) => {
+      run = r2(run - Number(one.amount));
+      const voucher = one.kind === "voucher" || one.kind === "pack";
+      row({ id: `d${String(i)}`, label: voucher ? tr("Paid by voucher · {name}", { name: one.name }) : one.name, detail: voucher ? tr("Voucher") : tr("Code"), amount: iso(`− ${strip(money(Number(one.amount)))}`), balance: runMoney(run), amountFg: "var(--pos)" });
+    });
+  } else if (fst.m.discount > 0.004) {
+    run = r2(run - fst.m.discount);
+    row({ id: "d0", label: tr("Reductions"), detail: "", amount: iso(`− ${strip(money(fst.m.discount))}`), balance: runMoney(run), amountFg: "var(--pos)" });
+  }
   run = r2(run + fst.m.tax);
   row({ id: "tx", label: taxWords(fst.m.taxLabel || w.H.taxLabel, fst.m.taxRate || w.H.taxRate), detail: "", amount: money(fst.m.tax), balance: money(run), labelFg: "var(--fg-muted)", amountFg: "var(--fg-muted)" });
   const dead = fst.state === "cancelled" || fst.state === "noshow";
@@ -1010,7 +1053,11 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
   fst.pays.forEach((p) => {
     const back = p.kind === "given_back";
     if (!p.voided) run = r2(back ? run + p.amount : run - p.amount);
-    const how = p.method === "cash" ? tr("Cash") : p.method === "transfer" ? tr("Transfer") : tr("Card");
+    const card = p.method === "gift_card";
+    const how = p.method === "cash" ? tr("Cash") : p.method === "transfer" ? tr("Transfer") : card ? strip(tr("Gift card ···· {last4}", { last4: p.last4 })) : tr("Card");
+    // What a gift card's payment can still give back: what it took, less what already went back to it.
+    const returned = fst.pays.filter((x) => x.kind === "given_back" && !x.voided && x.against === p.id).reduce((sum, x) => r2(sum + x.amount), 0);
+    const canReturn = card && !back && !p.voided && app.cardsOn ? r2(p.amount - returned) : 0;
     row({
       id: `p${String(p.id)}`,
       // money given back is its own line.
@@ -1022,7 +1069,13 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
       amountFg: p.voided ? "var(--fg-subtle)" : back ? "var(--warn)" : "var(--pos)",
       labelFg: p.voided ? "var(--fg-subtle)" : "var(--fg)",
       rowBg: "var(--surface-2)",
-      ...(p.voided ? {} : voidable(`pay:${String(p.id)}`, { table: "payments", id: p.id, amount: p.amount, what: p.method === "cash" ? tr("cash") : p.method === "transfer" ? tr("transfer") : tr("card"), isPay: true, stay: fst.id })),
+      ...(p.voided ? {} : voidable(`pay:${String(p.id)}`, { table: "payments", id: p.id, amount: p.amount, what: p.method === "cash" ? tr("cash") : p.method === "transfer" ? tr("transfer") : card ? tr("gift card") : tr("card"), isPay: true, stay: fst.id })),
+      // Money back to the card it came from: for whoever may record money given back.
+      backToCard: canReturn > 0.004,
+      giveBackToCard: () => openGiveBackToCard(app, fst.id, p.id, canReturn),
+      // The line's menu is there for the desk too when it can give money back to the card; voiding stays a manager's.
+      ...(canReturn > 0.004 && !boss ? { menu: true, menuOpen: s.rowMenu === `pay:${String(p.id)}`, lockOn: false, tipOpen: false, toggleMenu: () => app.setState({ rowMenu: app.state.rowMenu === `pay:${String(p.id)}` ? null : `pay:${String(p.id)}` }) } : {}),
+      canVoid: boss && !p.voided,
     });
   });
   const bal = fst.m.balance;
