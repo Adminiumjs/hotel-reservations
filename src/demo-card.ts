@@ -70,6 +70,7 @@ export const DEMO_SCREENS: DemoCardScreen[] = [
     cut("room-goes", "door-closed"),
     cut("reserve-offline", "wifi-off"),
     cut("price-moves", "tag"),
+    cut("code-midweek", "tag"),
   ]),
   guest("conf", "conf", "circle-check", [cut("no-emails", "mail-x")]),
   guest("signin", "signin", "key-round", [
@@ -86,6 +87,7 @@ export const DEMO_SCREENS: DemoCardScreen[] = [
     cut("move-nadia", "calendar-range"),
     cut("close-309", "wrench"),
   ]),
+  guest("giftcard", "giftcard", "gift", [cut("card-balance", "gift")]),
   guest("guest-404", "404", "file-x"),
   desk("today", "today", "sun", [
     cut("checkin-ren", "log-in"),
@@ -97,8 +99,8 @@ export const DEMO_SCREENS: DemoCardScreen[] = [
     cut("after-22", "key-round"),
     cut("sorley", "user-x"),
   ]),
-  desk("newbooking", "newbooking", "calendar-plus", [cut("known-guest", "user-round"), cut("snug-three", "users"), cut("type-goes", "door-closed")]),
-  desk("rack", "rack", "grid-3x3", [cut("close-304", "wrench"), cut("housekeeping", "spray-can")]),
+  desk("newbooking", "newbooking", "calendar-plus", [cut("known-guest", "user-round"), cut("snug-three", "users"), cut("type-goes", "door-closed"), cut("desk-code", "tag")]),
+  desk("rack", "rack", "grid-3x3", [cut("close-304", "wrench"), cut("housekeeping", "spray-can"), cut("linen-back", "washing-machine")]),
   desk("calendar", "calendar", "calendar-days"),
   desk("reservations", "reservations", "list"),
   desk("folio", "folio", "receipt-text", [
@@ -109,6 +111,7 @@ export const DEMO_SCREENS: DemoCardScreen[] = [
     cut("late-cancel", "calendar-x"),
     cut("noshow-paid", "user-x"),
     cut("another-desk", "users"),
+    cut("pay-gift-card", "gift"),
   ]),
   desk("desk-404", "404", "triangle-alert"),
 ];

@@ -14,7 +14,7 @@ import { Scenes } from "./demo/scenes.ts";
 import { DEMO_CARD_MESSAGES } from "./i18n/strings/demo-card.ts";
 import { offences } from "./testing/lexicon.ts";
 
-const VIEWS = ["home", "rooms", "find", "results", "type", "reserve", "conf", "signin", "list", "one", "404", "today", "newbooking", "rack", "calendar", "reservations", "folio"];
+const VIEWS = ["home", "rooms", "find", "results", "type", "reserve", "conf", "signin", "list", "one", "giftcard", "404", "today", "newbooking", "rack", "calendar", "reservations", "folio"];
 
 describe("the demo card", () => {
   const doc = buildDemoJson({
@@ -38,8 +38,8 @@ describe("the demo card", () => {
     expect(demoJsonIssues(doc, { appKey: "hotel", dir: "hotel-reservations" })).toEqual([]);
   });
 
-  it("offers the house's eighteen screens, each one the house has", () => {
-    expect(doc.screens).toHaveLength(18);
+  it("offers the house's nineteen screens, each one the house has", () => {
+    expect(doc.screens).toHaveLength(19);
     for (const screen of DEMO_SCREENS) expect(VIEWS).toContain(screen.view);
   });
 

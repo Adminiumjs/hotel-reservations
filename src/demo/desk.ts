@@ -6,7 +6,7 @@
  * DEMO BUILD ONLY — nothing in a real build imports it.
  */
 import type { DeskHouse, DeskPerson, DeskPort, Folio, StayWithLines } from "../data/ports.ts";
-import { ApiError, type LinenRow, isApiError, type Id, type LiveFrame, type NightCount, type QuoteReply, type Row, type StayBody, type StayReply } from "../data/wire.ts";
+import { ApiError, type CardCheck, type CodeFound, type LinenReply, type LinenRow, isApiError, type Id, type LiveFrame, type NightCount, type QuoteReply, type Row, type StayBody, type StayReply } from "../data/wire.ts";
 import { addDays } from "../lib/venueTime.ts";
 import { byPosition, Engine, notFound, refusedValue, type Writer } from "./engine.ts";
 
@@ -47,26 +47,47 @@ export class DemoDesk implements DeskPort {
 
   async config() {
     // The demo's house has Invoices & Receipts: its folio prints and emails (the demo sends nothing).
-    return { timezone: this.world.zone, currency: this.world.currency, now: new Date(this.engine.now).toISOString(), folio: true };
+    // …and counts its linen, takes a code and a gift card: the demo's own stand-ins (`offers.ts`), never an add-on.
+    return { timezone: this.world.zone, currency: this.world.currency, now: new Date(this.engine.now).toISOString(), folio: true, linen: true, codes: true, giftCards: true };
   }
 
-  async lookUpCode(_code: string): Promise<null> {
-    return null;
+  async lookUpCode(code: string): Promise<CodeFound | null> {
+    const card = this.engine.addOns.balance(code);
+    return card === null ? null : { kind: "gift-card", last4: code.replace(/[^A-Za-z0-9]/g, "").slice(-4).toUpperCase(), record: { status: "active", balance: card.balance, expires_on: null } };
   }
-  async quoteCard(_stayId: Id, _code: string): Promise<never> {
-    throw new ApiError(409, "POSTING_REFUSED", "Gift cards are not in use.", { ledger: "value", reason: "add-on-unavailable" });
+  async quoteCard(stayId: Id, code: string): Promise<CardCheck> {
+    const stay = this.world.get("stays", stayId);
+    if (stay === undefined) throw notFound("staff");
+    return this.engine.addOns.check(stay, code);
   }
-  async recordCardPayment(_stayId: Id, _code: string, _amount: string): Promise<never> {
-    throw new ApiError(409, "POSTING_REFUSED", "Gift cards are not in use.", { ledger: "value", reason: "add-on-unavailable" });
+  async recordCardPayment(stayId: Id, code: string, amount: string): Promise<Row> {
+    return this.engine.write(() => {
+      this.engine.judgeCreate("payments", this.writer);
+      const stay = this.world.get("stays", stayId);
+      if (stay === undefined) throw notFound("staff");
+      const took = this.engine.addOns.spend(stay, code, amount);
+      const row = this.world.insert("payments", { stay_id: stayId, kind: "taken", amount: took.amount, method: "gift_card", reference: null, note: null, voided: false, void_reason: null, voided_at: null, voided_by: null, card_last4: took.last4, card_balance_after: took.balanceAfter, asked: took.amount });
+      Object.assign(row, this.engine.stampsFor("payments", null, row, this.writer));
+      this.engine.addOns.spent(row.id, code, took.amount);
+      return { ...row };
+    });
   }
-  async giveBackToCard(_stayId: Id, _paymentId: Id, _amount: string, _note: string): Promise<never> {
-    throw new ApiError(409, "POSTING_REFUSED", "Gift cards are not in use.", { ledger: "value", reason: "add-on-unavailable" });
+  async giveBackToCard(stayId: Id, paymentId: Id, amount: string, note: string): Promise<Row> {
+    return this.engine.write(() => {
+      this.engine.judgeCreate("payments", this.writer);
+      if (empty(note)) throw refusedValue("note", "required", "staff");
+      this.engine.addOns.giveBack(paymentId, amount);
+      const row = this.world.insert("payments", { stay_id: stayId, kind: "given_back", amount: Number(amount), method: "gift_card", reference: null, note: note.trim(), voided: false, void_reason: null, voided_at: null, voided_by: null, against_id: paymentId });
+      Object.assign(row, this.engine.stampsFor("payments", null, row, this.writer));
+      return { ...row };
+    });
   }
   async linen(): Promise<LinenRow[]> {
-    return [];
+    return this.engine.addOns.linen();
   }
-  async putBackLinen(_rows: { itemId: Id; qty: number }[]): Promise<never> {
-    throw new ApiError(404, "NOT_FOUND", "Inventory is not in use.");
+  async putBackLinen(rows: { itemId: Id; qty: number }[]): Promise<LinenReply> {
+    const over = this.engine.addOns.putBack(rows);
+    return { done: true, transferId: 1, moved: rows.filter((row) => row.qty > 0).map((row) => row.itemId), left: [], over };
   }
 
   async house(): Promise<DeskHouse> {
@@ -87,7 +108,8 @@ export class DemoDesk implements DeskPort {
 
   private lines(stay: Row): StayWithLines {
     const of = (table: "stay_extras" | "charges" | "stay_credits" | "payments") => this.world.where(table, (row) => row["stay_id"] === stay.id).map((row) => ({ ...row }));
-    return { stay: { ...stay }, extras: of("stay_extras"), charges: of("charges"), credits: of("stay_credits"), payments: of("payments") };
+    const applied = this.engine.addOns.applied(this.world, stay.id);
+    return { stay: { ...stay }, extras: of("stay_extras"), charges: of("charges"), credits: of("stay_credits"), payments: of("payments"), ...(applied === undefined ? {} : { applied }) };
   }
 
   async stays(): Promise<StayWithLines[]> {
@@ -128,10 +150,15 @@ export class DemoDesk implements DeskPort {
   async quote(body: StayBody): Promise<QuoteReply> {
     const values = this.bookingValues({ first_name: "—", ...body.values });
     const extras = body.children.stay_extras.map((c) => Number(c.values["extra_id"]));
+    const codes = (body.children.stay_codes ?? []).map((c) => c.values.typed);
+    this.engine.addOns.judge(codes, "staff");
     return this.engine.dry(() => {
       this.engine.judgeCreate("stays", this.writer);
       const { stay, lines } = this.engine.createStay(values, extras, this.writer);
+      const applied = this.engine.addOns.price(this.world, stay.id, codes);
       return () => ({
+        applied,
+        told: [],
         data: { ...this.world.get("stays", stay.id)! },
         nights: this.engine.nights(stay),
         children: { stay_extras: lines.map((line) => ({ data: { ...this.world.get("stay_extras", line.id)! } })) },
@@ -148,9 +175,12 @@ export class DemoDesk implements DeskPort {
     }
     const values = this.bookingValues(body.values);
     const extras = body.children.stay_extras.map((c) => Number(c.values["extra_id"]));
+    const codes = (body.children.stay_codes ?? []).map((c) => c.values.typed);
+    this.engine.addOns.judge(codes, "staff");
     const made = this.engine.write(() => {
       this.engine.judgeCreate("stays", this.writer);
       const result = this.engine.createStay(values, extras, this.writer);
+      this.engine.addOns.price(this.world, result.stay.id, codes);
       this.world.settle();
       const expected = body.expect?.total;
       if (expected !== undefined && Math.round(Number(expected) * 100) !== Math.round(Number(result.stay["total"]) * 100)) {
@@ -158,6 +188,7 @@ export class DemoDesk implements DeskPort {
       }
       return result;
     });
+    this.engine.addOns.keep(made.stay.id, codes);
     return { data: { ...this.world.get("stays", made.stay.id)! }, children: { stay_extras: made.lines.map((l) => ({ data: { ...l } })) } };
   }
 
@@ -172,6 +203,7 @@ export class DemoDesk implements DeskPort {
           else if (line === undefined) this.engine.addLine(this.world.get("stays", id)!, extraId, this.writer);
         } else if (line !== undefined && line["state"] !== "off") this.world.update("stay_extras", line.id, { state: "off" });
       }
+      this.engine.addOns.price(this.world, id);
       return () => ({
         data: { ...this.world.get("stays", id)! },
         nights: this.engine.nights(this.world.get("stays", id)!),
@@ -195,6 +227,7 @@ export class DemoDesk implements DeskPort {
         } else if (line !== undefined && line["state"] !== "off") this.world.update("stay_extras", line.id, { state: "off" });
       }
       if (extras.length > 0) this.engine.judgeExtras(id, "staff");
+      this.engine.addOns.price(this.world, id);
       this.world.settle();
       if (expectTotal !== undefined && Math.round(Number(expectTotal) * 100) !== Math.round(Number(row["total"]) * 100)) {
         throw new ApiError(409, "PRICE_CHANGED", "The price has changed.", { total: Number(row["total"]).toFixed(2) });
@@ -230,7 +263,10 @@ export class DemoDesk implements DeskPort {
   }
 
   async checkOut(id: Id): Promise<Row> {
-    return this.move(id, { status: "departed" }, "in_house");
+    const left = this.move(id, { status: "departed" }, "in_house");
+    // The room's linen goes to the laundry, as the demo's own count has it.
+    this.engine.addOns.turnover();
+    return left;
   }
 
   async takeOffNights(id: Id, from: string): Promise<Row> {
@@ -374,6 +410,7 @@ export class DemoDesk implements DeskPort {
       const before = { ...row };
       const updated = this.world.update(table, id, { voided: true, void_reason: reason.trim() });
       Object.assign(updated, this.engine.stampsFor(table, before, updated, this.writer));
+      if (table === "payments" && before["method"] === "gift_card" && before["kind"] === "taken") this.engine.addOns.voided(id);
       return { ...updated };
     });
   }

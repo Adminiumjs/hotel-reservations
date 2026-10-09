@@ -1026,7 +1026,7 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
     fst.applied.forEach((one, i) => {
       run = r2(run - Number(one.amount));
       const voucher = one.kind === "voucher" || one.kind === "pack";
-      row({ id: `d${String(i)}`, label: voucher ? tr("Paid by voucher · {name}", { name: one.name }) : one.name, detail: voucher ? tr("Voucher") : tr("Code"), amount: iso(`− ${strip(money(Number(one.amount)))}`), balance: runMoney(run), amountFg: "var(--pos)" });
+      row({ id: `d${String(i)}`, label: one.name, detail: voucher ? tr("Voucher") : tr("Code"), amount: iso(`− ${strip(money(Number(one.amount)))}`), balance: runMoney(run), amountFg: "var(--pos)" });
     });
   } else if (fst.m.discount > 0.004) {
     run = r2(run - fst.m.discount);

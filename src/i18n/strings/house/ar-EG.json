@@ -756,7 +756,6 @@
   "On the card": "في البطاقة",
   "One fewer {item}": "واحد أقل: {item}",
   "One more {item}": "واحد أكثر: {item}",
-  "Paid by voucher · {name}": "مدفوع بقسيمة · {name}",
   "Put back in {place}": "أعد إلى {place}",
   "Putting them back": "جارٍ الإعادة",
   "Reductions": "التخفيضات",
@@ -791,8 +790,9 @@
   "Type the code on your gift card to see what is on it.": "اكتب رمز بطاقة هديتك لترى ما فيها.",
   "Use it by {date}": "استخدمها قبل {date}",
   "Voucher": "قسيمة",
-  "Voucher · {name}": "قسيمة · {name}",
   "We can't take reservations right now — please try again soon.": "لا يمكننا قبول الحجوزات الآن — يرجى المحاولة قريبًا.",
   "What came back": "ما عاد",
-  "Your code": "رمزك"
+  "Your code": "رمزك",
+  "The code is typed — press Apply.": "كُتب الرمز — اضغط تطبيق.",
+  "The code is typed — pick a room type, then press Apply.": "كُتب الرمز — اختر نوع الغرفة ثم اضغط تطبيق."
 }

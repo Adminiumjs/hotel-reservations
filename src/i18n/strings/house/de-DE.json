@@ -756,7 +756,6 @@
   "On the card": "Auf der Karte",
   "One fewer {item}": "{item}: eins weniger",
   "One more {item}": "{item}: eins mehr",
-  "Paid by voucher · {name}": "Mit Gutschein bezahlt · {name}",
   "Put back in {place}": "Zurück in {place} legen",
   "Putting them back": "Wird zurückgelegt",
   "Reductions": "Ermäßigungen",
@@ -791,8 +790,9 @@
   "Type the code on your gift card to see what is on it.": "Geben Sie den Code Ihrer Geschenkkarte ein, um das Guthaben zu sehen.",
   "Use it by {date}": "Einzulösen bis {date}",
   "Voucher": "Gutschein",
-  "Voucher · {name}": "Gutschein · {name}",
   "We can't take reservations right now — please try again soon.": "Wir können gerade keine Reservierungen annehmen — bitte versuchen Sie es bald noch einmal.",
   "What came back": "Was zurückkam",
-  "Your code": "Ihr Code"
+  "Your code": "Ihr Code",
+  "The code is typed — press Apply.": "Der Code ist eingegeben — drücken Sie Anwenden.",
+  "The code is typed — pick a room type, then press Apply.": "Der Code ist eingegeben — wählen Sie einen Zimmertyp und drücken Sie Anwenden."
 }

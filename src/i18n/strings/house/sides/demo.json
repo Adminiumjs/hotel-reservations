@@ -4,6 +4,8 @@
   "Signed in as {name}.": "Angemeldet als {name}.",
   "The clock is at {time}.": "Die Uhr steht auf {time}.",
   "The clock is at {time}. Departures are due.": "Die Uhr steht auf {time}. Abreisen sind fällig.",
+  "The code is typed — pick a room type, then press Apply.": "Der Code ist eingegeben — wählen Sie einen Zimmertyp und drücken Sie Anwenden.",
+  "The code is typed — press Apply.": "Der Code ist eingegeben — drücken Sie Anwenden.",
   "The house is not answering — try Reserve the room.": "Das Haus antwortet nicht — versuchen Sie „Zimmer reservieren“."
  },
  "fr-FR": {
@@ -11,6 +13,8 @@
   "Signed in as {name}.": "Connecté en tant que {name}.",
   "The clock is at {time}.": "Il est {time}.",
   "The clock is at {time}. Departures are due.": "Il est {time}. Des départs sont attendus.",
+  "The code is typed — pick a room type, then press Apply.": "Le code est saisi — choisissez un type de chambre, puis appuyez sur Appliquer.",
+  "The code is typed — press Apply.": "Le code est saisi — appuyez sur Appliquer.",
   "The house is not answering — try Reserve the room.": "La maison ne répond pas — essayez Réserver la chambre."
  },
  "cs-CZ": {
@@ -18,6 +22,8 @@
   "Signed in as {name}.": "Přihlášen(a) jako {name}.",
   "The clock is at {time}.": "Je {time}.",
   "The clock is at {time}. Departures are due.": "Je {time}. Čekají odjezdy.",
+  "The code is typed — pick a room type, then press Apply.": "Kód je zadán — vyberte typ pokoje a stiskněte Použít.",
+  "The code is typed — press Apply.": "Kód je zadán — stiskněte Použít.",
   "The house is not answering — try Reserve the room.": "Hotel neodpovídá — zkuste Rezervovat pokoj."
  },
  "da-DK": {
@@ -25,6 +31,8 @@
   "Signed in as {name}.": "Logget ind som {name}.",
   "The clock is at {time}.": "Klokken er {time}.",
   "The clock is at {time}. Departures are due.": "Klokken er {time}. Afrejser venter.",
+  "The code is typed — pick a room type, then press Apply.": "Koden er skrevet — vælg en værelsestype, og tryk på Anvend.",
+  "The code is typed — press Apply.": "Koden er skrevet — tryk på Anvend.",
   "The house is not answering — try Reserve the room.": "Hotellet svarer ikke — prøv Reservér værelset."
  },
  "zh-CN": {
@@ -32,6 +40,8 @@
   "Signed in as {name}.": "已以 {name} 身份登录。",
   "The clock is at {time}.": "现在是 {time}。",
   "The clock is at {time}. Departures are due.": "现在是 {time}。有客人该退房了。",
+  "The code is typed — pick a room type, then press Apply.": "代码已输入——选择房型后按“使用”。",
+  "The code is typed — press Apply.": "代码已输入——请按“使用”。",
   "The house is not answering — try Reserve the room.": "酒店系统暂未响应 — 请再点一次“预订房间”。"
  },
  "zh-TW": {
@@ -39,6 +49,8 @@
   "Signed in as {name}.": "已登入：{name}。",
   "The clock is at {time}.": "現在時間 {time}。",
   "The clock is at {time}. Departures are due.": "現在時間 {time}。有客人該退房了。",
+  "The code is typed — pick a room type, then press Apply.": "代碼已輸入——選擇房型後按「使用」。",
+  "The code is typed — press Apply.": "代碼已輸入——請按「使用」。",
   "The house is not answering — try Reserve the room.": "飯店沒有回應 — 請試試「預訂此房」。"
  },
  "ar-EG": {
@@ -46,6 +58,8 @@
   "Signed in as {name}.": "مسجّل الدخول باسم {name}.",
   "The clock is at {time}.": "الساعة الآن {time}.",
   "The clock is at {time}. Departures are due.": "الساعة الآن {time}. حان موعد المغادرات.",
+  "The code is typed — pick a room type, then press Apply.": "كُتب الرمز — اختر نوع الغرفة ثم اضغط تطبيق.",
+  "The code is typed — press Apply.": "كُتب الرمز — اضغط تطبيق.",
   "The house is not answering — try Reserve the room.": "الفندق لا يستجيب — جرّب «احجز الغرفة»."
  }
 }

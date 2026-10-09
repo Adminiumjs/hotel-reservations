@@ -16,7 +16,8 @@ import type { DemoAdminium } from "./adminium.ts";
 import { PEOPLE } from "./desk.ts";
 import { DEMO_SIGN_IN } from "./guest.ts";
 import { DEMO_ZONE } from "./world.ts";
-import { blankNb, openCheckin, openFolio, openRoom, openSettle, saveNb, walkIn } from "../app/desk.ts";
+import { blankNb, openCheckin, openFolio, openLinen, openRoom, openSettle, saveNb, walkIn } from "../app/desk.ts";
+import { DEMO_CODE } from "./offers.ts";
 
 const PRIYA = "priya.raman@example.com";
 const SAMPLE_GUEST = { first: "Elin", last: "Marsh", email: "elin.marsh@example.com", mobile: "(207) 555-0150" };
@@ -124,6 +125,15 @@ export class Scenes {
     "results-offline": () => {
       this.demo.guest.readsDown = true;
       this.app.forget("avail:");
+    },
+    // The demo's own code, typed and applied on the summary.
+    "code-midweek": () => {
+      this.app.setState({ codeOpen: true, codeText: DEMO_CODE, codeErr: "" });
+      this.app.toast(tr("The code is typed — press Apply."), "info");
+    },
+    "card-balance": () => {
+      this.app.go("giftcard", { gcCode: "GC-9D4T-K8RV-M2LX", gcAnswer: null });
+      void this.app.cardBalance({ code: "GC-9D4T-K8RV-M2LX" });
     },
     "fill-guest": () => this.app.setState({ form: { ...this.app.state.form, ...SAMPLE_GUEST }, formErr: false }),
     "room-goes": () => {
@@ -257,6 +267,14 @@ export class Scenes {
       openRoom(this.app, "304");
       this.app.setState({ oos: { from: "2026-08-01", to: "2026-08-01", reason: "" } });
     },
+    "linen-back": () => {
+      this.app.go("rack");
+      this.whenReady(() => openLinen(this.app));
+    },
+    "desk-code": () => {
+      this.app.setState({ codeOpen: true, codeText: DEMO_CODE, codeErr: "" });
+      this.app.toast(tr("The code is typed — pick a room type, then press Apply."), "info");
+    },
     housekeeping: () => {
       const desk = this.demo.desk;
       desk.person = desk.person.roles.includes("housekeeping") ? PEOPLE.desk : PEOPLE.housekeeping;
@@ -266,6 +284,11 @@ export class Scenes {
 
     // ── the desk: folio
     "folio-afternoon": () => this.afternoon(),
+    // The demo's own gift card, holding $150.00: picked and typed, ready to check.
+    "pay-gift-card": () => {
+      openSettle(this.app, this.app.state.folioId ?? this.stayId("WH-S3283"));
+      this.app.setState({ settleMethod: "gift_card", cardCode: "GC-7K2M-W3HN-Q4XP", cardErr: "", cardCheck: null });
+    },
     "record-balance": () => openSettle(this.app, this.app.state.folioId ?? this.stayId("WH-S3283")),
     "leaving-early": () => {
       const id = this.stayId("WH-S3292");

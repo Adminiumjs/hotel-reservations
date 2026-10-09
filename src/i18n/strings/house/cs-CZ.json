@@ -756,7 +756,6 @@
   "On the card": "Na kartě",
   "One fewer {item}": "O jeden méně: {item}",
   "One more {item}": "O jeden více: {item}",
-  "Paid by voucher · {name}": "Zaplaceno poukazem · {name}",
   "Put back in {place}": "Vrátit do {place}",
   "Putting them back": "Vrací se",
   "Reductions": "Slevy",
@@ -791,8 +790,9 @@
   "Type the code on your gift card to see what is on it.": "Zadejte kód své dárkové karty a uvidíte, kolik na ní je.",
   "Use it by {date}": "Použijte do {date}",
   "Voucher": "Poukaz",
-  "Voucher · {name}": "Poukaz · {name}",
   "We can't take reservations right now — please try again soon.": "Právě teď nemůžeme přijímat rezervace — zkuste to prosím brzy znovu.",
   "What came back": "Co se vrátilo",
-  "Your code": "Váš kód"
+  "Your code": "Váš kód",
+  "The code is typed — press Apply.": "Kód je zadán — stiskněte Použít.",
+  "The code is typed — pick a room type, then press Apply.": "Kód je zadán — vyberte typ pokoje a stiskněte Použít."
 }

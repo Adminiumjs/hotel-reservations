@@ -756,7 +756,6 @@
   "On the card": "卡内余额",
   "One fewer {item}": "{item}减一",
   "One more {item}": "{item}加一",
-  "Paid by voucher · {name}": "代金券支付 · {name}",
   "Put back in {place}": "放回{place}",
   "Putting them back": "正在放回",
   "Reductions": "减免",
@@ -791,8 +790,9 @@
   "Type the code on your gift card to see what is on it.": "输入礼品卡上的代码，查看卡内余额。",
   "Use it by {date}": "请在 {date} 前使用",
   "Voucher": "代金券",
-  "Voucher · {name}": "代金券 · {name}",
   "We can't take reservations right now — please try again soon.": "我们暂时无法接受预订——请稍后再试。",
   "What came back": "送回的物品",
-  "Your code": "您的代码"
+  "Your code": "您的代码",
+  "The code is typed — press Apply.": "代码已输入——请按“使用”。",
+  "The code is typed — pick a room type, then press Apply.": "代码已输入——选择房型后按“使用”。"
 }

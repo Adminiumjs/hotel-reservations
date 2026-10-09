@@ -40,6 +40,7 @@ import { RULES, pricedNights, type PerNight } from "../data/sampleRows.ts";
 import { ApiError, type ExtraAvailability, type Id, type Night, type NightAnswer, type NightCount, type Row, type TypeAvailability } from "../data/wire.ts";
 import { addDays, daysBetween, instantOf, toMs, venueDay, type Day } from "../lib/venueTime.ts";
 import { MANIFEST_RULES } from "./rules.ts";
+import { DemoAddOns } from "./offers.ts";
 import type { Table, World } from "./world.ts";
 
 /** Who is writing, and through which door — what the stamps, the moves and the limits read. */
@@ -118,6 +119,8 @@ export class Engine {
   readonly world: World;
   /** The desk's next stale write: another desk made the same change a moment ago. */
   staleNext = false;
+  /** The demo's own code, gift cards and linen: stand-ins, never an add-on. */
+  readonly addOns = new DemoAddOns();
   constructor(world: World) {
     this.world = world;
   }

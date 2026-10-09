@@ -89,11 +89,13 @@ export class DemoGuest implements GuestPort {
 
   async config() {
     await this.wait(this.latency.read);
-    return { timezone: this.world.zone, currency: this.world.currency, now: new Date(this.engine.now).toISOString() };
+    // The demo's house takes a code and reads a gift card's balance: its own stand-ins (`offers.ts`).
+    return { timezone: this.world.zone, currency: this.world.currency, now: new Date(this.engine.now).toISOString(), offers: true };
   }
 
-  async cardBalance(_by: { code: string } | { token: string }): Promise<{ balance: string; expiresOn: string | null } | null> {
-    return null;
+  async cardBalance(by: { code: string } | { token: string }): Promise<{ balance: string; expiresOn: string | null } | null> {
+    await this.wait(this.latency.read);
+    return "code" in by ? this.engine.addOns.balance(by.code) : null;
   }
 
   async house(): Promise<House> {
@@ -165,14 +167,19 @@ export class DemoGuest implements GuestPort {
     await this.wait(this.latency.quote);
     const values = this.values({ ...body, values: { first_name: "—", last_name: "—", email: "guest@example.com", ...body.values } });
     const extras = this.extrasOf(body);
+    const codes = (body.children.stay_codes ?? []).map((c) => c.values.typed);
+    this.engine.addOns.judge(codes, "public");
     return this.engine.dry(() => {
       const { stay, lines } = this.engine.createStay(values, extras, GUEST);
+      const applied = this.engine.addOns.price(this.world, stay.id, codes);
       return () => ({
         data: project(this.world.get("stays", stay.id)!, selectOf(entry("stays", "POST"))),
         nights: this.engine.nights(stay),
         children: { stay_extras: lines.map((line) => ({ data: { ...this.world.get("stay_extras", line.id)! } })) },
         capacity: [],
         exact: true,
+        applied,
+        told: [],
       });
     });
   }
@@ -190,6 +197,8 @@ export class DemoGuest implements GuestPort {
     if (fault === "room-gone") throw new ApiError(409, "PUBLIC_NO_ROOM", "That has just gone for those nights.", { column: "room_type_id" });
     const values = this.values(body);
     const extras = this.extrasOf(body);
+    const codes = (body.children.stay_codes ?? []).map((c) => c.values.typed);
+    this.engine.addOns.judge(codes, "public");
     if (fault === "price-moved") {
       // Another hand moved the rate between the price shown and the save: $5 a night on this type.
       const type = this.world.get("room_types", Number(values["room_type_id"]));
@@ -198,6 +207,7 @@ export class DemoGuest implements GuestPort {
     const made = this.engine.write(() => {
       const customer = this.identify(String(values["email"]), String(values["first_name"] ?? ""), String(values["last_name"] ?? ""));
       const { stay, lines } = this.engine.createStay({ ...values, customer_id: customer.id }, extras, GUEST);
+      this.engine.addOns.price(this.world, stay.id, codes);
       this.world.settle();
       const expected = body.expect?.total;
       if (expected !== undefined && Math.round(Number(expected) * 100) !== Math.round(Number(stay["total"]) * 100)) {
@@ -207,12 +217,14 @@ export class DemoGuest implements GuestPort {
       return { stay, lines };
     });
     const stay = this.world.get("stays", made.stay.id)!;
+    this.engine.addOns.keep(stay.id, codes);
     this.keys.set(clientKey, stay.id);
     this.linkSession = { stayId: stay.id };
     return {
       data: project(stay, selectOf(entry("stays", "POST"))),
       children: { stay_extras: made.lines.map((line) => ({ data: { ...this.world.get("stay_extras", line.id)! } })) },
       link: { key: "link", token: String(stay["link_token"]) },
+      ...(codes.length === 0 ? {} : { applied: this.engine.addOns.applied(this.world, stay.id) ?? [] }),
     };
   }
 
@@ -249,7 +261,8 @@ export class DemoGuest implements GuestPort {
       const ce = entry(table, "GET", key);
       return this.world.where(table, (row) => row["stay_id"] === stay.id).map((row) => project(row, selectOf(ce)));
     };
-    return { stay: project(stay, selectOf(e)), extras: child("stay_extras"), charges: child("charges"), credits: child("stay_credits"), payments: child("payments") };
+    const applied = this.engine.addOns.applied(this.world, stay.id);
+    return { stay: project(stay, selectOf(e)), extras: child("stay_extras"), charges: child("charges"), credits: child("stay_credits"), payments: child("payments"), ...(applied === undefined ? {} : { applied }) };
   }
 
   // ── signing in ──────────────────────────────────────────────────────────────
@@ -396,6 +409,7 @@ export class DemoGuest implements GuestPort {
     this.judgeDateChange(id);
     return this.engine.dry(() => {
       const row = this.engine.updateStay(id, { arrive, depart }, GUEST);
+      this.engine.addOns.price(this.world, id);
       return () => ({
         data: project(this.world.get("stays", row.id)!, selectOf(entry("stays", "PATCH", undefined, "arrive"))),
         nights: this.engine.nights(row),
@@ -411,6 +425,7 @@ export class DemoGuest implements GuestPort {
     this.judgeDateChange(id);
     const row = this.engine.write(() => {
       const updated = this.engine.updateStay(id, { arrive, depart }, GUEST);
+      this.engine.addOns.price(this.world, id);
       this.world.settle();
       if (Math.round(Number(updated["total"]) * 100) !== Math.round(Number(expectTotal) * 100)) {
         throw new ApiError(409, "PUBLIC_PRICE_CHANGED", "The price has changed.", { total: Number(updated["total"]).toFixed(2) });

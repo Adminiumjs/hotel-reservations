@@ -756,7 +756,6 @@
   "On the card": "På kortet",
   "One fewer {item}": "En færre: {item}",
   "One more {item}": "En mere: {item}",
-  "Paid by voucher · {name}": "Betalt med voucher · {name}",
   "Put back in {place}": "Læg tilbage i {place}",
   "Putting them back": "Lægger tilbage",
   "Reductions": "Reduktioner",
@@ -791,8 +790,9 @@
   "Type the code on your gift card to see what is on it.": "Skriv koden på dit gavekort for at se, hvad der står på det.",
   "Use it by {date}": "Brug det senest {date}",
   "Voucher": "Voucher",
-  "Voucher · {name}": "Voucher · {name}",
   "We can't take reservations right now — please try again soon.": "Vi kan ikke tage imod reservationer lige nu — prøv igen snart.",
   "What came back": "Hvad der kom tilbage",
-  "Your code": "Din kode"
+  "Your code": "Din kode",
+  "The code is typed — press Apply.": "Koden er skrevet — tryk på Anvend.",
+  "The code is typed — pick a room type, then press Apply.": "Koden er skrevet — vælg en værelsestype, og tryk på Anvend."
 }

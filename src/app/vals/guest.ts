@@ -649,8 +649,7 @@ export function reductionRows(st: StV) {
   if (st.applied.length > 0) {
     return st.applied.map((one) => {
       const voucher = one.kind === "voucher" || one.kind === "pack";
-      const name = voucher ? tr("Voucher · {name}", { name: one.name }) : one.name;
-      return { label: voucher && one.codeLast4 ? `${name} ${iso(`···· ${one.codeLast4}`)}` : name, amount: iso(`− ${strip(money(Number(one.amount)))}`) };
+      return { label: voucher && one.codeLast4 ? `${one.name} ${iso(`···· ${one.codeLast4}`)}` : one.name, amount: iso(`− ${strip(money(Number(one.amount)))}`) };
     });
   }
   return st.m.discount > 0.004 ? [{ label: tr("Reductions"), amount: iso(`− ${strip(money(st.m.discount))}`) }] : [];

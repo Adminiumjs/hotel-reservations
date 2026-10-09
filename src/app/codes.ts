@@ -22,7 +22,8 @@ export function codeVals(app: HouseApp, quote: QuoteReply | undefined, ask: (cod
     const at = typedOnes.indexOf(one);
     const code = at >= 0 ? s.codes[at] : undefined;
     return {
-      name: one.kind === "voucher" || one.kind === "pack" ? tr("Voucher · {name}", { name: one.name }) : one.name,
+      // Adminium names a reduction whole ("Voucher · One night"): it is shown as said.
+      name: one.name,
       chip: one.kind === "voucher" || one.kind === "pack" ? (one.codeLast4 ? iso(`···· ${one.codeLast4}`) : "") : code === undefined ? "" : iso(code.toUpperCase()),
       amount: iso(`− ${strip(money(Number(one.amount)))}`),
       canRemove: code !== undefined,

@@ -276,10 +276,7 @@ describe.skipIf(why !== null)(`codes, vouchers and gift cards on a built Adminiu
         expect(customer.id).toBeGreaterThan(0);
       }, 240_000);
 
-      // KNOWN TO FAIL on Adminium 0.3.19 + Offers & gift cards 1.0.9: Adminium hands a stay's line `quantity` = its nights,
-      // and Offers counts each night that many times over, so a voucher for one of two nights takes a quarter of the room
-      // ($92.50) and not a night ($185.00). `it.fails` turns red the day either side is put right: then make it an `it`.
-      it.fails("takes one night off with a voucher, the dearest first, and names it 'One night · Garden double' with the last four only", async () => {
+      it("takes one night off with a voucher, the dearest first, and names it 'One night · Garden double' with the last four only", async () => {
         const voucher = ok(
           await stand.staff.post<{ data: Row }>(stand.data("offers_vouchers"), {
             values: { worth: "thing", what: "item", source_table: "hotel:room_types", source_row: String(garden.id), units: 1, public_name: "One night · Garden double", uses_total: 1 },
@@ -291,7 +288,7 @@ describe.skipIf(why !== null)(`codes, vouchers and gift cards on a built Adminiu
         // Equal nights: $185.00 + $185.00, one taken.
         const even = await guest.quote(body({ first_name: "Gil", last_name: "Hart", email: mail("gil") }, [code]));
         expect(figures(even.data)).toEqual(["370.00", "185.00", "185.00", "16.65", "201.65"]);
-        expect((even.applied ?? []).map((one) => [one.name, one.kind, cents(one.amount), one.codeLast4])).toEqual([["One night · Garden double", "voucher", "185.00", code.replace(/[^A-Za-z0-9]/g, "").slice(-4)]]);
+        expect((even.applied ?? []).map((one) => [one.name, one.kind, cents(one.amount), one.codeLast4])).toEqual([["Voucher · One night · Garden double", "voucher", "185.00", code.replace(/[^A-Za-z0-9]/g, "").slice(-4)]]);
         expect(JSON.stringify(even)).not.toContain(code);
         // Unequal nights: Tuesday $185.00 and Wednesday $150.00 — the dearer one is taken.
         const uneven = await guest.quote(body({ first_name: "Gil", last_name: "Hart", email: mail("gil") }, [code], ["2026-10-06", "2026-10-08"]));
@@ -312,9 +309,7 @@ describe.skipIf(why !== null)(`codes, vouchers and gift cards on a built Adminiu
         expect(JSON.stringify(quote.children ?? {})).not.toContain("MIDWEEK");
       }, 240_000);
 
-      // KNOWN TO FAIL on Adminium 0.3.19: `POST /add-ons/offers/look-up` answers 403 APP_SCREENS_ONLY to an account that
-      // opens only its app's screens (the front desk), though the role holds the reads the look-up answers from.
-      it.fails("the front desk's look-up of a card answers its status and balance and no code; housekeeping's finds nothing", async () => {
+      it("the front desk's look-up of a card answers its status and balance and no code; housekeeping's finds nothing", async () => {
         const maeve = await person("hotel-front-desk", "maeve", "Maeve R.");
         const jory = await person("hotel-housekeeping", "jory", "Jory");
         const mine = await cardWith("10.00");
@@ -324,12 +319,16 @@ describe.skipIf(why !== null)(`codes, vouchers and gift cards on a built Adminiu
         expect(await jory.desk.lookUpCode(mine.code)).toBeNull();
       }, 240_000);
 
-      // KNOWN TO FAIL on Adminium 0.3.19: a role cannot write a column its `readable` limit leaves out (403 COLUMN_FORBIDDEN,
-      // reason "read-limit"), so the front desk — which never reads a card's code back — cannot type one either.
-      it.fails("the front desk checks and takes a gift card itself, and what it reads back carries no code", async () => {
+      it("the front desk checks and takes a gift card itself, and what it reads back carries no code", async () => {
         const maeve = await person("hotel-front-desk", "maeve", "Maeve R.");
         const mine = await cardWith("10.00");
-        const made = await maeve.desk.book({ ...body({ first_name: "Ivy", last_name: "Marsh" }, [], ["2026-10-19", "2026-10-21"]), clientKey: `ivy-${engine}-${"i".repeat(30)}` });
+        // A booking with a code, typed by the front desk: taken, and never read back.
+        const asked = body({ first_name: "Ivy", last_name: "Marsh" }, ["MIDWEEK"], ["2026-10-19", "2026-10-21"]);
+        const quote = await maeve.desk.quote(asked);
+        expect(figures(quote.data)).toEqual(["300.00", "30.00", "270.00", "24.30", "294.30"]);
+        const made = await maeve.desk.book({ ...asked, expect: { total: "294.30" }, clientKey: `ivy-${engine}-${"i".repeat(30)}` });
+        expect(figures(made.data)).toEqual(["300.00", "30.00", "270.00", "24.30", "294.30"]);
+        expect(JSON.stringify(made)).not.toContain("MIDWEEK");
         const check = await maeve.desk.quoteCard(made.data.id, mine.code);
         expect([cents(check.amount), cents(check.balanceAfter)]).toEqual(["10.00", "0.00"]);
         const paid = await maeve.desk.recordCardPayment(made.data.id, mine.code, check.amount);
