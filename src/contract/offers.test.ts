@@ -366,6 +366,11 @@ describe.skipIf(why !== null)(`codes, vouchers and gift cards on a built Adminiu
         // Voiding stays a manager's.
         const voided = await maeve.caller.patch(`${stand.data("payments")}/${String(paid.id)}`, { values: { voided: true, void_reason: "no" } });
         expect(voided.status).toBe(403);
+        // …and a manager's it is: the card gets its money back, and the manager is read no code either.
+        const owen = await person("hotel-manager", "owen", "Owen T.");
+        const done = await owen.desk.voidRow("payments", paid.id, "Taken on the wrong stay");
+        expect([done["voided"] === true || done["voided"] === 1, Object.keys(done).includes("card_code")]).toEqual([true, false]);
+        expect(await balanceOf(mine.id)).toBe("10.00");
       }, 240_000);
     });
   });
