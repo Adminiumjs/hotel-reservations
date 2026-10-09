@@ -43,7 +43,7 @@ on:
 env:
   # The Adminium release this version asks for, the add-ons release it was built against, and the release it updates.
   ADMINIUM_REF: v0.3.20
-  ADD_ONS_REF: v1.0.9
+  ADD_ONS_REF: v1.0.10
   FROM_VERSION: 0.2.3
   FROM_REF: v0.3.9
 
