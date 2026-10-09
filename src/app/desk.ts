@@ -341,13 +341,16 @@ export function linen(app: HouseApp): LinenRow[] {
 
 /** "Back from the laundry": the sheet opens on what the books say is there. */
 export function openLinen(app: HouseApp): void {
-  app.setState({
-    linenOpen: true,
-    linenCounts: Object.fromEntries(linen(app).map((row) => [String(row.itemId), String(row.atLaundry)])),
-    linenBusy: false,
-    linenErr: "",
-    linenResume: null,
-  });
+  const counts = (rows: LinenRow[]) => Object.fromEntries(rows.map((row) => [String(row.itemId), String(row.atLaundry)]));
+  app.setState({ linenOpen: true, linenCounts: counts(linen(app)), linenBusy: false, linenErr: "", linenResume: null });
+  // Asked afresh as it opens: the counts it starts from are the books' as they stand now, not as Today last read them.
+  app.forget("desk:linen");
+  void app.ports.desk!.linen().then(
+    (rows) => {
+      if (app.state.linenOpen && !app.state.linenBusy) app.setState({ linenCounts: counts(rows) });
+    },
+    () => undefined,
+  );
 }
 
 /** A count as typed: a whole number of 0 or more, or null. */

@@ -24,7 +24,8 @@ const CLOSED_SCREENS: V = {
   nb: { types: [], extras: [], times: [], nightRows: [], extraLines: [], languages: [] }, fo: { rows: [], chips: [], actions: [] },
   deskQuery: "", onDeskQuery: () => undefined, onDeskQueryKey: () => undefined,
   rackLegend: [], rackFloors: [], calDays: [], calRows: [], calTotals: [], resFilters: [], resRows: [], day: { arrivals: [], departures: [] }, tomorrow: {},
-  ci: { open: false }, co: { open: false }, rm: { open: false }, ch: { open: false }, se: { open: false }, cx: { open: false },
+  ci: { open: false }, co: { open: false }, rm: { open: false }, ch: { open: false }, se: { open: false, card: {} }, ln: { open: false, rows: [] }, cx: { open: false },
+  gc: {}, linen: [],
   vd: { open: false }, mv: { open: false }, dd: { open: false }, cd: { open: false }, ex: { open: false },
 };
 

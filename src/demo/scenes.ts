@@ -269,7 +269,7 @@ export class Scenes {
     },
     "linen-back": () => {
       this.app.go("rack");
-      this.whenReady(() => openLinen(this.app));
+      openLinen(this.app);
     },
     "desk-code": () => {
       this.app.setState({ codeOpen: true, codeText: DEMO_CODE, codeErr: "" });

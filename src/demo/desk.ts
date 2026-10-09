@@ -35,7 +35,7 @@ export class DemoDesk implements DeskPort {
     return { origin: "staff", name: this.person.name, roles: this.person.roles };
   }
   private reads(table: string): boolean {
-    return !this.person.roles.includes("housekeeping") || ["rooms", "room_types", "room_closures", "settings"].includes(table);
+    return !this.person.roles.includes("housekeeping") || ["rooms", "room_types", "room_closures", "settings", "stays"].includes(table);
   }
   private readable(table: string): void {
     if (!this.reads(table)) throw new ApiError(403, "FORBIDDEN", "Not for your role.", { table, action: "read" });
@@ -114,6 +114,11 @@ export class DemoDesk implements DeskPort {
 
   async stays(): Promise<StayWithLines[]> {
     this.readable("stays");
+    // Housekeeping reads which room, when, and whether a guest is in it — never a name or a figure.
+    if (this.person.roles.includes("housekeeping")) {
+      const seen = ["id", "room_id", "arrive", "depart", "status"];
+      return this.world.all("stays").map((stay) => ({ stay: Object.fromEntries(seen.map((column) => [column, stay[column]])) as Row, extras: [], charges: [], credits: [], payments: [] }));
+    }
     return this.world.all("stays").map((stay) => this.lines(stay));
   }
 

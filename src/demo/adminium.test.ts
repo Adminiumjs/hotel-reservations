@@ -385,7 +385,11 @@ describe("the desk's day", () => {
     await h.a.desk.setRoom(h.room("103").id, { status: "ready" });
     expect(h.room("103")["status"]).toBe("ready");
     expect(await outcome(() => h.a.desk.setRoom(h.room("103").id, { status: "occupied" }))).toBe("COLUMN_FORBIDDEN");
-    expect(await outcome(() => h.a.desk.stays())).toBe("FORBIDDEN");
+    // Of a reservation: which room, when, and its status — the rack's "leaving today". Never a name or a figure.
+    const seen = await h.a.desk.stays();
+    expect(seen.length).toBeGreaterThan(0);
+    for (const one of seen) expect([Object.keys(one.stay).sort(), one.payments, one.charges]).toEqual([["arrive", "depart", "id", "room_id", "status"], [], []]);
+    expect(await outcome(() => h.a.desk.guestByEmail("agnes.pellow@example.com"))).toBe("FORBIDDEN");
   });
 
   it("counts the Garden doubles with room 108 out of service to Tue 4 Aug", async () => {
