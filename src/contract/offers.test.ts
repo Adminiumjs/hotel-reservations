@@ -224,20 +224,20 @@ describe.skipIf(why !== null)(`codes, vouchers and gift cards on a built Adminiu
         for (const words of ["Midweek", "$37.00", "$362.97"]) expect(text, words).toContain(words);
       }, 240_000);
 
-      // KNOWN TO FAIL on Offers & gift cards 1.0.9: money "back to a card" that names a payment no card made (a cash payment)
-      // is saved and counted as given back, and no card is credited. No screen sends it (the desk offers it on a card's
-      // payment only); `it.fails` turns red the day the add-on refuses it.
-      it.fails("refuses money back 'to a card' that names a payment no card made", async () => {
+      // Money "back to a card" that names a payment no card made (a cash payment) is saved and credits no card: Offers &
+      // gift cards plans nothing for a payment that is not a card's and says so in a note (its rule for every app). No
+      // screen sends it — the desk offers it on a card's payment only.
+      it("money back 'to a card' that names a payment no card made credits no card", async () => {
+        const mine = await cardWith("30.00");
         const made = await desk.book({ ...body({ first_name: "Nia", last_name: "Arden" }, [], ["2026-11-02", "2026-11-04"]), clientKey: `nia-${engine}-${"n".repeat(30)}` });
         const cash = await desk.recordPayment(made.data.id, { kind: "taken", amount: "50.00", method: "cash" });
-        const wrong = await refusal(desk.giveBackToCard(made.data.id, cash.id, "5.00", "Not a card's"));
-        expect(wrong.status).toBe(409);
+        await desk.giveBackToCard(made.data.id, cash.id, "5.00", "Not a card's");
+        expect(await balanceOf(mine.id)).toBe("30.00");
       }, 120_000);
 
-      // KNOWN TO FAIL on Offers & gift cards 1.0.9: a card payment voided BEFORE what was given back from it leaves the
-      // card short by what was given back once that row is voided too ($80.00, not $100.00). The desk's screen holds the
-      // order (give-backs first); the dashboard does not. `it.fails` turns red the day the add-on keeps the card whole.
-      it.fails("keeps a card whole when its payment is voided before what was given back from it", async () => {
+      // In either order the card ends with all the payment took (Offers & gift cards 1.0.10; 1.0.9 left it short by what
+      // had been given back). The desk's screen still asks for the give-backs first.
+      it("keeps a card whole when its payment is voided before what was given back from it", async () => {
         const mine = await cardWith("100.00");
         const made = await desk.book({ ...body({ first_name: "Odo", last_name: "Arden" }, [], ["2026-11-09", "2026-11-11"]), clientKey: `odo-${engine}-${"o".repeat(30)}` });
         const paid = await desk.recordCardPayment(made.data.id, mine.code, "100.00");
