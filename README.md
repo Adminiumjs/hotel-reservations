@@ -20,10 +20,22 @@ because $1,099.03 is still on the folio.
 
 ## What it needs
 
-- Adminium **0.3.8** or later, on SQLite, Postgres or MySQL.
-- Nothing else. **Invoices & Receipts** is offered at install: with it, the
-  desk prints a guest's folio and emails it at check-out, and each payment has
-  a receipt.
+- Adminium **0.3.20** or later, on SQLite, Postgres or MySQL.
+- Nothing else. Three add-ons are offered at install, and the house is whole
+  with none of them:
+
+| Add-on | Offered | What it adds | Without it |
+|---|---|---|---|
+| **Invoices & Receipts** (1.0.6 or later) | ticked | The desk prints a guest's folio and emails it at check-out; each payment has a receipt. | No print and no email button; everything else is the same. |
+| **Inventory** (1.0.9 or later) | unticked | *Linen and supplies.* At check-out the room type's linen goes to the laundry and its amenities are used, as the kit you link to each room type says. Today counts what is in the store and at the laundry; the room rack has "Back from the laundry". | No linen line, no button; a check-out is the save it always was. |
+| **Offers & gift cards** (1.0.9 or later) | unticked | *Codes and vouchers:* "Have a code?" on the guest's Reserve page and on the desk's Take a booking — the reduction comes off the room and the extras before the tax, priced by Adminium, and is named on the confirmation, the folio and its email. *Gift cards:* a fourth way to pay at the desk (checked first, then taken for exactly what the check answered), money given back to the card it came from, and a balance page on the guest site. | No code field, no "Gift card" in the payment dialog, no balance page; prices are what they always were. |
+
+What each role holds of an add-on's own tables is written when the add-on is
+connected and taken back when it is disconnected: housekeeping moves linen
+and reads its counts, and nothing else of Inventory; the front desk does the
+same, reads what was taken off a stay, and may look a typed code up — it is
+never read a code back. A person given a second role with a plain read of one
+of those tables reads all of it.
 
 ## What it does
 
@@ -78,6 +90,40 @@ Once installed, the desk is served at `/apps/hotel/staff/` and the guest site
 at `/apps/hotel/customer/`. A hotel can also give the guest site a domain of
 its own.
 
+**Moving from 0.2.x.** 0.3.0 updates a 0.2.x install in place — update
+Adminium to 0.3.20 first, then the app. The update adds one table (a code
+typed on a reservation), new empty columns on reservations, their extras and
+payments, and one more way to pay ("Gift card") in the payments' list. Nothing
+is dropped, renamed or rewritten: every reservation, payment and total is the
+row it was, to the cent, and a reservation that has checked out or been
+cancelled is never priced again. Nothing new shows until an add-on is
+connected. The update asks you to allow one new thing on the guest site: a
+code sent with a reservation.
+
+Three things to know once an add-on is connected:
+
+- *Inventory.* Link each room type to a kit (Inventory → Kits and links); a
+  kit line that moves linen names where it goes, and the link or the line
+  names where it is kept. Inventory's own sample has a "Room turnover" kit,
+  and this app's sample links the four room types to it. A check-out is never
+  stopped because something is short — the stock manager finds it under "to
+  check". While Inventory is connected and switched off for the house (or
+  updating), a check-out still goes through for items that may run short and
+  is caught up afterwards; with nothing linked at all it is refused until
+  Inventory is on again, or its rule is switched off (Studio → the
+  reservations table → Stock rules).
+- *Offers & gift cards.* A code is typed when the reservation is made, and at
+  no other time; moving a booked stay's dates prices it again under the same
+  offer. Cancelling gives a limited code's use back; a no-show keeps it. While
+  Offers & gift cards is connected and cannot answer (switched off for the
+  house, or updating), **no reservation can be saved** — with no code either —
+  because its price could not be decided; switch the price rule off (Studio →
+  the reservations table → Offer rules) or disconnect the add-on to take
+  reservations at the plain price meanwhile.
+- *Before disconnecting Offers & gift cards*, give back any gift card money
+  that is to go back: afterwards the desk has no "Give back to the card", and
+  what a card paid stays on the folio as a payment.
+
 **Coming from 0.1.x?** 0.2.0 is a different app on new tables, and it cannot
 update a 0.1.x install in place. Uninstall 0.1.x first (its tables stay unless
 you choose to drop them), then install 0.2.0. Nothing is carried over from the
@@ -114,7 +160,12 @@ when the two disagree.
 With a built Adminium checkout beside this one, the suite also installs the app
 on SQLite, Postgres and MySQL and drives every write through the app's own
 doors — the guest's and the desk's — including the races (one room to one of
-two desks, one check-in of two, the last room sold once):
+two desks, one check-in of two, the last room sold once). With a built add-ons
+checkout too (`ADD_ONS_REPO`) it runs the codes, vouchers, gift cards and
+linen, and the house with the add-ons away or unable to answer; and with the
+released package of the version in service (`CONTRACT_FROM_TARBALL`) and a
+build of the Adminium it was released for (`CONTRACT_FROM_ADMINIUM`), the
+update of a live install, row for row:
 
 ```bash
 ADMINIUM_CONTRACT=1 ADMINIUM_REPO=../adminium npx vitest run src/contract

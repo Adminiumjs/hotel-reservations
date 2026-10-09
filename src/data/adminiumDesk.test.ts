@@ -330,3 +330,84 @@ describe("the real desk door", () => {
     expect(states).toEqual(["live", "reconnecting", "live"]);
   });
 });
+
+describe("the desk door, with the add-ons in use", () => {
+  const withAddOns = (keys: string[]) => config({ addOns: Object.fromEntries(keys.map((key) => [key, {}])) as StaffConfig["addOns"] });
+
+  it("says which of the new pieces are in use from the add-ons the config names, and nothing without them", async () => {
+    expect(await new AdminiumDesk(transport({}).t, withAddOns(["offers"])).config()).toMatchObject({ linen: false, codes: true, giftCards: true });
+    expect(await new AdminiumDesk(transport({}).t, withAddOns(["inventory"])).config()).toMatchObject({ linen: true, codes: false, giftCards: false });
+    // No Inventory: the linen is not asked about at all.
+    const { t, sent } = transport({});
+    expect(await new AdminiumDesk(t, config()).linen()).toEqual([]);
+    expect(sent).toEqual([]);
+  });
+
+  it("sends a typed code as a child row of the booking, and no such child when none was typed", async () => {
+    const { t, sent } = transport({ "POST /api/v1/data/c1/hotel_stays/dry-run": () => ({ data: { id: 1, total: 10 }, applied: [{ line: null, name: "Midweek", kind: "code", amount: "1.00", typed: true }], told: [] }) });
+    const desk = new AdminiumDesk(t, withAddOns(["offers"]));
+    const values = { room_type_id: 2, arrive: "2026-08-03", depart: "2026-08-05", guests: 2, first_name: "Elin" };
+    const quote = await desk.quote({ values, children: { stay_extras: [], stay_codes: [{ values: { typed: "MIDWEEK" } }] } });
+    expect((sent[0]!.body as { children: Record<string, unknown> }).children).toEqual({ "rel:hotel_stay_extras.stay_id": [], "rel:hotel_stay_codes.stay_id": [{ values: { typed: "MIDWEEK" } }] });
+    expect(quote.applied).toEqual([{ line: null, name: "Midweek", kind: "code", amount: "1.00", typed: true }]);
+    await desk.quote({ values, children: { stay_extras: [] } });
+    expect((sent[1]!.body as { children: Record<string, unknown> }).children).toEqual({ "rel:hotel_stay_extras.stay_id": [] });
+  });
+
+  it("checks a gift card with the payment's own dry run, and takes exactly what the check answered", async () => {
+    const { t, sent } = transport({
+      "GET /api/v1/data/c1/hotel_stays/7": () => ({ data: { id: 7, balance: 362.97 } }),
+      "POST /api/v1/data/c1/hotel_payments/dry-run": () => ({ payment: { amount: "100.00", due: "262.97" }, postings: [{ ledger: "value", state: "ok" }], data: { id: 0, card_balance_after: 0 } }),
+      "POST /api/v1/data/c1/hotel_payments": (s) => ({ data: { id: 9, ...(s.body as { values: Record<string, unknown> }).values } }),
+    });
+    const desk = new AdminiumDesk(t, withAddOns(["offers"]));
+    expect(await desk.quoteCard(7, " gc-abcd-efgh-jklm ")).toEqual({ amount: "100.00", due: "262.97", balanceAfter: "0" });
+    // Asked with what the stay owes, and no `asked`: the card says what it would give.
+    expect(sent[1]!.body).toEqual({ values: { stay_id: 7, kind: "taken", method: "gift_card", card_code: "gc-abcd-efgh-jklm", amount: 362.97 } });
+    await desk.recordCardPayment(7, "gc-abcd-efgh-jklm", "100.00");
+    // The amount goes as what is asked of the card too: without it the card would give whatever it holds.
+    expect(sent[2]!.body).toEqual({ values: { stay_id: 7, kind: "taken", method: "gift_card", card_code: "gc-abcd-efgh-jklm", amount: "100.00", asked: "100.00" } });
+    await desk.giveBackToCard(7, 9, "20.00", " One towel short ");
+    expect(sent[3]!.body).toEqual({ values: { stay_id: 7, kind: "given_back", method: "gift_card", against_id: 9, amount: "20.00", note: "One towel short" } });
+  });
+
+  it("tells a check the house would refuse as the save's own refusal", async () => {
+    const { t } = transport({
+      "GET /api/v1/data/c1/hotel_stays/7": () => ({ data: { id: 7, balance: 10 } }),
+      "POST /api/v1/data/c1/hotel_payments/dry-run": () => ({ payment: null, postings: [{ ledger: "value", state: "refused", reason: "empty", left: "0.00" }], data: {} }),
+    });
+    await expect(new AdminiumDesk(t, withAddOns(["offers"])).quoteCard(7, "GC-ABCD-EFGH-JKLM")).rejects.toMatchObject({ code: "POSTING_REFUSED", params: { reason: "empty", left: "0.00" } });
+  });
+
+  it("puts linen back in four steps — the transfer with its lines, its start, each line, its end — and stops before the end while a line is left", async () => {
+    const lines = [{ id: 31, transfer_id: 5, item_id: 1, qty: 26, status: "draft" }];
+    const routes: Record<string, (s: { body?: unknown }) => unknown> = {
+      "GET /api/v1/data/c1/inventory_links": () => ({ data: [{ id: 1, source_table: "hotel:room_types", source_row: "2", kind: "kit", kit_id: 3, place_id: null }] }),
+      "GET /api/v1/data/c1/inventory_kit_lines": () => ({ data: [{ id: 1, kit_id: 3, item_id: 1, action: "move", place_id: null, to_place_id: 20 }, { id: 2, kit_id: 3, item_id: 4, action: "use", place_id: null, to_place_id: null }] }),
+      "GET /api/v1/data/c1/inventory_items": () => ({ data: [{ id: 1, name: "Bath towel" }, { id: 4, name: "Soap" }] }),
+      "GET /api/v1/data/c1/inventory_places": () => ({ data: [{ id: 10, name: "Linen store" }, { id: 20, name: "At the laundry" }] }),
+      "GET /api/v1/data/c1/inventory_stock_points": () => ({ data: [{ id: 1, item_id: 1, place_id: 10, on_hand: 236 }, { id: 2, item_id: 1, place_id: 20, on_hand: 24 }] }),
+      "POST /api/v1/data/c1/inventory_transfers": () => ({ data: { id: 5, status: "draft" } }),
+      "GET /api/v1/data/c1/inventory_transfers/5": () => ({ data: { id: 5, status: "draft" } }),
+      "PATCH /api/v1/data/c1/inventory_transfers/5": () => ({ data: { id: 5 } }),
+      "GET /api/v1/data/c1/inventory_transfer_lines": () => ({ data: lines.map((line) => ({ ...line })) }),
+      "POST /api/v1/data/c1/inventory_transfer_lines/one-by-one": () => {
+        lines[0]!.status = "posted";
+        return { results: [{ id: 31, ok: true, postings: [{ ledger: "stock", state: "ok", notes: [{ line: 0, note: "short" }] }] }] };
+      },
+    };
+    const { t, sent } = transport(routes);
+    const desk = new AdminiumDesk(t, withAddOns(["inventory"]));
+    expect(await desk.linen()).toEqual([{ itemId: 1, name: "Bath towel", storeId: 10, store: "Linen store", awayId: 20, away: "At the laundry", inStore: 236, atLaundry: 24 }]);
+    sent.length = 0;
+    const reply = await desk.putBackLinen([{ itemId: 1, qty: 26 }, { itemId: 99, qty: 3 }]);
+    expect(reply).toEqual({ done: true, transferId: 5, moved: [1], left: [], over: [{ itemId: 1, by: 2 }] });
+    const writes = sent.filter((s) => s.method !== "GET").map((s) => [s.method, s.path.split("?")[0]!.replace("/api/v1/data/c1/", ""), s.body]);
+    expect(writes).toEqual([
+      ["POST", "inventory_transfers", { values: { from_place_id: 20, to_place_id: 10 }, children: { "rel:inventory_transfer_lines.transfer_id": [{ values: { item_id: 1, qty: 26 } }] } }],
+      ["PATCH", "inventory_transfers/5", { values: { status: "posting" }, from: "draft" }],
+      ["POST", "inventory_transfer_lines/one-by-one", { ids: [31], values: { status: "posted" }, from: "draft" }],
+      ["PATCH", "inventory_transfers/5", { values: { status: "done" }, from: "posting" }],
+    ]);
+  });
+});
