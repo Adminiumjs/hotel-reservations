@@ -37,6 +37,9 @@ for (const variant of VARIANTS) {
     // Removed, and put back by the card's shortcut; then reserved at the price shown.
     await page.locator("[data-code-row] button").click();
     await expect(page.locator("[data-code-row]")).toHaveCount(0);
+    // Removing a code hands the focus to the link a moment later. Wait for it: an Enter pressed while it
+    // is on its way lands on the link and shuts the field instead of applying the code.
+    await expect(page.locator("#code-link")).toBeFocused();
     await play(page, "code-midweek");
     await page.locator("#code-field").press("Enter");
     await expect(page.locator("[data-code-row]")).toHaveCount(1);
