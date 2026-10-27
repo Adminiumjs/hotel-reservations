@@ -20,7 +20,7 @@ because $1,099.03 is still on the folio.
 
 ## What it needs
 
-- Adminium **0.3.20** or later, on SQLite, Postgres or MySQL.
+- Adminium **0.3.38** or later, on SQLite, Postgres or MySQL.
 - Nothing else. Three add-ons are offered at install, and the house is whole
   with none of them:
 
@@ -89,6 +89,17 @@ Tuesday, or add it later from the app's settings.
 Once installed, the desk is served at `/apps/hotel/staff/` and the guest site
 at `/apps/hotel/customer/`. A hotel can also give the guest site a domain of
 its own.
+
+**Moving from 0.3.0.** 0.3.1 updates a 0.3.0 install in place — update
+Adminium to 0.3.38 first, then the app. The update adds a guest's whole name
+(worked out from the two names they have), their language and their yes to
+the house's news (no for everyone already there), and the tick a reservation
+was made with. Nothing is dropped, renamed or rewritten, and nothing is
+written in the consent log: no guest of 0.3.0 was ever asked. From 0.3.1 the
+reservation asks "Email me news and offers", unticked; a tick is kept in
+Adminium's consent log for the guest, and every email the house sends about a
+reservation is service mail, which the do-not-email list never stops. The
+update asks you to allow one new thing on the guest site: that tick.
 
 **Moving from 0.2.x.** 0.3.0 updates a 0.2.x install in place — update
 Adminium to 0.3.20 first, then the app. The update adds one table (a code
