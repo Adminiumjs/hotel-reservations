@@ -1,41 +1,47 @@
 /**
- * THE HOTEL'S UPDATE CONTRACT: THE RELEASED 0.2.3, UPDATED IN PLACE.
+ * THE HOTEL'S UPDATE CONTRACT: THE RELEASED 0.3.0, UPDATED IN PLACE.
  *
  * On SQLite, Postgres and MySQL, along the path a house takes:
  *
- *   1. install the RELEASED 0.2.3 — the published package's own bytes
+ *   1. install the RELEASED 0.3.0 — the published package's own bytes
  *      (`CONTRACT_FROM_TARBALL`), refused unless they hash to what
  *      RELEASES.json recorded — on the Adminium it was released for
- *      (`CONTRACT_FROM_ADMINIUM`, 0.3.9);
+ *      (`CONTRACT_FROM_ADMINIUM`, 0.3.20);
  *   2. its own sample, added at the demo's moment (09:05 on 28 July);
- *   3. a desk at work in 0.2.3, through 0.2.3's own doors: a guest checked in
+ *   3. a desk at work in 0.3.0, through 0.3.0's own doors: a guest checked in
  *      and a payment taken from them; another guest settled and checked out;
  *   4. ADMINIUM UPGRADED IN PLACE: that Adminium stopped, and the one this
  *      build needs (`ADMINIUM_REPO`) started on the same data directory,
- *      secret and database — the app still 0.2.3, and nothing in its tables
+ *      secret and database — the app still 0.3.0, and nothing in its tables
  *      moved by the upgrade;
- *   5. every table of the app read straight from the database (each value as
+ *   5. ENGINE FIRST: a guest's address put on the do-not-email list, and
+ *      0.3.0's confirmation of a reservation made online still reaches them
+ *      (an app that says no class is read as service mail);
+ *   6. every table of the app read straight from the database (each value as
  *      the engine spells it, each column as the engine declares it) and over
  *      HTTP: the snapshot;
- *   6. THIS build uploaded: the plan is exactly one new table (a code typed on
- *      a stay), the new columns of a stay, an extra and a payment, and one new
- *      way to pay — nothing dropped, renamed or rewritten — and it applies;
- *   7. every row that was there is unchanged, byte for byte: every stay's
- *      tax, total and balance are the cents 0.2.3 stored; every column
- *      declaration too; the new table exists and is empty; the new columns
- *      are empty on the rows that were there; a given-back payment's link to
- *      the payment it returns to arrives with its foreign key;
- *   8. ONE WRITE ON AN OLD ROW: the guest checked in under 0.2.3 pays some
- *      more in cash, exactly as a 0.2.3 desk sends it, and the stay's money
- *      is what it was but for what was paid; the stay checked out under 0.2.3
+ *   7. THIS build uploaded: the plan is exactly the new columns of a guest
+ *      (their whole name, their language, the newsletter's yes) and of a
+ *      stay (the tick it was made with) — nothing dropped, renamed or
+ *      rewritten — and it applies;
+ *   8. every row that was there is unchanged, byte for byte: every stay's
+ *      tax, total and balance are the cents 0.3.0 stored; every column
+ *      declaration too; the new columns hold what a row that was there
+ *      holds: a guest's whole name worked out from the two they have, no
+ *      language, and no to the news; nothing written in the consent log;
+ *   9. THE APP NEXT: the confirmation still reaches the guest on the
+ *      do-not-email list (every kind is service mail);
+ *  10. ONE WRITE ON AN OLD ROW: the guest checked in under 0.3.0 pays some
+ *      more in cash, exactly as a 0.3.0 desk sends it, and the stay's money
+ *      is what it was but for what was paid; the stay checked out under 0.3.0
  *      is closed and stays as it was;
- *   9. THE SAMPLE ON UPDATE: the update adds no sample rows; removing the
+ *  11. THE SAMPLE ON UPDATE: the update adds no sample rows; removing the
  *      sample afterwards keeps what the desk itself moved.
  *
  * It runs twice on each engine: as above, and once more with Offers & gift
  * cards and Inventory installed BEFORE the update and connected by it. Then
  * the same must hold — connecting an add-on writes nothing into the house's
- * rows — and a guest checked in under 0.2.3 pays with a gift card.
+ * rows — and a guest checked in under 0.3.0 pays with a gift card.
  *
  * It runs where the plain contract runs, with the published package of the
  * release it updates and a built checkout of the Adminium that release was
@@ -50,7 +56,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { DEMO_CURRENCY, DEMO_START, DEMO_ZONE } from "../demo/world.ts";
 import { TABLES } from "../manifest/tables.ts";
-import { addOnBundle, appBundle, boot, Caller, ENGINES, FROM_ADMINIUM, missing, missingAddOn, ok, PORTS_PER_ENGINE, rawTables, releasedBundle, releasedMissing, until, type Engine, type RawTable, type Server } from "./harness.ts";
+import { addOnBundle, appBundle, boot, Caller, ENGINES, FROM_ADMINIUM, missing, missingAddOn, ok, PORTS_PER_ENGINE, rawTables, releasedBundle, releasedMissing, solve, until, type Engine, type RawTable, type Server } from "./harness.ts";
 
 type Row = Record<string, unknown> & { id: number };
 
@@ -61,23 +67,24 @@ const PORT_BASE = Number(process.env["CONTRACT_UPDATE_PORT_BASE"] ?? Number(proc
 const ADMIN = { email: process.env["E2E_ADMIN_EMAIL"] ?? "e2e@adminium.local", password: process.env["E2E_ADMIN_PASSWORD"] ?? "adminium-e2e-password" };
 const PREFIX = "hotel_";
 
-/** What 0.3.0 adds to 0.2.3's tables, from the manifest: the update's plan must be exactly this. */
-const NEW_TABLES = ["stay_codes"];
+/** What 0.3.1 adds to 0.3.0's tables, from the manifest: the update's plan must be exactly this. */
+const NEW_TABLES: string[] = [];
 const NEW_COLUMNS: Record<string, string[]> = {
-  stays: ["customer_proved", "discount", "room_discount"],
-  stay_extras: ["discount"],
-  payments: ["against_id", "asked", "card_balance_after", "card_code", "card_id", "card_last4", "client_key", "settle_as"],
+  customers: ["full_name", "language", "opt_in"],
+  stays: ["opt_in"],
 };
-const NEW_ENUM_VALUES: Record<string, Record<string, string[]>> = {
-  payments: { method: ["gift_card"] },
-};
+const NEW_ENUM_VALUES: Record<string, Record<string, string[]>> = {};
+/** A no as each engine spells a yes/no column's value read straight from the database. */
+const NO = ["0", "false", "f"];
+/** A whole name as Adminium joins it: the parts that have a value, one space between. */
+const joined = (...parts: unknown[]) => parts.map((p) => (typeof p === "string" ? p.trim() : "")).filter((p) => p !== "").join(" ") || null;
 
 const yesNoColumns = (ref: string): string[] => (TABLES.find((t) => t.ref === ref)?.columns ?? []).filter((c) => c.type === "bool").map((c) => c.ref);
 const realNow = () => performance.timeOrigin + performance.now();
 
 const released = why === null ? releasedBundle() : null;
-const FROM = released?.version ?? "0.2.3";
-const TO = why === null ? appBundle().version : "0.3.0";
+const FROM = released?.version ?? "0.3.0";
+const TO = why === null ? appBundle().version : "0.3.1";
 const addOnsWhy = missingAddOn("offers") ?? missingAddOn("inventory");
 
 const RUNS = [
@@ -98,7 +105,7 @@ describe.skipIf(why !== null)(`the update of a live ${FROM} house to ${TO}${why 
         let before: Record<string, RawTable> = {};
         let beforeHttp: Record<string, Row[]> = {};
         let sampleBefore = { loaded: false, total: 0 };
-        /** What the desk did in 0.2.3: the stays the later steps come back to. */
+        /** What the desk did in 0.3.0: the stays the later steps come back to. */
         const made = { inHouse: 0, left: 0 };
         const startedAt = realNow();
         const house = mkdtempSync(join(tmpdir(), `hotel-update-${run.id}-${engine}-`));
@@ -147,6 +154,31 @@ describe.skipIf(why !== null)(`the update of a live ${FROM} house to ${TO}${why 
         const cents = (value: unknown) => Math.round(Number(value) * 100);
         /** The money of a stay, as Adminium keeps it, in cents. */
         const money = (stay: Row) => ["room_total", "extras_total", "charges_total", "credits_total", "subtotal", "tax", "total"].map((column) => cents(stay[column] ?? 0));
+        /** A guest on the do-not-email list, who reserves online before the update and after it. */
+        const stopped = `stop.${run.id}.${engine}@wrenhouse.dev`;
+        /**
+         * A reservation made on the guest site, through the public API as the installed version's page sends it (no
+         * tick: 0.3.0 has none); its confirmation once the outbox is done with it, and the email if one went.
+         */
+        const reserveOnline = async (email: string, arrive: string, depart: string) => {
+          const config = ok(await new Caller(server.base).get<{ publishableKey: string }>("/apps/hotel/customer/surface-config.json"));
+          const guest = new Caller(server.base, { authorization: `Bearer ${config.publishableKey}`, origin: server.base });
+          const refs = ok(await guest.get<{ data: { refs: Record<string, { actions: string[] }> } }>("/api/v1/public/config")).data.refs;
+          const door = Object.entries(refs).find(([ref, r]) => ref.startsWith(`${PREFIX}stays`) && r.actions.includes("create"))![0];
+          const garden = (await rows("room_types")).find((t) => t["name"] === "Garden double")!;
+          const body = { values: { room_type_id: garden.id, arrive, depart, guests: 2, first_name: "Vera", last_name: "Lind", email, client_key: `${run.id}${engine}${arrive}`.replace(/[^A-Za-z0-9]/g, "").padEnd(43, "v") } };
+          const quote = ok(await guest.post<{ data: Row }>(`/api/v1/public/records/${door}/dry-run`, body)).data;
+          const challenge = ok(await guest.get<{ data: { id: string; salt: string; difficulty: number } }>("/api/v1/public/challenge?purpose=write")).data;
+          const sinkBefore = ((await (await fetch(`${server.sink}/messages`)).json()) as unknown[]).length;
+          const made = ok(
+            await guest.post<{ data: Row }>(`/api/v1/public/records/${door}`, { ...body, expect: { total: Number(quote["total"]).toFixed(2) } }, { "x-adminium-proof": `${challenge.id}.${solve(challenge.salt, challenge.difficulty)}` }),
+            201,
+          ).data;
+          const message = await until(async () => (await rows("messages")).find((m) => m["stay_id"] === made.id && m["kind"] === "stay-made" && m["status"] !== "queued"), `the confirmation to ${email}`, 150_000);
+          const status = `${String(message["status"])}${message["skip_reason"] ? `: ${String(message["skip_reason"])}` : ""}${message["error"] ? `: ${String(message["error"])}` : ""}`;
+          const mail = message["status"] === "sent" ? await until(async () => ((await (await fetch(`${server.sink}/messages`)).json()) as { to: string[]; subject: string }[]).slice(sinkBefore).find((m) => m.to.includes(email)), `the mail to ${email}`, 60_000) : undefined;
+          return { status, subject: mail?.subject ?? null, ref: String(made["ref"]) };
+        };
 
         beforeAll(async () => {
           server = await boot(engine as Engine, port, DEMO_START - 60_000, { database, adminium: FROM_ADMINIUM, keep: house });
@@ -160,7 +192,7 @@ describe.skipIf(why !== null)(`the update of a live ${FROM} house to ${TO}${why 
           rmSync(join(tmpdir(), `adminium-e2e-source-sqlite-${String(port)}.db`), { force: true });
         });
 
-        // ── 0.2.3, released, at work ──────────────────────────────────────────
+        // ── 0.3.0, released, at work ──────────────────────────────────────────
 
         it(`installs the RELEASED ${FROM} — the published package, byte for byte — on the Adminium it was released for`, async () => {
           const app = released!;
@@ -216,6 +248,16 @@ describe.skipIf(why !== null)(`the update of a live ${FROM} house to ${TO}${why 
           expect(await raw()).toEqual(rawUnder);
         }, 300_000);
 
+        it(`still sends ${FROM}'s confirmation to a guest on the do-not-email list: an app that says no class sends service mail`, async () => {
+          // Where emailed links point, and the guest site open: what a house had set up before.
+          ok(await staff.put("/api/v1/settings/email", { publicOrigin: server.base }));
+          ok(await staff.put("/api/v1/public-api", { enabled: true }));
+          const added = ok(await staff.post<{ data: { added: number } }>("/api/v1/consent/stop-list", { addresses: [stopped] })).data;
+          expect(added.added).toBe(1);
+          const sent = await reserveOnline(stopped, "2026-09-07", "2026-09-09");
+          expect(sent).toEqual({ status: "sent", subject: expect.stringContaining(sent.ref), ref: sent.ref });
+        }, 300_000);
+
         it.skipIf(!run.addOns)("installs Offers & gift cards and Inventory beside the house, and writes nothing into the house's rows", async () => {
           const rawUnder = await raw();
           for (const key of ["inventory", "offers"]) {
@@ -255,7 +297,7 @@ describe.skipIf(why !== null)(`the update of a live ${FROM} house to ${TO}${why 
           addOns?: { key: string; need: string; action: string | null }[];
         };
 
-        it(`plans the update to ${TO}: one new table, the new columns and one new way to pay, nothing dropped, renamed or rewritten`, async () => {
+        it(`plans the update to ${TO}: a guest's and a stay's new columns, nothing dropped, renamed or rewritten`, async () => {
           const app = appBundle();
           await upload("apps", app);
           plan = ok(await staff.post<{ plan: typeof plan }>("/api/v1/apps/plan", { key: app.key, version: app.version, connectionId })).plan;
@@ -302,7 +344,7 @@ describe.skipIf(why !== null)(`the update of a live ${FROM} house to ${TO}${why 
           expect(Object.keys(staffConfig.addOns ?? {}).sort()).toEqual(run.addOns ? ["inventory", "offers"] : []);
         }, 240_000);
 
-        it("keeps every row that was there, byte for byte — every stay's tax, total and balance the cents it stored — and every column as it was", async () => {
+        it("keeps every row that was there, byte for byte — every stay's tax, total and balance the cents it stored — and every column as it was; the new ones hold a whole name and a no", async () => {
           const after = await raw();
           const added: Record<string, string[]> = {};
           const redeclared: string[] = [];
@@ -320,14 +362,23 @@ describe.skipIf(why !== null)(`the update of a live ${FROM} house to ${TO}${why 
             expect([name, now!.rows.length]).toEqual([name, was.rows.length]);
             const kept = now!.rows.map((found) => Object.fromEntries(Object.keys(was.columns).map((c) => [c, found[c]])));
             expect(kept, `the rows of ${name}`).toEqual(was.rows);
-            // A column the update adds holds nothing on a row that was there.
-            for (const column of added[name]!) expect([name, column, now!.rows.filter((found) => found[column] !== null).length]).toEqual([name, column, 0]);
+            // A column the update adds holds, on a row that was there: no to the news (its default), no language, and the whole name
+            // Adminium works out from the two names the row has (checked over HTTP below); nothing else.
+            for (const column of added[name]!) {
+              const values = [...new Set(now!.rows.map((found) => found[column] ?? null))];
+              if (column === "opt_in") expect([name, column, values.filter((v) => !NO.includes(String(v)))]).toEqual([name, column, []]);
+              else if (column !== "full_name") expect([name, column, values]).toEqual([name, column, now!.rows.length === 0 ? [] : [null]]);
+            }
           }
           console.info(`[redeclared, ${engine}${run.title}] ${JSON.stringify(redeclared)}`);
           expect(redeclared).toEqual([]);
           expect(Object.fromEntries(Object.entries(added).filter(([, list]) => list.length > 0))).toEqual(Object.fromEntries(Object.entries(NEW_COLUMNS).map(([ref, list]) => [`${PREFIX}${ref}`, list])));
           // And over HTTP: every row Adminium hands out is the one it handed out before.
           const nowHttp = await all();
+          const guests = nowHttp["customers"]!;
+          expect(guests.length).toBeGreaterThan(40);
+          for (const guest of guests) expect([guest.id, guest["full_name"] ?? null]).toEqual([guest.id, joined(guest["first_name"], guest["last_name"])]);
+          expect(guests.filter((guest) => guest["full_name"] !== null).length).toBeGreaterThan(40);
           for (const [ref, list] of Object.entries(beforeHttp)) {
             const extra = NEW_COLUMNS[ref] ?? [];
             const trimmed = nowHttp[ref]!.map((found) => Object.fromEntries(Object.entries(found).filter(([column]) => !extra.includes(column))));
@@ -344,9 +395,21 @@ describe.skipIf(why !== null)(`the update of a live ${FROM} house to ${TO}${why 
           }
         }, 120_000);
 
+        it("writes nothing in the consent log for a guest who was there: no yes was ever given", async () => {
+          for (const guest of (await rows("customers")).slice(0, 5)) {
+            const panel = ok(await staff.post<{ data: { declared: boolean; history: unknown[] } }>("/api/v1/consent/panel", { connectionId, table: tableIds[`${PREFIX}customers`]!, recordId: String(guest.id) })).data;
+            expect([guest.id, panel.declared, panel.history]).toEqual([guest.id, true, []]);
+          }
+        }, 60_000);
+
+        it(`still sends the confirmation to the guest on the do-not-email list, now that ${TO} says every email is service mail`, async () => {
+          const sent = await reserveOnline(stopped, "2026-09-14", "2026-09-16");
+          expect(sent).toEqual({ status: "sent", subject: expect.stringContaining(sent.ref), ref: sent.ref });
+        }, 300_000);
+
         // ── one write on an old row ───────────────────────────────────────────
 
-        it("brings a given-back payment's link to the payment it returns to with its foreign key", async () => {
+        it("keeps a given-back payment's link to the payment it returns to with its foreign key", async () => {
           const payments = (await raw())[`${PREFIX}payments`]!;
           expect(payments.constraints.filter((c) => /against_id/.test(c) && /payments/.test(c)).length, JSON.stringify(payments.constraints)).toBeGreaterThan(0);
         }, 60_000);
