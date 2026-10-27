@@ -1,6 +1,7 @@
 /**
  * The three new moments, each done by hand on its own screen in the four
- * looks (light, dark, Arabic, a phone): a guest types a code and reserves;
+ * looks (light, dark, Arabic, a phone): a guest types a code, ticks the
+ * house's news and reserves;
  * the desk takes a gift card; housekeeping puts the linen back. Every figure
  * on the page is the demo house's own answer — the test reads them, never
  * works them out.
@@ -45,8 +46,19 @@ for (const variant of VARIANTS) {
     await expect(page.locator("[data-code-row]")).toHaveCount(1);
     await play(page, "fill-guest");
     await settle(page);
+    // The news tick, off until the guest ticks it, the line under it read with it; ticked, it goes with the reservation.
+    const tick = page.getByRole("checkbox", { name: /news and offers/ });
+    if (variant !== "arabic") await expect(tick).toBeVisible();
+    await expect(page.locator("#rv-opt-in")).not.toBeChecked();
+    await expect(page.locator("#rv-opt-in")).toHaveAttribute("aria-describedby", "rv-opt-in-hint");
+    await expect(page.locator("#rv-opt-in-hint")).not.toBeEmpty();
+    await page.locator("#rv-opt-in").check();
+    await expect(page.locator("#rv-opt-in")).toBeChecked();
+    await check(page, "offers", "reserve-news-ticked", variant);
     await page.evaluate(() => (window as unknown as { __house: { app: { tryReserve(): void } } }).__house.app.tryReserve());
     await expect.poll(() => state(page, "view")).toBe("conf");
+    // The form is blank again for the next guest: the tick with it.
+    expect((await state(page, "form")) as { optIn: boolean }).toMatchObject({ optIn: false });
     await check(page, "offers", "conf-with-code", variant);
     await expect(page.locator("main")).toContainText("Midweek");
     expect(errors).toEqual([]);
