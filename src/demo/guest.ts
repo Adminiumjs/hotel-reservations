@@ -205,8 +205,10 @@ export class DemoGuest implements GuestPort {
       if (type !== undefined) this.world.update("room_types", type.id, { base_rate: Number(type["base_rate"]) + 5 });
     }
     const made = this.engine.write(() => {
-      const customer = this.identify(String(values["email"]), String(values["first_name"] ?? ""), String(values["last_name"] ?? ""));
+      const customer = this.identify(String(values["email"]), String(values["first_name"] ?? ""), String(values["last_name"] ?? ""), values["language"]);
       const { stay, lines } = this.engine.createStay({ ...values, customer_id: customer.id }, extras, GUEST);
+      // The tick is the guest's yes to the house's news, as Adminium keeps it (here with no consent log); unticked takes nothing back.
+      if (values["opt_in"] === true) this.world.update("customers", customer.id, { opt_in: true });
       this.engine.addOns.price(this.world, stay.id, codes);
       this.world.settle();
       const expected = body.expect?.total;
@@ -228,14 +230,14 @@ export class DemoGuest implements GuestPort {
     };
   }
 
-  /** The guest known by their email: found, or made from what they typed. */
-  private identify(email: string, first: string, last: string): Row {
+  /** The guest known by their email: found, or made from what they typed, in the language of the reservation. */
+  private identify(email: string, first: string, last: string, language: unknown): Row {
     const known = this.world.all("customers").find((c) => c["email"] === email);
     if (known !== undefined) {
       if (empty(known["first_name"])) this.world.update("customers", known.id, { first_name: first, last_name: last });
       return known;
     }
-    return this.world.insert("customers", { email, first_name: first, last_name: last, forgotten_at: null, created_at: new Date(this.engine.now).toISOString() });
+    return this.world.insert("customers", { email, first_name: first, last_name: last, language: empty(language) ? null : language, opt_in: false, forgotten_at: null, created_at: new Date(this.engine.now).toISOString() });
   }
 
   // ── the stay's own link ─────────────────────────────────────────────────────
@@ -477,7 +479,7 @@ export class DemoGuest implements GuestPort {
     const customer = this.signedCustomer();
     if (this.engine.now - this.signIn!.at > 10 * 60_000) throw new ApiError(403, "PUBLIC_CODE_STEP_UP", "Sign in again to do that.");
     this.engine.write(() => {
-      this.world.update("customers", customer.id, { email: null, first_name: null, last_name: null, forgotten_at: new Date(this.engine.now).toISOString() });
+      this.world.update("customers", customer.id, { email: null, first_name: null, last_name: null, opt_in: false, forgotten_at: new Date(this.engine.now).toISOString() });
       // The stays' own links stop too, so a forwarded confirmation opens nothing.
       for (const stay of this.world.where("stays", (s) => s["customer_id"] === customer.id)) this.world.update("stays", stay.id, { link_token: randomCode(16) });
     });

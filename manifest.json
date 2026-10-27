@@ -3,7 +3,7 @@
   "manifestVersion": 1,
   "key": "hotel",
   "name": "Hotel Reservations",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "publisher": {
     "id": "adminium",
     "name": "Adminium",
@@ -18,7 +18,7 @@
     "hospitality"
   ],
   "compatibility": {
-    "minAdminiumVersion": "0.3.20",
+    "minAdminiumVersion": "0.3.38",
     "engines": [
       "sqlite",
       "postgres",
@@ -2253,6 +2253,102 @@
             "nullable": true
           },
           {
+            "ref": "full_name",
+            "type": "text",
+            "maxLength": 130,
+            "label": {
+              "en-US": "Full name",
+              "de-DE": "Vollständiger Name",
+              "fr-FR": "Nom complet",
+              "da-DK": "Fulde navn",
+              "cs-CZ": "Celé jméno",
+              "ar-EG": "الاسم الكامل",
+              "zh-CN": "全名",
+              "zh-TW": "全名"
+            },
+            "nullable": true,
+            "semantic": "name",
+            "rules": {
+              "personal": true,
+              "formula": {
+                "join": [
+                  "first_name",
+                  " ",
+                  "last_name"
+                ]
+              }
+            }
+          },
+          {
+            "ref": "language",
+            "type": "text",
+            "maxLength": 16,
+            "nullable": true,
+            "label": {
+              "en-US": "Language",
+              "de-DE": "Sprache",
+              "fr-FR": "Langue",
+              "da-DK": "Sprog",
+              "cs-CZ": "Jazyk",
+              "ar-EG": "اللغة",
+              "zh-CN": "语言",
+              "zh-TW": "語言"
+            },
+            "rules": {
+              "options": {
+                "values": [
+                  {
+                    "value": "en-US",
+                    "label": "English"
+                  },
+                  {
+                    "value": "de-DE",
+                    "label": "Deutsch"
+                  },
+                  {
+                    "value": "fr-FR",
+                    "label": "Français"
+                  },
+                  {
+                    "value": "da-DK",
+                    "label": "Dansk"
+                  },
+                  {
+                    "value": "cs-CZ",
+                    "label": "Čeština"
+                  },
+                  {
+                    "value": "ar-EG",
+                    "label": "العربية"
+                  },
+                  {
+                    "value": "zh-CN",
+                    "label": "简体中文"
+                  },
+                  {
+                    "value": "zh-TW",
+                    "label": "繁體中文"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "ref": "opt_in",
+            "type": "bool",
+            "default": false,
+            "label": {
+              "en-US": "News from us",
+              "de-DE": "Neuigkeiten von uns",
+              "fr-FR": "Nos nouvelles",
+              "da-DK": "Nyheder fra os",
+              "cs-CZ": "Novinky od nás",
+              "ar-EG": "أخبار منا",
+              "zh-CN": "我们的消息",
+              "zh-TW": "我們的消息"
+            }
+          },
+          {
             "ref": "forgotten_at",
             "type": "timestamptz",
             "label": {
@@ -2292,6 +2388,9 @@
       },
       {
         "ref": "stays",
+        "keep": {
+          "law": "tax"
+        },
         "label": {
           "en-US": "Reservation",
           "de-DE": "Reservierung",
@@ -3206,7 +3305,10 @@
               "zh-CN": "客人备注",
               "zh-TW": "客人備註"
             },
-            "nullable": true
+            "nullable": true,
+            "rules": {
+              "personal": true
+            }
           },
           {
             "ref": "expect_by",
@@ -4159,6 +4261,21 @@
             },
             "nullable": true,
             "unique": true
+          },
+          {
+            "ref": "opt_in",
+            "type": "bool",
+            "default": false,
+            "label": {
+              "en-US": "News from us",
+              "de-DE": "Neuigkeiten von uns",
+              "fr-FR": "Nos nouvelles",
+              "da-DK": "Nyheder fra os",
+              "cs-CZ": "Novinky od nás",
+              "ar-EG": "أخبار منا",
+              "zh-CN": "我们的消息",
+              "zh-TW": "我們的消息"
+            }
           }
         ]
       },
@@ -4741,6 +4858,9 @@
       },
       {
         "ref": "charges",
+        "keep": {
+          "law": "tax"
+        },
         "label": {
           "en-US": "Charge",
           "de-DE": "Posten",
@@ -4995,6 +5115,9 @@
       },
       {
         "ref": "stay_credits",
+        "keep": {
+          "law": "tax"
+        },
         "label": {
           "en-US": "Nights not stayed",
           "de-DE": "Nicht genutzte Nächte",
@@ -5451,6 +5574,9 @@
       },
       {
         "ref": "payments",
+        "keep": {
+          "law": "tax"
+        },
         "label": {
           "en-US": "Payment",
           "de-DE": "Zahlung",
@@ -9979,7 +10105,8 @@
         "columns": [
           "email",
           "first_name",
-          "last_name"
+          "last_name",
+          "opt_in"
         ],
         "stamp": "forgotten_at",
         "links": true
@@ -10472,7 +10599,8 @@
         "arrival_time",
         "note",
         "language",
-        "client_key"
+        "client_key",
+        "opt_in"
       ],
       "requires": [
         "first_name",
@@ -10490,7 +10618,25 @@
         "link": "customer_id",
         "fill": {
           "first_name": "first_name",
-          "last_name": "last_name"
+          "last_name": "last_name",
+          "language": "language"
+        }
+      },
+      "consent": {
+        "column": "opt_in",
+        "purpose": "newsletter",
+        "wording": {
+          "version": 1,
+          "text": {
+            "en-US": "Email me news and offers from {hotel}\nEvery email has a link to stop them.",
+            "de-DE": "Schicken Sie mir Neuigkeiten und Angebote von {hotel} per E-Mail\nJede E-Mail enthält einen Link, mit dem Sie sie abbestellen können.",
+            "fr-FR": "M'envoyer par e-mail les nouvelles et les offres de {hotel}\nChaque e-mail contient un lien pour ne plus les recevoir.",
+            "da-DK": "Send mig nyheder og tilbud fra {hotel} på mail\nHver mail har et link, så du kan stoppe dem.",
+            "cs-CZ": "Chci dostávat e-mailem novinky a nabídky od {hotel}\nKaždý e-mail obsahuje odkaz, kterým je můžete odhlásit.",
+            "ar-EG": "راسلوني بالبريد الإلكتروني بأخبار {hotel} وعروضه\nكل رسالة فيها رابط لإيقاف هذه الرسائل.",
+            "zh-CN": "通过邮件给我发送{hotel}的消息和优惠\n每封邮件都附有停止接收的链接。",
+            "zh-TW": "以電子郵件寄送{hotel}的消息與優惠給我\n每封郵件都附有停止接收的連結。"
+          }
         }
       },
       "shareLink": "link_token",
@@ -10883,6 +11029,20 @@
       "stay-folio": "hotel-stay-folio",
       "stay-folio-owing": "hotel-stay-folio-owing"
     },
+    "classes": {
+      "stay-made": "service",
+      "stay-made-desk": "service",
+      "stay-cancelled-self": "service",
+      "stay-cancelled-self-late": "service",
+      "stay-cancelled-desk": "service",
+      "stay-cancelled-desk-late": "service",
+      "stay-cancelled-house": "service",
+      "stay-no-show": "service",
+      "stay-dates-changed": "service",
+      "stay-new-link": "service",
+      "stay-folio": "service",
+      "stay-folio-owing": "service"
+    },
     "producers": [
       {
         "kind": "stay-made",
@@ -11110,6 +11270,54 @@
       }
     ]
   },
+  "people": [
+    {
+      "table": "customers",
+      "kind": "people",
+      "email": "email",
+      "name": "full_name",
+      "firstName": {
+        "column": "first_name"
+      },
+      "language": "language",
+      "consent": {
+        "column": "opt_in",
+        "purpose": "newsletter"
+      },
+      "copies": [
+        {
+          "table": "stays",
+          "column": "first_name",
+          "holds": "name",
+          "via": "customer_id"
+        },
+        {
+          "table": "stays",
+          "column": "last_name",
+          "holds": "name",
+          "via": "customer_id"
+        },
+        {
+          "table": "stays",
+          "column": "guest_name",
+          "holds": "name",
+          "via": "customer_id"
+        },
+        {
+          "table": "stays",
+          "column": "email",
+          "holds": "email",
+          "via": "customer_id"
+        },
+        {
+          "table": "stays",
+          "column": "mobile",
+          "holds": "phone",
+          "via": "customer_id"
+        }
+      ]
+    }
+  ],
   "emailTemplates": [
     {
       "key": "hotel-stay-made",

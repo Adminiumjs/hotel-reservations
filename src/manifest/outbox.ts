@@ -28,6 +28,11 @@
  *                              you for staying") or so far, with what is still
  *                              to settle — the desk picks by Adminium's balance.
  *
+ * Every kind is service mail: each is about the guest's own reservation, its
+ * link or its folio. "We missed you" and "We hope to see you again" are said
+ * about the stay that was; offers go out as Adminium's campaigns, which the
+ * do-not-email list stops.
+ *
  * The log is the dedupe: a kind already queued or sent for the same stay is
  * not queued again (a change of dates is told each time). A reservation linked
  * to a signed-in guest is addressed to them, any other to the address typed on
@@ -96,6 +101,8 @@ export const OUTBOX = {
   // A reservation's own link opens it on the guest site; its code rides the fragment.
   pages: { manage: "/r", booking: "/" },
   kinds: Object.fromEntries(KINDS.map((kind) => [kind, `hotel-${kind}`])),
+  // Every email is about a guest's own reservation: none is stopped by the do-not-email list.
+  classes: Object.fromEntries(KINDS.map((kind) => [kind, "service"])),
   producers: [
     { kind: "stay-made", link: "stay_id", ...GATE, onCreate: { table: "stays", where: { column: "channel", eq: "online" } } },
     { kind: "stay-made-desk", link: "stay_id", ...GATE, onCreate: { table: "stays", where: { column: "channel", eq: "desk" } } },

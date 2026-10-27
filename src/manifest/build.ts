@@ -14,12 +14,13 @@ import { DOCUMENTS } from "./documents.ts";
 import { emailTemplates } from "./emails.ts";
 import { KINDS, OUTBOX } from "./outbox.ts";
 import { NAV_GROUPS, pages } from "./pages.ts";
+import { PEOPLE } from "./people.ts";
 import { PUBLIC_ACCESS, PUBLIC_KEYS } from "./public.ts";
 import { ROLES } from "./roles.ts";
 import { TABLES } from "./tables.ts";
 
-/** This release: linen, codes, vouchers and gift cards, on 0.2.x's tables with one more beside them. */
-export const VERSION = "0.3.0";
+/** This release: the house's guests, its emails' class and the tick on a reservation kept in the consent log, on 0.3.0's tables. */
+export const VERSION = "0.3.1";
 
 /**
  * The Adminium release that first reads everything below: rooms counted night
@@ -27,10 +28,12 @@ export const VERSION = "0.3.0";
  * moves with their effects on the room, moves made by the clock, a stay's own
  * link; and an add-on asked what a code takes off inside the save, a gift
  * card paying a row of a table that takes other payments too, and a room
- * type's linen and amenities posted at check-out. Written from the version
- * actually released, never guessed.
+ * type's linen and amenities posted at check-out; and (0.3.38) the house's
+ * guests, each email's class, the tables the law keeps and the reservation's
+ * tick kept in the consent log. Written from the version actually released,
+ * never guessed.
  */
-export const MIN_ADMINIUM = "0.3.20";
+export const MIN_ADMINIUM = "0.3.38";
 
 const ENV = {
   VITE_ADMINIUM_API_BASE_URL: { required: false, example: "https://admin.example.com" },
@@ -91,6 +94,7 @@ export function buildManifest(): Record<string, unknown> {
     publicKeys: PUBLIC_KEYS,
     publicAccess: PUBLIC_ACCESS,
     outbox: OUTBOX,
+    people: PEOPLE,
     emailTemplates: emailTemplates(KINDS),
     // The house's own sample; and, while Inventory's sample is in, each room type linked to its "Room turnover" kit.
     sampleData: { file: "seeds/hotel.sample.json", addOns: { inventory: { file: "seeds/hotel.inventory.sample.json" } } },

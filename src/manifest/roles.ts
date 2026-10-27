@@ -105,10 +105,12 @@ export const DECIDED: Readonly<Record<string, readonly string[]>> = {
   stay_extras: ["discount"],
   payments: ["card_id", "card_last4", "card_balance_after"],
 };
-/** The columns of a table a person may type: not its key, not one a rule works out, not one an add-on decides. */
+/** What only the guest gives, on their own reservation: the tick for the house's news. No role writes it on their behalf. */
+export const GUESTS_OWN: Readonly<Record<string, readonly string[]>> = { stays: ["opt_in"] };
+/** The columns of a table a person may type: not its key, not one a rule works out, not one an add-on decides, not the guest's own tick. */
 const typed = (table: string): string[] =>
   TABLES.find((t) => t.ref === table)!
-    .columns.filter((c) => c.ref !== "id" && !(DECIDED[table] ?? []).includes(c.ref) && c.rules?.["formula"] === undefined && c.rules?.["rollup"] === undefined && c.rules?.["perNight"] === undefined && c.rules?.["codeLast4"] === undefined)
+    .columns.filter((c) => c.ref !== "id" && !(DECIDED[table] ?? []).includes(c.ref) && !(GUESTS_OWN[table] ?? []).includes(c.ref) && c.rules?.["formula"] === undefined && c.rules?.["rollup"] === undefined && c.rules?.["perNight"] === undefined && c.rules?.["codeLast4"] === undefined)
     .map((c) => c.ref);
 const columnsOf = (table: string) => TABLES.find((t) => t.ref === table)!.columns.map((c) => c.ref);
 /** What anybody reads of a payment: never `card_code` — a gift card's whole code is typed once and shown again by no screen. */

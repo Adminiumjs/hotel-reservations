@@ -15,11 +15,19 @@
  * arrival time or the extras, or cancel, without signing in. Moving the dates
  * needs a signed-in guest: a forwarded link cannot move a stay.
  *
+ * The tick "Email me news and offers" is the newsletter's consent, given on
+ * the reservation and kept for its guest (`consent`): the guest account the
+ * address finds or makes, or the guest signed in. A box left unticked takes
+ * back no earlier yes, and a guest's own account cannot set the newsletter by
+ * hand: it is set by a tick, and cleared by an unsubscribe or by deleting
+ * their details.
+ *
  * What never leaves: who at the desk did what, the late flag (a guest sees
  * "cancelled"), who cancelled and why, whether the stay was made online, the
  * guest account behind it, the link code and the retry key, anyone else's
  * stay, the rooms' status, the rate rules.
  */
+import { NEWS_TICK } from "./people.ts";
 import { ARRIVAL_TIMES } from "./tables.ts";
 
 /** What a guest sees of their reservation: the stay, their details, what it costs. */
@@ -169,8 +177,8 @@ export const PUBLIC_ACCESS = [
     writable: ["first_name", "last_name"],
     claim: { verify: "email-link", email: "email" },
     humanCheck: true,
-    // "Delete my details" also stops the links of their reservations.
-    forget: { columns: ["email", "first_name", "last_name"], stamp: "forgotten_at", links: true },
+    // "Delete my details" also stops the links of their reservations, and takes back the newsletter (Adminium records the withdrawal first).
+    forget: { columns: ["email", "first_name", "last_name", "opt_in"], stamp: "forgotten_at", links: true },
   },
   // Their own stays, and the changes they may make until the arrival afternoon;
   // a stay's link forwarded by mistake is replaced by a new one, emailed to them.
@@ -233,10 +241,13 @@ export const PUBLIC_ACCESS = [
       "note",
       "language",
       "client_key",
+      "opt_in",
     ],
     requires: ["first_name", "last_name", "email"],
     claimedBy: { table: "customers", column: "customer_id", optional: true },
-    identity: { table: "customers", email: "email", link: "customer_id", fill: { first_name: "first_name", last_name: "last_name" } },
+    // A guest met for the first time is made with the names and the language of this reservation.
+    identity: { table: "customers", email: "email", link: "customer_id", fill: { first_name: "first_name", last_name: "last_name", language: "language" } },
+    consent: NEWS_TICK,
     shareLink: "link_token",
     // No more guests than the room type sleeps — and, at the desk, than a room given ahead sleeps.
     agrees: [

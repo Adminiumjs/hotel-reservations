@@ -60,8 +60,13 @@ export interface Table {
   adjust?: Record<string, unknown>;
   /** What this table hands an add-on's ledger, and when. */
   postings?: Record<string, unknown>[];
+  /** The law makes the house keep these rows (a stay is the guest register and its bill): an erasure leaves them as they are. */
+  keep?: { law: "tax" | "health" | "contract" | "safety" };
   columns: Column[];
 }
+
+/** The record of a stay and its money, kept for the tax years whoever asks to be forgotten. */
+const KEPT_FOR_TAX = { law: "tax" } as const;
 
 // ── column makers ───────────────────────────────────────────────────────────
 
@@ -515,12 +520,19 @@ export const TABLES: Table[] = [
       text("email", 254, "Email", { ...opt, unique: true, semantic: "email", rules: { normalize: "email", validation: { format: "email" } } }),
       text("first_name", 60, "First name", opt),
       text("last_name", 60, "Surname", opt),
+      // Joined from their own names, as a stay's guest is: what names them wherever a person is listed.
+      text("full_name", 130, "Full name", { ...opt, semantic: "name", rules: { personal: true, formula: { join: ["first_name", " ", "last_name"] } } }),
+      // The language of their first reservation: what the house writes to them in.
+      language("language"),
+      // The newsletter's yes, kept in step with Adminium's consent log: set by the tick on a reservation, never by hand on the site.
+      bool("opt_in", "News from us", false),
       at("forgotten_at", "Details deleted", opt),
       at("created_at", "First stay", { ...opt, rules: stamp("now", onCreate) }),
     ],
   },
   {
     ref: "stays",
+    keep: KEPT_FOR_TAX,
     label: l("Reservation"),
     labelPlural: l("Reservations"),
     keyField: "ref",
@@ -608,7 +620,8 @@ export const TABLES: Table[] = [
         ...opt,
         rules: { options: { values: ARRIVAL_TIMES.map((value) => ({ value })) } },
       }),
-      text("note", 500, "Note from the guest", opt),
+      // What the guest writes about themselves and their stay: personal, read only where a role reads a guest's details.
+      text("note", 500, "Note from the guest", { ...opt, rules: { personal: true } }),
       // The day the desk expects them, when they rang to say they would be late.
       date("expect_by", "Expected", { ...opt, rules: { notBefore: { column: "arrive" } } }),
       language("language"),
@@ -696,6 +709,8 @@ export const TABLES: Table[] = [
       bool("link_stopped", "Link stopped", false),
       // The guest's retry key: a retried reservation lands on the same row.
       text("client_key", 64, "Retry key", { ...opt, unique: true }),
+      // The tick the guest gave on their reservation ("Email me news and offers"): the guest's own, written by nobody else.
+      bool("opt_in", "News from us", false),
     ],
   },
   {
@@ -755,6 +770,7 @@ export const TABLES: Table[] = [
   },
   {
     ref: "charges",
+    keep: KEPT_FOR_TAX,
     label: l("Charge"),
     labelPlural: l("Charges"),
     keyField: "label",
@@ -777,6 +793,7 @@ export const TABLES: Table[] = [
   },
   {
     ref: "stay_credits",
+    keep: KEPT_FOR_TAX,
     label: l("Nights not stayed"),
     labelPlural: l("Nights not stayed"),
     keyField: "reason",
@@ -822,6 +839,7 @@ export const TABLES: Table[] = [
   },
   {
     ref: "payments",
+    keep: KEPT_FOR_TAX,
     label: l("Payment"),
     labelPlural: l("Payments"),
     keyField: "method",

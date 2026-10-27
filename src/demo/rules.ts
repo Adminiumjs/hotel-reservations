@@ -776,7 +776,8 @@ export const MANIFEST_RULES = {
         "columns": [
           "email",
           "first_name",
-          "last_name"
+          "last_name",
+          "opt_in"
         ],
         "stamp": "forgotten_at",
         "links": true
@@ -1269,7 +1270,8 @@ export const MANIFEST_RULES = {
         "arrival_time",
         "note",
         "language",
-        "client_key"
+        "client_key",
+        "opt_in"
       ],
       "requires": [
         "first_name",
@@ -1287,7 +1289,25 @@ export const MANIFEST_RULES = {
         "link": "customer_id",
         "fill": {
           "first_name": "first_name",
-          "last_name": "last_name"
+          "last_name": "last_name",
+          "language": "language"
+        }
+      },
+      "consent": {
+        "column": "opt_in",
+        "purpose": "newsletter",
+        "wording": {
+          "version": 1,
+          "text": {
+            "en-US": "Email me news and offers from {hotel}\nEvery email has a link to stop them.",
+            "de-DE": "Schicken Sie mir Neuigkeiten und Angebote von {hotel} per E-Mail\nJede E-Mail enthält einen Link, mit dem Sie sie abbestellen können.",
+            "fr-FR": "M'envoyer par e-mail les nouvelles et les offres de {hotel}\nChaque e-mail contient un lien pour ne plus les recevoir.",
+            "da-DK": "Send mig nyheder og tilbud fra {hotel} på mail\nHver mail har et link, så du kan stoppe dem.",
+            "cs-CZ": "Chci dostávat e-mailem novinky a nabídky od {hotel}\nKaždý e-mail obsahuje odkaz, kterým je můžete odhlásit.",
+            "ar-EG": "راسلوني بالبريد الإلكتروني بأخبار {hotel} وعروضه\nكل رسالة فيها رابط لإيقاف هذه الرسائل.",
+            "zh-CN": "通过邮件给我发送{hotel}的消息和优惠\n每封邮件都附有停止接收的链接。",
+            "zh-TW": "以電子郵件寄送{hotel}的消息與優惠給我\n每封郵件都附有停止接收的連結。"
+          }
         }
       },
       "shareLink": "link_token",
