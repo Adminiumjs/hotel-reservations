@@ -805,5 +805,7 @@
   "The account has changed since the card was checked. Check the card again.": "تغيّر الحساب منذ التحقق من البطاقة. تحقق من البطاقة مرة أخرى.",
   "The house did not answer. Press again — nothing is put back twice.": "لم يُجب الفندق. اضغط مرة أخرى — لا شيء يُعاد مرتين.",
   "The house did not answer. Press again — nothing is taken or given twice.": "لم يُجب الفندق. اضغط مرة أخرى — لا شيء يُخصم أو يُعاد مرتين.",
-  "We could not check that card just now. Try again in a moment.": "تعذّر علينا التحقق من هذه البطاقة الآن. حاول مجددًا بعد لحظة."
+  "We could not check that card just now. Try again in a moment.": "تعذّر علينا التحقق من هذه البطاقة الآن. حاول مجددًا بعد لحظة.",
+  "Email me news and offers from {hotel}": "راسلوني بالبريد الإلكتروني بأخبار {hotel} وعروضه",
+  "Every email has a link to stop them.": "كل رسالة فيها رابط لإيقاف هذه الرسائل."
 }

@@ -805,5 +805,7 @@
   "The account has changed since the card was checked. Check the card again.": "Le compte a changé depuis la vérification de la carte. Vérifiez la carte de nouveau.",
   "The house did not answer. Press again — nothing is put back twice.": "La maison n'a pas répondu. Appuyez de nouveau — rien n'est remis deux fois.",
   "The house did not answer. Press again — nothing is taken or given twice.": "La maison n'a pas répondu. Appuyez de nouveau — rien n'est prélevé ni rendu deux fois.",
-  "We could not check that card just now. Try again in a moment.": "Nous n'avons pas pu vérifier cette carte pour l'instant. Réessayez dans un instant."
+  "We could not check that card just now. Try again in a moment.": "Nous n'avons pas pu vérifier cette carte pour l'instant. Réessayez dans un instant.",
+  "Email me news and offers from {hotel}": "M'envoyer par e-mail les nouvelles et les offres de {hotel}",
+  "Every email has a link to stop them.": "Chaque e-mail contient un lien pour ne plus les recevoir."
 }

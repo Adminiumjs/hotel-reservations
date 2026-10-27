@@ -805,5 +805,7 @@
   "The account has changed since the card was checked. Check the card again.": "Kontoen har ændret sig, siden kortet blev tjekket. Tjek kortet igen.",
   "The house did not answer. Press again — nothing is put back twice.": "Huset svarede ikke. Tryk igen — intet lægges tilbage to gange.",
   "The house did not answer. Press again — nothing is taken or given twice.": "Huset svarede ikke. Tryk igen — intet tages eller gives to gange.",
-  "We could not check that card just now. Try again in a moment.": "Vi kunne ikke tjekke det kort lige nu. Prøv igen om lidt."
+  "We could not check that card just now. Try again in a moment.": "Vi kunne ikke tjekke det kort lige nu. Prøv igen om lidt.",
+  "Email me news and offers from {hotel}": "Send mig nyheder og tilbud fra {hotel} på mail",
+  "Every email has a link to stop them.": "Hver mail har et link, så du kan stoppe dem."
 }

@@ -1167,6 +1167,18 @@ export function GuestView({ v }: { v: any }) {
                           </div>
                         </div>
                         {" "}
+                        <div style={st("display:flex;flex-direction:column;gap:4px;margin-block-start:14px")}>
+                          <label style={st("display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;cursor:pointer")}>
+                            <input id="rv-opt-in" type="checkbox" checked={v.rv.optIn} onChange={v.rv.onOptIn} aria-describedby="rv-opt-in-hint" style={st("inline-size:18px;block-size:18px;margin:0;flex-shrink:0;accent-color:var(--accent);cursor:pointer")} />
+                            {" "}
+                            {v.rv.optLabel}
+                          </label>
+                          {" "}
+                          <span id="rv-opt-in-hint" style={st("font-size:11.5px;color:var(--fg-subtle);padding-inline-start:28px")}>
+                            {v.rv.optNote}
+                          </span>
+                        </div>
+                        {" "}
                         <label style={st("display:flex;flex-direction:column;gap:6px;margin-block-start:12px")}>
                           <span style={st("font-size:12px;font-weight:700;color:var(--fg-muted)")}>
                             {tr("What time do you think you will get here?")}

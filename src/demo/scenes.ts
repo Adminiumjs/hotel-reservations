@@ -78,7 +78,7 @@ export class Scenes {
     this.app.setState({
       search: { arrive: "2026-08-03", depart: "2026-08-05", guests: 2 },
       pickedType: garden,
-      form: { ...SAMPLE_GUEST, arrivalTime: "16:00", note: "", extras: { [this.extraId("BRK")]: true } },
+      form: { ...SAMPLE_GUEST, arrivalTime: "16:00", note: "", extras: { [this.extraId("BRK")]: true }, optIn: false },
       rvShown: null,
       rvAnswer: null,
       pair: null,

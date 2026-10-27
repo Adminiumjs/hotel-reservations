@@ -805,5 +805,7 @@
   "The account has changed since the card was checked. Check the card again.": "Das Konto hat sich geändert, seit die Karte geprüft wurde. Prüfen Sie die Karte erneut.",
   "The house did not answer. Press again — nothing is put back twice.": "Das Haus hat nicht geantwortet. Drücken Sie erneut — nichts wird doppelt zurückgelegt.",
   "The house did not answer. Press again — nothing is taken or given twice.": "Das Haus hat nicht geantwortet. Drücken Sie erneut — nichts wird doppelt abgebucht oder zurückgegeben.",
-  "We could not check that card just now. Try again in a moment.": "Wir konnten diese Karte gerade nicht prüfen. Versuchen Sie es gleich noch einmal."
+  "We could not check that card just now. Try again in a moment.": "Wir konnten diese Karte gerade nicht prüfen. Versuchen Sie es gleich noch einmal.",
+  "Email me news and offers from {hotel}": "Schicken Sie mir Neuigkeiten und Angebote von {hotel} per E-Mail",
+  "Every email has a link to stop them.": "Jede E-Mail enthält einen Link, mit dem Sie sie abbestellen können."
 }

@@ -805,5 +805,7 @@
   "The account has changed since the card was checked. Check the card again.": "Účet se od ověření karty změnil. Ověřte kartu znovu.",
   "The house did not answer. Press again — nothing is put back twice.": "Dům neodpověděl. Stiskněte znovu — nic se nevrátí dvakrát.",
   "The house did not answer. Press again — nothing is taken or given twice.": "Dům neodpověděl. Stiskněte znovu — nic se nestrhne ani nevrátí dvakrát.",
-  "We could not check that card just now. Try again in a moment.": "Tuto kartu se teď nepodařilo ověřit. Zkuste to za chvíli znovu."
+  "We could not check that card just now. Try again in a moment.": "Tuto kartu se teď nepodařilo ověřit. Zkuste to za chvíli znovu.",
+  "Email me news and offers from {hotel}": "Chci dostávat e-mailem novinky a nabídky od {hotel}",
+  "Every email has a link to stop them.": "Každý e-mail obsahuje odkaz, kterým je můžete odhlásit."
 }

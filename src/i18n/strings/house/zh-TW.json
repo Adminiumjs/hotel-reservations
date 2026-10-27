@@ -805,5 +805,7 @@
   "The account has changed since the card was checked. Check the card again.": "查驗此卡後帳目已有變化。請重新查驗。",
   "The house did not answer. Press again — nothing is put back twice.": "飯店沒有回應。請再按一次——不會重複放回。",
   "The house did not answer. Press again — nothing is taken or given twice.": "飯店沒有回應。請再按一次——不會重複扣款或退款。",
-  "We could not check that card just now. Try again in a moment.": "暫時無法查驗此卡。請稍後再試。"
+  "We could not check that card just now. Try again in a moment.": "暫時無法查驗此卡。請稍後再試。",
+  "Email me news and offers from {hotel}": "以電子郵件寄送{hotel}的消息與優惠給我",
+  "Every email has a link to stop them.": "每封郵件都附有停止接收的連結。"
 }

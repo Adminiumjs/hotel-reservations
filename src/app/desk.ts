@@ -11,7 +11,7 @@ import { isApiError, type Id, type LinenRow, type QuoteReply, type StayBody } fr
 import { tr } from "../i18n/tr.ts";
 import { mailable } from "../lib/mail.ts";
 import { money, nightsOf, plus, strip } from "./fmt.ts";
-import { blankForm, mintKey, NO_CODES, type HouseApp, type Nb, type View } from "./house.ts";
+import { blankDetails, mintKey, NO_CODES, type HouseApp, type Nb, type View } from "./house.ts";
 import type { StV } from "./world.ts";
 
 export function openFolio(app: HouseApp, id: Id, from?: View): void {
@@ -197,7 +197,7 @@ export function openEdit(app: HouseApp, st: StV): void {
 
 export function blankNb(app: HouseApp): Nb {
   const d = app.day;
-  return { ...blankForm(), key: mintKey(), arrive: plus(d, 6), depart: plus(d, 8), guests: 2, type: null, link: null, language: "en-US" };
+  return { ...blankDetails(), key: mintKey(), arrive: plus(d, 6), depart: plus(d, 8), guests: 2, type: null, link: null, language: "en-US" };
 }
 
 export function walkIn(app: HouseApp): void {

@@ -80,7 +80,7 @@ describe("a code typed and not applied", () => {
     const app = new HouseApp({ guest }, "guest");
     return { app, reserved };
   };
-  const filled = { first: "Elin", last: "Marsh", email: "elin@example.com", mobile: "", arrivalTime: "15:00", note: "", extras: {} };
+  const filled = { first: "Elin", last: "Marsh", email: "elin@example.com", mobile: "", arrivalTime: "15:00", note: "", extras: {}, optIn: false };
 
   it("is asked about before the stay is reserved: refused, nothing is reserved and its reason is said", async () => {
     const { app, reserved } = guestWith((codes) => (codes.includes("SUMMER25") ? Promise.reject(new ApiError(400, "PUBLIC_WRITE_REFUSED", "no", { column: "typed", reason: "unknown" })) : Promise.resolve(quoteOf([]))));

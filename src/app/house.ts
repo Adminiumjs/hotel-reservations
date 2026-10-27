@@ -18,7 +18,8 @@ import { worldOf, type StV, type WorldV } from "./world.ts";
 import type { View } from "./views.ts";
 export type { View };
 
-export interface Form {
+/** Who is coming: what the guest site and the desk both ask. */
+export interface Details {
   first: string;
   last: string;
   email: string;
@@ -27,6 +28,11 @@ export interface Form {
   note: string;
   extras: Record<string, boolean>;
 }
+/** The guest site's reservation form. */
+export interface Form extends Details {
+  /** "Email me news and offers": the guest's own tick on their reservation, off until they tick it. The desk asks no such thing. */
+  optIn: boolean;
+}
 /** A retry key a form mints once: 48 random characters. */
 /** A retry key: 48 hex characters from the browser's own random source (`randomUUID` is not there on a plain-http page). */
 export const mintKey = (): string => Array.from(crypto.getRandomValues(new Uint8Array(24)), (byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -34,7 +40,7 @@ export const mintKey = (): string => Array.from(crypto.getRandomValues(new Uint8
 /** No code in hand: the field shut, nothing typed, nothing said. */
 export const NO_CODES = { codes: [] as string[], codeOpen: false, codeText: "", codeErr: "", codeBusy: false };
 
-export interface Nb extends Form {
+export interface Nb extends Details {
   /** The form's retry key: a save sent again after a reply that never came lands on the same stay. */
   key: string;
   arrive: string;
@@ -65,7 +71,8 @@ export interface Toast {
 }
 
 const CODE0 = ["", "", "", "", "", ""];
-export const blankForm = (): Form => ({ first: "", last: "", email: "", mobile: "", arrivalTime: "15:00", note: "", extras: {} });
+export const blankDetails = (): Details => ({ first: "", last: "", email: "", mobile: "", arrivalTime: "15:00", note: "", extras: {} });
+export const blankForm = (): Form => ({ ...blankDetails(), optIn: false });
 export const blankAuth = (): Auth => ({ stage: "form", email: "", token: null, busy: false, sentAt: 0, code: CODE0.slice(), tries: 5, err: "", emailErr: "", ended: "" });
 
 export function fresh(day: string) {
@@ -793,7 +800,7 @@ export class HouseApp {
 
   // ── the guest's side: reserving ────────────────────────────────────────
 
-  pickedExtras(f: Form): string[] {
+  pickedExtras(f: Details): string[] {
     return Object.entries(f.extras)
       .filter(([, on]) => on)
       .map(([id]) => id);
@@ -843,6 +850,8 @@ export class HouseApp {
         note: f.note.trim(),
         language: this.state.lang,
         client_key: this.clientKey,
+        // Unticked writes nothing in Adminium's consent log: it takes back no yes the guest gave before.
+        opt_in: f.optIn,
       },
       children: { stay_extras: this.pickedExtras(f).map((extra_id) => ({ values: { extra_id: Number(extra_id) } })), ...this.typedCodes(s.codes) },
       ...(shown ? { expect: { total: shown } } : {}),
