@@ -388,6 +388,18 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         expect(await refusalOf(() => fd.desk.voidRow("charges", charge.id, "no"))).toBe("TABLE_FORBIDDEN");
         const teo = byRef(await rows("stays"), "WH-S3283");
         expect(await refusalOf(() => fd.t.mutate(`/api/v1/data/${fd.cfg.connectionId!}/${fd.cfg.tables["stays"]!}/${String(teo.id)}`, "PATCH", { values: { total: "1.00" } }))).toBe("COLUMN_FORBIDDEN");
+        // The guest's tick for the house's news is theirs alone: the desk records none, on a booking it takes or one it changes.
+        expect(await refusalOf(() => fd.t.mutate(`/api/v1/data/${fd.cfg.connectionId!}/${fd.cfg.tables["stays"]!}/${String(teo.id)}`, "PATCH", { values: { opt_in: true } }))).toBe("COLUMN_FORBIDDEN");
+        const fdHouse = await fd.desk.house();
+        const deskBody = {
+          values: { room_type_id: fdHouse.types.find((x) => x["name"] === "Garden double")!.id, arrive: "2026-08-24", depart: "2026-08-26", guests: 2, first_name: "Wren", last_name: "Tally", email: `wren.${engine}@wrenhouse.test`, language: "en-US" },
+          children: { stay_extras: [] },
+        };
+        expect(await refusalOf(() => fd.desk.book({ ...deskBody, values: { ...deskBody.values, opt_in: true } }))).toBe("COLUMN_FORBIDDEN");
+        expect((await rows("stays")).some((st) => st["email"] === `wren.${engine}@wrenhouse.test`)).toBe(false);
+        // Nor does the manager, who may change everything else a person types on a reservation.
+        const mgr = await person("hotel-manager", `osk.${engine}@wrenhouse.test`, "Osk");
+        expect(await refusalOf(() => mgr.t.mutate(`/api/v1/data/${mgr.cfg.connectionId!}/${mgr.cfg.tables["stays"]!}/${String(teo.id)}`, "PATCH", { values: { opt_in: true } }))).toBe("COLUMN_FORBIDDEN");
         // A stay that already has a credit (none of its nights, so its money stands): the front desk still gets Adminium's quote
         // for leaving early — its credits go back as they are — and may change none of them.
         const staying = (await rows("stays")).find((st) => st["status"] === "in_house" && String(st["depart"]) > "2026-07-30")!;
@@ -523,11 +535,12 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         expect((replayed.body.data ?? []) as Row[]).toEqual([]);
       }, 420_000);
 
-      /** B, signed in once for both of the next two (a sign-in is asked for only so often). */
+      /** B, signed in once for the next few (a sign-in is asked for only so often); the session his page sends, by key. */
       let signedB: AdminiumGuest | null = null;
+      const bSessions = new Map<string, string>();
       const bSignedIn = async () => {
         if (signedB !== null) return signedB;
-        const b = await guestOf();
+        const b = await guestOf(bSessions);
         const before = await sinkCount();
         await b.requestSignIn(pair.b.email);
         await b.verifyCode(pair.b.email, codeIn((await mailTo(pair.b.email, before, SIGN_IN)).text));
@@ -540,11 +553,87 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         expect(await (await bSignedIn()).signedIn()).toMatchObject({ email: pair.b.email, name: "Piet Vos" });
       }, 240_000);
 
+      // ── the newsletter's tick, kept in Adminium's consent log ──
+
+      type Panel = { declared: boolean; purposes: { purpose: string; state: string }[]; history: { state: string; source: string; detail: string | null; wordingVersion: string | null }[] };
+      /** How a guest stands in the consent log, as the record page's panel reads it. */
+      const panelOf = async (customerId: unknown) =>
+        ok(await staff.post<{ data: Panel }>("/api/v1/consent/panel", { connectionId, table: tableIds["customers"]!, recordId: String(customerId) })).data;
+      const said = (panel: Panel) => panel.history.map((e) => [e.state, e.source, e.detail, e.wordingVersion]);
+      const newsOf = (panel: Panel) => panel.purposes.find((p) => p.purpose === "newsletter")!.state;
+      const ticked = (value: unknown) => value === true || value === 1 || value === "1";
+      /** A reservation as the guest site makes it, through the app's own door: the tick given or not. */
+      const reserveAs = async (email: string, first: string, last: string, language: string, tick: boolean, arrive: string, g?: AdminiumGuest) => {
+        const garden = (await rows("room_types")).find((t) => t["name"] === "Garden double")!;
+        const depart = new Date(Date.parse(`${arrive}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
+        const made = await (g ?? (await guestOf())).reserve(
+          { values: { room_type_id: garden.id, arrive, depart, guests: 1, first_name: first, last_name: last, email, language, opt_in: tick }, children: { stay_extras: [] } },
+          `${email}-${arrive}`.replace(/[^A-Za-z0-9]/g, "").padEnd(43, "k").slice(0, 64),
+        );
+        const stay = (await rows("stays")).find((st) => st.id === made.data.id)!;
+        return { stay, customer: (await rows("customers")).find((c) => c.id === stay["customer_id"])! };
+      };
+
+      it("keeps a stranger's tick in the consent log, for the guest the address makes, in the reservation's language", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        const email = `noor.${engine}@wrenhouse.dev`;
+        const made = await reserveAs(email, "Noor", "Haddad", "fr-FR", true, "2026-09-01");
+        // A guest met for the first time: named, in the reservation's language, with the newsletter's yes.
+        expect([ticked(made.stay["opt_in"]), made.customer["email"], made.customer["full_name"], made.customer["language"], ticked(made.customer["opt_in"])]).toEqual([true, email, "Noor Haddad", "fr-FR", true]);
+        // One row in the log: from the form, the wording shown and its language — kept for the guest, never the reservation.
+        const panel = await panelOf(made.customer.id);
+        expect([panel.declared, newsOf(panel), said(panel)]).toEqual([true, "yes", [["yes", "form", "hotel:stays", "v1 fr-FR"]]]);
+      }, 240_000);
+
+      it("writes nothing for a box left unticked, and still sends the confirmation to a guest on the do-not-email list: it is service mail", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        const email = `omar.${engine}@wrenhouse.dev`;
+        ok(await staff.post("/api/v1/consent/stop-list", { addresses: [email] }));
+        const before = await sinkCount();
+        const made = await reserveAs(email, "Omar", "Saleh", "en-US", false, "2026-09-01");
+        expect([ticked(made.stay["opt_in"]), made.customer["full_name"], made.customer["language"], ticked(made.customer["opt_in"]), said(await panelOf(made.customer.id))]).toEqual([false, "Omar Saleh", "en-US", false, []]);
+        expect((await mailTo(email, before, new RegExp(String(made.stay["ref"])))).to).toContain(email);
+      }, 240_000);
+
+      it("never lets a guest's own account set the newsletter by hand; a signed-in guest's tick is his, and a later box left unticked takes nothing back", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        const b = await bSignedIn();
+        const door = await rawDoor();
+        const session = bSessions.get(`Bearer ${door.keys.customer}`)!;
+        expect(session).toBeTruthy();
+        const piet = (await rows("customers")).find((c) => c["email"] === pair.b.email)!;
+        expect([ticked(piet["opt_in"]), piet["full_name"], piet["language"]]).toEqual([false, "Piet Vos", "en-US"]);
+        // His own account, by its own door: his names are his to change, the newsletter is not.
+        const byHand = await door.call(door.keys.customer, session, `/api/v1/public/records/${door.refs.account}/${String(piet.id)}`, { method: "PATCH", body: { values: { opt_in: true } } });
+        expect(byHand.status).toBeGreaterThanOrEqual(400);
+        expect([ticked((await rows("customers")).find((c) => c.id === piet.id)!["opt_in"]), said(await panelOf(piet.id))]).toEqual([false, []]);
+        // Signed in, he reserves again and ticks: kept for him, whatever address he types, in his account's language.
+        const ticked1 = await reserveAs(`someone.else.${engine}@wrenhouse.dev`, "Piet", "Vos", "de-DE", true, "2026-09-15", b);
+        expect([ticked1.stay["customer_id"], ticked(ticked1.stay["opt_in"])]).toEqual([piet.id, true]);
+        const yes = [["yes", "form", "hotel:stays", "v1 en-US"]];
+        expect([ticked((await rows("customers")).find((c) => c.id === piet.id)!["opt_in"]), said(await panelOf(piet.id))]).toEqual([true, yes]);
+        // And once more, the box left empty: nothing written, the yes he gave kept.
+        const plain = await reserveAs(pair.b.email, "Piet", "Vos", "en-US", false, "2026-09-22", b);
+        expect([plain.stay["customer_id"], ticked(plain.stay["opt_in"])]).toEqual([piet.id, false]);
+        expect([ticked((await rows("customers")).find((c) => c.id === piet.id)!["opt_in"]), said(await panelOf(piet.id))]).toEqual([true, yes]);
+      }, 240_000);
+
       it("deletes a guest's details at his asking: the account emptied, his stays keep theirs, their links stop", async (ctx) => {
         needsWrites(() => ctx.skip());
         const b = await bSignedIn();
+        const piet = (await rows("customers")).find((c) => c["email"] === pair.b.email)!;
         await b.forget();
         expect((await rows("customers")).filter((c) => c["last_name"] === "Vos")).toEqual([]);
+        // The newsletter taken back with the rest, and the log says so before the yes he gave.
+        const panel = await panelOf(piet.id);
+        expect([ticked((await rows("customers")).find((c) => c.id === piet.id)!["opt_in"]), newsOf(panel), said(panel)]).toEqual([
+          false,
+          "no",
+          [
+            ["no", "person", "forget", null],
+            ["yes", "form", "hotel:stays", "v1 en-US"],
+          ],
+        ]);
         const stay = (await rows("stays")).find((s) => s.id === pair.b.id)!;
         expect([stay["first_name"], stay["email"]]).toEqual(["Piet", pair.b.email]);
         expect(await refusalOf(async () => (await guestOf()).openLink(pair.b.token))).toBe("LINK_EXPIRED");
