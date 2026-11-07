@@ -60,6 +60,12 @@
       "version": "0.3.1",
       "integrity": "sha512-6MHrwE6oyEKymqnvFiVb/oCHr4TF63aIBM7yXnHW7IQ4z0pMyeswRlHceUkD8ZI3ogoJNaoLjlk2Fqzzq1Ihhg==",
       "publishedAt": "2026-10-27T22:23:37.000Z"
+    },
+    {
+      "name": "@adminiumjs/app-hotel",
+      "version": "0.3.2",
+      "integrity": "sha512-oKRB3JZ8FJVytNteLe/UdUpw1DehAzXQLsbDuoo5JEKogmKu8TnLGQr3+VKqzqH6sK527nKOEmqG7f9InEzTjA==",
+      "publishedAt": "2026-11-07T08:40:35.000Z"
     }
   ]
 }
