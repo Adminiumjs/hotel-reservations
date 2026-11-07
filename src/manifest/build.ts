@@ -19,8 +19,12 @@ import { PUBLIC_ACCESS, PUBLIC_KEYS } from "./public.ts";
 import { ROLES } from "./roles.ts";
 import { TABLES } from "./tables.ts";
 
-/** This release: the house's guests, its emails' class and the tick on a reservation kept in the consent log, on 0.3.0's tables. */
-export const VERSION = "0.3.1";
+/**
+ * This release: a house may install the desk once per database, each install's
+ * screens saying which install they are, on 0.3.0's tables (0.3.1 brought the
+ * house's guests, its emails' class and the tick kept in the consent log).
+ */
+export const VERSION = "0.3.2";
 
 /**
  * The Adminium release that first reads everything below: rooms counted night
@@ -30,10 +34,11 @@ export const VERSION = "0.3.1";
  * card paying a row of a table that takes other payments too, and a room
  * type's linen and amenities posted at check-out; and (0.3.38) the house's
  * guests, each email's class, the tables the law keeps and the reservation's
- * tick kept in the consent log. Written from the version actually released,
- * never guessed.
+ * tick kept in the consent log; and (0.3.49) the same app installed once per
+ * database, each install's screens at their own address. Written from the
+ * version actually released, never guessed.
  */
-export const MIN_ADMINIUM = "0.3.38";
+export const MIN_ADMINIUM = "0.3.49";
 
 const ENV = {
   VITE_ADMINIUM_API_BASE_URL: { required: false, example: "https://admin.example.com" },
@@ -82,8 +87,8 @@ export function buildManifest(): Record<string, unknown> {
     },
     capabilities: ["realtime", "email-delivery"],
     frontends: [
-      { side: "staff", kind: "spa", entry: "index.html", env: ENV, placement: "external", routes: STAFF_ROUTES },
-      { side: "customer", kind: "spa", entry: "index.html", env: ENV, routes: CUSTOMER_ROUTES },
+      { side: "staff", kind: "spa", entry: "index.html", env: ENV, placement: "external", instances: true, routes: STAFF_ROUTES },
+      { side: "customer", kind: "spa", entry: "index.html", env: ENV, instances: true, routes: CUSTOMER_ROUTES },
     ],
     addOns: ADD_ONS,
     documents: DOCUMENTS,

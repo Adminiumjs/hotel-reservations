@@ -60,7 +60,8 @@ describe("the house's guests", () => {
         ],
       },
     ]);
-    expect(manifest.compatibility["minAdminiumVersion"]).toBe("0.3.38");
+    // 0.3.38 first read the house's guests; the floor has since moved on (0.3.49, installs per database).
+    expect(manifest.compatibility["minAdminiumVersion"]).toBe("0.3.49");
   });
 
   it("have one address: the outbox's and the one they sign in with", () => {

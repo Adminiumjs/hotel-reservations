@@ -20,7 +20,7 @@ because $1,099.03 is still on the folio.
 
 ## What it needs
 
-- Adminium **0.3.38** or later, on SQLite, Postgres or MySQL.
+- Adminium **0.3.49** or later, on SQLite, Postgres or MySQL.
 - Nothing else. Three add-ons are offered at install, and the house is whole
   with none of them:
 
@@ -89,6 +89,12 @@ Tuesday, or add it later from the app's settings.
 Once installed, the desk is served at `/apps/hotel/staff/` and the guest site
 at `/apps/hotel/customer/`. A hotel can also give the guest site a domain of
 its own.
+
+**Moving from 0.3.1.** 0.3.2 changes no table: it updates a 0.3.1 install in
+place — update Adminium to 0.3.49 first, then the app. A house may then
+install the desk once per database: each install's screens open at their own
+address and say which install they are on every call, so a second
+database's desk reads and writes its own house.
 
 **Moving from 0.3.0.** 0.3.1 updates a 0.3.0 install in place — update
 Adminium to 0.3.38 first, then the app. The update adds a guest's whole name
