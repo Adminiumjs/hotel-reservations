@@ -40,6 +40,7 @@ function transport(routes: Record<string, (sent: Sent) => unknown>) {
 
 const config = (over: Partial<StaffConfig> = {}): StaffConfig => ({
   connectionId: "c1",
+  installId: null,
   appName: "Wren House",
   tables: {},
   settings: {},

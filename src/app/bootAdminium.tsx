@@ -47,6 +47,7 @@ export async function bootAdminium(mount: HTMLElement, fail: StartupFailure): Pr
     const transport = createSessionTransport({
       tableOfRef: staff.tables,
       connectionId: staff.connectionId ?? undefined,
+      installId: staff.installId,
       staff: { csrfToken: staff.csrfToken, timezone: staff.timezone, timezoneSource: staff.timezoneSource, serverTimezone: staff.serverTimezone, currency: staff.currency },
       refreshToken: async () => (await loadStaffConfig())?.csrfToken ?? null,
     });
