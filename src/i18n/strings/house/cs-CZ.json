@@ -860,5 +860,6 @@
   "We’ll keep your room for a few minutes while you pay.": "Pokoj vám podržíme několik minut, než zaplatíte.",
   "You are inside the notice we ask for. You can still cancel until {time} on {day}; it will be marked as a late cancellation.": "Jste uvnitř lhůty, o kterou žádáme. Zrušit můžete ještě do {time} dne {day}; bude to vedeno jako pozdní zrušení.",
   "You’ll pay on the Stripe or PayPal page.": "Zaplatíte na stránce Stripe nebo PayPal.",
-  "Your room is still reserved. You can try again, or pay at the desk.": "Pokoj zůstává rezervovaný. Můžete to zkusit znovu, nebo zaplatit na recepci."
+  "Your room is still reserved. You can try again, or pay at the desk.": "Pokoj zůstává rezervovaný. Můžete to zkusit znovu, nebo zaplatit na recepci.",
+  "No money moves here. The room is kept a few minutes while the guest pays.": "Tady se žádné peníze nepřevádějí. Pokoj se podrží několik minut, než host zaplatí."
 }

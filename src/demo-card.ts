@@ -71,6 +71,8 @@ export const DEMO_SCREENS: DemoCardScreen[] = [
     cut("reserve-offline", "wifi-off"),
     cut("price-moves", "tag"),
     cut("code-midweek", "tag"),
+    // The demo's house takes payments, and no money moves: the guest may be asked to pay first.
+    cut("pay-first", "hourglass"),
   ]),
   guest("conf", "conf", "circle-check", [cut("no-emails", "mail-x")]),
   guest("signin", "signin", "key-round", [

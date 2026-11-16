@@ -860,5 +860,6 @@
   "We’ll keep your room for a few minutes while you pay.": "Nous gardons votre chambre quelques minutes pendant que vous payez.",
   "You are inside the notice we ask for. You can still cancel until {time} on {day}; it will be marked as a late cancellation.": "Vous êtes dans le délai de préavis demandé. Vous pouvez encore annuler jusqu'à {time} le {day} ; ce sera noté comme une annulation tardive.",
   "You’ll pay on the Stripe or PayPal page.": "Vous payez sur la page Stripe ou PayPal.",
-  "Your room is still reserved. You can try again, or pay at the desk.": "Votre chambre reste réservée. Vous pouvez réessayer, ou payer à la réception."
+  "Your room is still reserved. You can try again, or pay at the desk.": "Votre chambre reste réservée. Vous pouvez réessayer, ou payer à la réception.",
+  "No money moves here. The room is kept a few minutes while the guest pays.": "Ici, aucun argent ne circule. La chambre est gardée quelques minutes pendant que le client paie."
 }

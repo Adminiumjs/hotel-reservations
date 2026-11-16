@@ -136,6 +136,14 @@ export class Scenes {
       void this.app.cardBalance({ code: "GC-9D4T-K8RV-M2LX" });
     },
     "fill-guest": () => this.app.setState({ form: { ...this.app.state.form, ...SAMPLE_GUEST }, formErr: false }),
+    // The house asks for the whole stay before the room is the guest's; its pay page is the demo's, and takes nothing.
+    "pay-first": () => {
+      const settings = this.demo.world.settings();
+      this.demo.engine.write(() => this.demo.world.update("settings", settings.id, { pay_at_booking: "required", pay_how_much: "whole_stay" }));
+      this.app.forget("guest:house");
+      this.app.setState({ form: { ...this.app.state.form, ...SAMPLE_GUEST }, formErr: false });
+      this.app.toast(tr("No money moves here. The room is kept a few minutes while the guest pays."), "info");
+    },
     "room-goes": () => {
       this.demo.guest.fault = "room-gone";
       this.fillGuest();

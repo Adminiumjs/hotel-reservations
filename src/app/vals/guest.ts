@@ -475,7 +475,7 @@ export function guestVals(app: HouseApp, w: WorldV): V {
     };
   } else {
     // Until the stay is read back, the heading already greets the guest by the name they gave.
-    v["cf"] = { first: b?.first ?? "", nights: [], lines: [], ...payCard, okOn: false };
+    v["cf"] = { first: b?.first ?? "", nights: [], lines: [], ...payCard, okOn: !payCard.checkingOn && !payCard.holdOn };
   }
 
   // ── sign in by email

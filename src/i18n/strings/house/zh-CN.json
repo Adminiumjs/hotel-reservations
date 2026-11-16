@@ -860,5 +860,6 @@
   "We’ll keep your room for a few minutes while you pay.": "你付款期间，我们会为你保留房间几分钟。",
   "You are inside the notice we ask for. You can still cancel until {time} on {day}; it will be marked as a late cancellation.": "已进入我们要求的提前通知期。你仍可在 {day} {time} 前取消，但会记为逾期取消。",
   "You’ll pay on the Stripe or PayPal page.": "你将在 Stripe 或 PayPal 页面付款。",
-  "Your room is still reserved. You can try again, or pay at the desk.": "你的房间仍为你保留。你可以再试一次，或在前台付款。"
+  "Your room is still reserved. You can try again, or pay at the desk.": "你的房间仍为你保留。你可以再试一次，或在前台付款。",
+  "No money moves here. The room is kept a few minutes while the guest pays.": "这里不会有资金流动。客人付款期间，房间会保留几分钟。"
 }
