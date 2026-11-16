@@ -398,7 +398,7 @@ describe.skipIf(why !== null)(`the update of a live ${FROM} house to ${TO}${why 
             const ref = name.slice(PREFIX.length);
             for (const column of added[name]!) {
               const values = [...new Set(now!.rows.map((found) => found[column] ?? null))];
-              const defaults = PAY_DEFAULTS[ref]?.[column];
+              const defaults = PAY_DEFAULTS[ref]?.[column]?.flatMap((v) => (typeof v === "string" ? [v, `'${v}'`] : [v]));
               if (column === "opt_in" || yesNoColumns(ref).includes(column)) {
                 if (defaults === undefined) expect([name, column, values.filter((v) => !NO.includes(String(v)))]).toEqual([name, column, []]);
                 else expect([name, column, values.filter((v) => !defaults.includes(v as never))]).toEqual([name, column, []]);
