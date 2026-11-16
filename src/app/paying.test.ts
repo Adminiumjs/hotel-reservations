@@ -54,6 +54,14 @@ async function reserving(settings: Record<string, unknown> = {}, payments?: { on
   return { demo, app, rv: () => renderVals(app)["rv"] as V, cf: () => renderVals(app)["cf"] as V };
 }
 
+describe("the refund sheet", () => {
+  it("is closed while the house is still loading, so no screen reads a sheet that is not there", () => {
+    const demo = new DemoAdminium();
+    const app = new HouseApp({ guest: demo.guest, desk: demo.desk }, "desk");
+    expect(renderVals(app)["rf"]).toEqual({ open: false });
+  });
+});
+
 describe("the reserve card, payments off or asking nothing", () => {
   it("reads as it always has when the house takes no payments online", async () => {
     const { rv } = await reserving({ pay_at_booking: "required" }, { online: false, test: false });

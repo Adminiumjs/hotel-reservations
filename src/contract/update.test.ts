@@ -21,9 +21,13 @@
  *      the engine spells it, each column as the engine declares it) and over
  *      HTTP: the snapshot;
  *   7. THIS build uploaded: the plan is exactly the new columns of a guest
- *      (their whole name, their language, the newsletter's yes) and of a
- *      stay (the tick it was made with) — nothing dropped, renamed or
- *      rewritten — and it applies;
+ *      (their whole name, their language, the newsletter's yes), of a stay
+ *      (the tick it was made with, and what is paid and given back online),
+ *      of the settings (what a guest is asked to pay as they book) and of a
+ *      payment (Adminium's reference, the service, a refund's link and
+ *      state), and the new values of three lists (a stay waiting for its
+ *      payment, a stay not paid in time, a payment made online) — nothing
+ *      dropped, renamed or rewritten — and it applies;
  *   8. every row that was there is unchanged, byte for byte: every stay's
  *      tax, total and balance are the cents 0.3.0 stored; every column
  *      declaration too; the new columns hold what a row that was there
@@ -67,13 +71,36 @@ const PORT_BASE = Number(process.env["CONTRACT_UPDATE_PORT_BASE"] ?? Number(proc
 const ADMIN = { email: process.env["E2E_ADMIN_EMAIL"] ?? "e2e@adminium.local", password: process.env["E2E_ADMIN_PASSWORD"] ?? "adminium-e2e-password" };
 const PREFIX = "hotel_";
 
-/** What 0.3.1 adds to 0.3.0's tables, from the manifest: the update's plan must be exactly this. */
+/** What 0.3.1 and 0.3.3 add to 0.3.0's tables, from the manifest: the update's plan must be exactly this. */
 const NEW_TABLES: string[] = [];
+/** Paying online (0.3.3): the settings that ask it, what a stay paid and gave back online, and what a payment taken online carries. */
+const PAY_COLUMNS: Record<string, string[]> = {
+  settings: ["auto_refund", "auto_refund_stop_hours", "pay_at_booking", "pay_hold_minutes", "pay_how_much"],
+  stays: ["deposit", "online_back", "online_full", "online_kept", "online_part", "paid_online", "pay_due", "pay_lapsed", "pay_now", "pay_part", "pay_pending", "refunded_online", "settle_desk", "taken_online"],
+  payments: ["automatic", "online_back", "online_taken", "payment_last4", "payment_ref", "provider", "refund_of", "refund_ref", "refund_state", "refunded_elsewhere"],
+};
 const NEW_COLUMNS: Record<string, string[]> = {
   customers: ["full_name", "language", "opt_in"],
-  stays: ["opt_in"],
+  stays: ["opt_in", ...PAY_COLUMNS["stays"]!].sort(),
+  settings: PAY_COLUMNS["settings"]!,
+  payments: PAY_COLUMNS["payments"]!,
 };
-const NEW_ENUM_VALUES: Record<string, Record<string, string[]>> = {};
+const NEW_ENUM_VALUES: Record<string, Record<string, string[]>> = {
+  stays: { status: ["pending_payment"], cancel_code: ["unpaid"] },
+  payments: { method: ["online"] },
+};
+/**
+ * What a paying column holds on a row that was there: a setting's own default (nothing asked of a guest who books;
+ * refunds in time automatic), no on a yes/no, and nothing else written — except what Adminium works out from the
+ * row (a stay's figures, a payment's share of them), which is checked over HTTP below.
+ */
+const PAY_DEFAULTS: Record<string, Record<string, unknown[]>> = {
+  settings: { pay_at_booking: ["none"], pay_how_much: ["one_night"], pay_hold_minutes: [15, "15"], auto_refund: [true, 1, "1", "true", "t"], auto_refund_stop_hours: [0, "0"] },
+};
+const WORKED_OUT: Record<string, string[]> = {
+  stays: ["deposit", "online_back", "online_full", "online_kept", "online_part", "paid_online", "pay_due", "pay_pending", "refunded_online", "settle_desk", "taken_online"],
+  payments: ["online_back", "online_taken"],
+};
 /** A no as each engine spells a yes/no column's value read straight from the database. */
 const NO = ["0", "false", "f"];
 /** A whole name as Adminium joins it: the parts that have a value, one space between. */
@@ -328,8 +355,12 @@ describe.skipIf(why !== null)(`the update of a live ${FROM} house to ${TO}${why 
         it(`updates in place to ${TO}, as planned`, async () => {
           const reply = await staff.post<{ from: string; to: string; app: { version: string; schema?: { created: string[] }; rules?: { skipped: unknown[] } } }>("/api/v1/apps/hotel/update", {
             planChecksum: plan.checksum,
-            // What the new version lets a guest's page do (a code on a reservation) is the operator's to allow.
+            // What the new version lets a guest's page do (a code on a reservation; reading what was paid online on their
+            // own stay, and reserving paid as they book) is the operator's to allow.
             publicAccess: true,
+            publicWider: true,
+            // The manager may now give back what a guest paid online: a right the review shows, allowed here.
+            roleGrants: true,
             // The house that set the add-ons up first connects them as it updates.
             ...(run.addOns ? { addOns: ["inventory", "offers"].map((key) => ({ key, version: addOnBundle(key).version })) } : {}),
           });
@@ -364,10 +395,15 @@ describe.skipIf(why !== null)(`the update of a live ${FROM} house to ${TO}${why 
             expect(kept, `the rows of ${name}`).toEqual(was.rows);
             // A column the update adds holds, on a row that was there: no to the news (its default), no language, and the whole name
             // Adminium works out from the two names the row has (checked over HTTP below); nothing else.
+            const ref = name.slice(PREFIX.length);
             for (const column of added[name]!) {
               const values = [...new Set(now!.rows.map((found) => found[column] ?? null))];
-              if (column === "opt_in") expect([name, column, values.filter((v) => !NO.includes(String(v)))]).toEqual([name, column, []]);
-              else if (column !== "full_name") expect([name, column, values]).toEqual([name, column, now!.rows.length === 0 ? [] : [null]]);
+              const defaults = PAY_DEFAULTS[ref]?.[column];
+              if (column === "opt_in" || yesNoColumns(ref).includes(column)) {
+                if (defaults === undefined) expect([name, column, values.filter((v) => !NO.includes(String(v)))]).toEqual([name, column, []]);
+                else expect([name, column, values.filter((v) => !defaults.includes(v as never))]).toEqual([name, column, []]);
+              } else if (defaults !== undefined) expect([name, column, values.filter((v) => !defaults.includes(v as never))]).toEqual([name, column, []]);
+              else if (column !== "full_name" && !(WORKED_OUT[ref] ?? []).includes(column)) expect([name, column, values]).toEqual([name, column, now!.rows.length === 0 ? [] : [null]]);
             }
           }
           console.info(`[redeclared, ${engine}${run.title}] ${JSON.stringify(redeclared)}`);
@@ -378,6 +414,12 @@ describe.skipIf(why !== null)(`the update of a live ${FROM} house to ${TO}${why 
           const guests = nowHttp["customers"]!;
           expect(guests.length).toBeGreaterThan(40);
           for (const guest of guests) expect([guest.id, guest["full_name"] ?? null]).toEqual([guest.id, joined(guest["first_name"], guest["last_name"])]);
+          // A stay that was there was paid nothing online: nothing taken or given back online, and what is due online
+          // is what it still owes (it was not paid as it was booked).
+          for (const stay of nowHttp["stays"]!) {
+            const owed = Math.max(0, cents(stay["total"]) - cents(stay["paid"] ?? 0));
+            expect([stay.id, cents(stay["taken_online"] ?? 0), cents(stay["refunded_online"] ?? 0), cents(stay["pay_due"] ?? 0), stay["online_kept"] ?? null]).toEqual([stay.id, 0, 0, owed, null]);
+          }
           expect(guests.filter((guest) => guest["full_name"] !== null).length).toBeGreaterThan(40);
           for (const [ref, list] of Object.entries(beforeHttp)) {
             const extra = NEW_COLUMNS[ref] ?? [];

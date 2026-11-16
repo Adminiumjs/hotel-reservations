@@ -26,7 +26,7 @@ const CLOSED_SCREENS: V = {
   rackLegend: [], rackFloors: [], calDays: [], calRows: [], calTotals: [], resFilters: [], resRows: [], day: { arrivals: [], departures: [] }, tomorrow: {},
   ci: { open: false }, co: { open: false }, rm: { open: false }, ch: { open: false }, se: { open: false, card: {} }, ln: { open: false, rows: [] }, cx: { open: false },
   gc: {}, linen: [],
-  vd: { open: false }, mv: { open: false }, dd: { open: false }, cd: { open: false }, ex: { open: false },
+  vd: { open: false }, mv: { open: false }, dd: { open: false }, cd: { open: false }, ex: { open: false }, rf: { open: false },
 };
 
 export function renderVals(app: HouseApp): V {
