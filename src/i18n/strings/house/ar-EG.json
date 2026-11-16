@@ -861,5 +861,7 @@
   "You are inside the notice we ask for. You can still cancel until {time} on {day}; it will be marked as a late cancellation.": "أنت ضمن مهلة الإشعار التي نطلبها. لا يزال بإمكانك الإلغاء حتى الساعة {time} يوم {day}، وسيُسجَّل كإلغاء متأخر.",
   "You’ll pay on the Stripe or PayPal page.": "ستدفع على صفحة Stripe أو PayPal.",
   "Your room is still reserved. You can try again, or pay at the desk.": "غرفتك لا تزال محجوزة. يمكنك المحاولة مرة أخرى، أو الدفع في مكتب الاستقبال.",
-  "No money moves here. The room is kept a few minutes while the guest pays.": "لا تُنقل أي أموال هنا. تُحجز الغرفة بضع دقائق أثناء دفع الضيف."
+  "No money moves here. The room is kept a few minutes while the guest pays.": "لا تُنقل أي أموال هنا. تُحجز الغرفة بضع دقائق أثناء دفع الضيف.",
+  "Your bank is confirming the payment": "مصرفك يؤكد الدفع",
+  "Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.": "بعض طرق الدفع تستغرق بضعة أيام. غرفتك محجوزة. من فضلك لا تدفع مرة أخرى. سنرسل لك رسالة عند التأكيد."
 }

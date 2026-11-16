@@ -861,5 +861,7 @@
   "You are inside the notice we ask for. You can still cancel until {time} on {day}; it will be marked as a late cancellation.": "已進入我們要求的提前通知期。你仍可在 {day} {time} 前取消，但會記為逾期取消。",
   "You’ll pay on the Stripe or PayPal page.": "你將在 Stripe 或 PayPal 頁面付款。",
   "Your room is still reserved. You can try again, or pay at the desk.": "你的房間仍為你保留。你可以再試一次，或在櫃檯付款。",
-  "No money moves here. The room is kept a few minutes while the guest pays.": "這裡不會有資金流動。客人付款期間，房間會保留幾分鐘。"
+  "No money moves here. The room is kept a few minutes while the guest pays.": "這裡不會有資金流動。客人付款期間，房間會保留幾分鐘。",
+  "Your bank is confirming the payment": "你的銀行正在確認這筆付款",
+  "Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.": "有些付款方式需要幾天時間。你的房間會為你保留。請不要重複付款。確認後我們會寄郵件通知你。"
 }

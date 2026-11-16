@@ -861,5 +861,7 @@
   "You are inside the notice we ask for. You can still cancel until {time} on {day}; it will be marked as a late cancellation.": "Du er inden for det varsel, vi beder om. Du kan stadig afbestille indtil kl. {time} den {day}; det noteres som en sen afbestilling.",
   "You’ll pay on the Stripe or PayPal page.": "Du betaler på Stripe- eller PayPal-siden.",
   "Your room is still reserved. You can try again, or pay at the desk.": "Dit værelse er stadig reserveret. Du kan prøve igen eller betale i receptionen.",
-  "No money moves here. The room is kept a few minutes while the guest pays.": "Her flyttes ingen penge. Værelset holdes et par minutter, mens gæsten betaler."
+  "No money moves here. The room is kept a few minutes while the guest pays.": "Her flyttes ingen penge. Værelset holdes et par minutter, mens gæsten betaler.",
+  "Your bank is confirming the payment": "Din bank bekræfter betalingen",
+  "Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.": "Nogle betalingsmåder tager et par dage. Dit værelse holdes. Betal venligst ikke igen. Vi sender dig en e-mail, når den er bekræftet."
 }

@@ -206,7 +206,8 @@ export function fresh(day: string) {
  * the room gone because the payment did not come in time.
  */
 export interface PayBack {
-  stage: "checking" | "paid" | "failed";
+  /** `bank`: the bank is confirming it (some ways take days); the room is kept, and the guest is not to pay again. */
+  stage: "checking" | "paid" | "failed" | "bank";
   id: Id;
   /** `first`: the stay waited for the payment (its room held); `choice`: it was booked at once. */
   how: "choice" | "first";
@@ -1220,13 +1221,37 @@ export class HouseApp {
   async checkPayment(tries: number): Promise<void> {
     const back = this.state.payBack;
     if (back === null) return;
-    let row: Row | null = null;
-    try {
-      row = (await this.ports.guest!.linkedStay()).stay;
-    } catch {
-      row = null;
-    }
+    const guest = this.ports.guest!;
+    // What Adminium says of the payment, and what the stay now says; either may not answer, and then the other speaks.
+    const [said, row] = await Promise.all([
+      guest.paymentState === undefined ? Promise.resolve(null) : guest.paymentState(back.id).catch(() => null),
+      guest.linkedStay().then((got) => got.stay, () => null),
+    ]);
     if (this.state.payBack?.id !== back.id) return;
+    const again = async (ms: number, left: number) => {
+      await new Promise((resolve) => setTimeout(resolve, ms));
+      if (this.state.payBack?.id === back.id) return this.checkPayment(left);
+    };
+    if (said !== null && said.state !== "paid") {
+      if (row !== null && row["status"] === "cancelled" && yes(row["pay_lapsed"])) return this.roomNotKept(row);
+      // The service has not said yet: "Checking your payment…", and asked again — sooner at first, then now and then.
+      if (said.state === "open") {
+        if (back.stage !== "checking") this.setState({ payBack: { ...back, stage: "checking" } });
+        if (tries > 0) return again(2_500, tries - 1);
+        void again(15_000, 0);
+        return;
+      }
+      // The bank is confirming it: the room is kept, and the guest is told not to pay again.
+      if (said.state === "confirming") {
+        this.setState({ payBack: { ...back, stage: "bank", due: Number(row?.["pay_due"] ?? back.due) } });
+        void again(60_000, 0);
+        return;
+      }
+      // Failed, expired, or none started: it did not finish, and nothing was taken.
+      this.setState({ payBack: { ...back, stage: "failed", due: Number(row?.["pay_due"] ?? back.due) } });
+      if (back.how === "first") void again(30_000, 0);
+      return;
+    }
     if (row !== null && Number(row["paid_online"] ?? 0) > 0.004) {
       this.forget("guest:linked");
       this.forget("guest:mine");
@@ -1237,10 +1262,9 @@ export class HouseApp {
       this.roomNotKept(row);
       return;
     }
-    if (tries > 0) {
-      await new Promise((resolve) => setTimeout(resolve, 2_000));
-      return this.checkPayment(tries - 1);
-    }
+    // Paid, and the stay not saying so yet (its write is on its way); or a door that cannot say: the stay is read again.
+    if (tries > 0) return again(2_000, tries - 1);
+    if (said?.state === "paid") return again(5_000, 0);
     this.setState({ payBack: { ...back, stage: "failed", due: Number(row?.["pay_due"] ?? back.due) } });
     // A room held while its guest pays: still held for a while; looked at again, so the page says when it goes.
     if (back.how === "first") setTimeout(() => void (this.state.payBack?.stage === "failed" && this.state.payBack.id === back.id ? this.checkPayment(0) : undefined), 30_000);

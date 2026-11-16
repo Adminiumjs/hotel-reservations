@@ -431,12 +431,15 @@ export function guestVals(app: HouseApp, w: WorldV): V {
   const payCard = {
     checkingOn: back?.stage === "checking",
     holdOn: back?.stage === "failed" && back.how === "first",
+    // The bank is confirming it: said above the reservation, or — for a stay still waiting for it — on its own.
+    bankOn: back?.stage === "bank",
+    bankCardOn: back?.stage === "bank" && bs === null,
     retryLabel: s.paying ? tr("Taking you to the secure payment page…") : tr("Pay {amount} now", { amount: strip(money(back?.due ?? 0)) }),
     retryBusy: s.paying ? "true" : "false",
     paying: s.paying,
     retry: () => void app.payAgain(),
   };
-  if (b !== null && bs !== null && !payCard.checkingOn && !payCard.holdOn) {
+  if (b !== null && bs !== null && !payCard.checkingOn && !payCard.holdOn && !payCard.bankCardOn) {
     const bt = w.typeById[bs.type]!;
     const stage = cancelStage(app, bs.arrive, bs.cancelBy);
     v["cf"] = {
@@ -475,7 +478,7 @@ export function guestVals(app: HouseApp, w: WorldV): V {
     };
   } else {
     // Until the stay is read back, the heading already greets the guest by the name they gave.
-    v["cf"] = { first: b?.first ?? "", nights: [], lines: [], ...payCard, okOn: !payCard.checkingOn && !payCard.holdOn };
+    v["cf"] = { first: b?.first ?? "", nights: [], lines: [], ...payCard, okOn: !payCard.checkingOn && !payCard.holdOn && !payCard.bankCardOn };
   }
 
   // ── sign in by email

@@ -861,5 +861,7 @@
   "You are inside the notice we ask for. You can still cancel until {time} on {day}; it will be marked as a late cancellation.": "Die Frist, um die wir bitten, ist erreicht. Sie können noch bis {time} am {day} stornieren; es wird als späte Stornierung vermerkt.",
   "You’ll pay on the Stripe or PayPal page.": "Sie bezahlen auf der Stripe- oder PayPal-Seite.",
   "Your room is still reserved. You can try again, or pay at the desk.": "Ihr Zimmer bleibt reserviert. Sie können es erneut versuchen oder an der Rezeption bezahlen.",
-  "No money moves here. The room is kept a few minutes while the guest pays.": "Hier fließt kein Geld. Das Zimmer wird ein paar Minuten gehalten, während der Gast bezahlt."
+  "No money moves here. The room is kept a few minutes while the guest pays.": "Hier fließt kein Geld. Das Zimmer wird ein paar Minuten gehalten, während der Gast bezahlt.",
+  "Your bank is confirming the payment": "Ihre Bank bestätigt die Zahlung",
+  "Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.": "Manche Zahlungsarten dauern ein paar Tage. Ihr Zimmer bleibt reserviert. Bitte zahlen Sie nicht noch einmal. Wir schicken Ihnen eine E-Mail, sobald sie bestätigt ist."
 }

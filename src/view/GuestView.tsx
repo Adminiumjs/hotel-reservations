@@ -1517,7 +1517,12 @@ export function GuestView({ v }: { v: any }) {
                       </div>
                     </div>
                   ) : null}
-                  {v.cf.okOn !== false && !v.cf.checkingOn && !v.cf.holdOn ? (
+                  {v.cf.bankCardOn ? (
+                    <div style={st("padding-block:30px")}>
+                      <BankConfirming />
+                    </div>
+                  ) : null}
+                  {v.cf.okOn !== false && !v.cf.checkingOn && !v.cf.holdOn && !v.cf.bankCardOn ? (
                   <>
                   <div style={st("display:flex;flex-direction:column;align-items:center;text-align:center;padding-block:14px 6px")}>
                     <span style={st("inline-size:76px;block-size:76px;border-radius:999px;background:var(--pos-soft);color:var(--pos);display:grid;place-items:center;animation:wh-check .3s ease-out")}>
@@ -1536,6 +1541,11 @@ export function GuestView({ v }: { v: any }) {
                       {v.cf.ref}
                     </div>
                   </div>
+                  {v.cf.bankOn ? (
+                    <div style={st("margin-block-start:22px")}>
+                      <BankConfirming />
+                    </div>
+                  ) : null}
                   {v.cf.failOn ? (
                     <div role="alert" style={st("margin-block-start:22px;padding:14px 15px;border-radius:12px;background:var(--warn-soft);color:var(--warn)")}>
                       <div style={st("display:flex;align-items:flex-start;gap:10px")}>
@@ -2341,6 +2351,19 @@ export function GuestView({ v }: { v: any }) {
       </>
     ) : null}
     </>
+  );
+}
+
+/** The bank is confirming the payment: some ways take days; the room is kept, and the guest is not to pay again. */
+function BankConfirming() {
+  return (
+    <div role="status" style={st("display:flex;align-items:flex-start;gap:10px;padding:14px 15px;border-radius:12px;background:var(--info-soft);color:var(--info)")}>
+      <span data-icon="hourglass" style={st("display:inline-flex;inline-size:17px;block-size:17px;flex:0 0 auto;margin-block-start:2px")}><Icon name={"hourglass"} /></span>
+      <span style={st("display:flex;flex-direction:column;gap:4px")}>
+        <span style={st("font-size:14px;font-weight:800")}>{tr("Your bank is confirming the payment")}</span>
+        <span style={st("font-size:13px;line-height:1.55;color:var(--fg)")}>{tr("Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.")}</span>
+      </span>
+    </div>
   );
 }
 

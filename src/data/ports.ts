@@ -84,6 +84,12 @@ export interface GuestPort {
    * the demo's stand-in for the pay page (no money moves); only the demo has it.
    */
   payments?(): Promise<{ online: boolean; test: boolean }>;
+  /**
+   * How the newest online payment of one of the guest's stays stands, as Adminium says it to someone back from the
+   * pay page: none started, a checkout still open, the bank confirming it, paid, failed or expired. One word and
+   * nothing else. Absent from a door that cannot say (an older Adminium): the page reads the stay again instead.
+   */
+  paymentState?(id: Id): Promise<{ state: "none" | "open" | "confirming" | "paid" | "failed" | "expired"; test: boolean }>;
   reserveAndPay?(body: StayBody, clientKey: string, how: "choice" | "first"): Promise<StayReply>;
   startPay?(id: Id): Promise<string>;
   payInDemo?(id: Id): Promise<void>;

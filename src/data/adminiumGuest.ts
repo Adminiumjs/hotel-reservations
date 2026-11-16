@@ -250,6 +250,14 @@ export class AdminiumGuest implements GuestPort {
     });
   }
 
+  /** How the stay's newest online payment stands, read through the door that reads the stay. */
+  paymentState(id: Id): Promise<{ state: "none" | "open" | "confirming" | "paid" | "failed" | "expired"; test: boolean }> {
+    return answer(async () => {
+      const said = this.byLink(id) ? await this.link!.payments.state(this.refs.linkStay, String(id)) : await this.customer.payments.state(this.refs.myStays, String(id));
+      return { state: said.state, test: said.test === true };
+    });
+  }
+
   /** Where to pay for one of the guest's stays: through the door that reads it (its own link, or the signed-in guest). */
   startPay(id: Id): Promise<string> {
     return answer(async () => (this.byLink(id) ? await this.link!.payments.start(this.refs.linkStay, String(id)) : await this.customer.payments.start(this.refs.myStays, String(id))).payUrl);

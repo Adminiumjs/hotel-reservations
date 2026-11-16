@@ -141,8 +141,9 @@ describe("paying as the guest reserves", { timeout: 20_000 }, () => {
 });
 
 /** A door back from the real pay page: the stay the tab was paying for, as it reads after each look. */
-function backDoor(reads: Row[]): GuestPort {
+function backDoor(reads: Row[], states?: string[]): GuestPort {
   let n = 0;
+  let m = 0;
   const stay = () => reads[Math.min(n++, reads.length - 1)]!;
   const lines = (row: Row): StayWithLines => ({ stay: row, extras: [], charges: [], credits: [], payments: [] });
   return new Proxy({} as GuestPort, {
@@ -152,6 +153,7 @@ function backDoor(reads: Row[]): GuestPort {
       if (name === "linkedStay") return async () => lines(stay());
       if (name === "signedIn" || name === "myStays") return async () => (name === "myStays" ? [] : null);
       if (name === "startPay") return async () => "https://pay.example/p/again";
+      if (name === "paymentState" && states !== undefined) return async () => ({ state: states[Math.min(m++, states.length - 1)], test: false });
       return undefined;
     },
   });
@@ -199,6 +201,46 @@ describe("back from the pay page", () => {
     await app.start();
     const back = app.arrive("p", null);
     await vi.advanceTimersByTimeAsync(5_000);
+    await back;
+    expect(app.state.payBack?.stage).toBe("paid");
+  });
+
+  it("says at once that it did not finish when Adminium says the payment failed or ran out — no waiting on the stay", async () => {
+    for (const state of ["failed", "expired", "none"]) {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      mark("choice");
+      const app = new HouseApp({ guest: backDoor([{ ...waiting, status: "booked" }], [state]) }, "guest");
+      await app.start();
+      await app.arrive("p", null);
+      expect([state, app.state.payBack?.stage]).toEqual([state, "failed"]);
+      vi.useRealTimers();
+    }
+  });
+
+  it("says the bank is confirming it, the room kept, and not to pay again — on its own card for a stay still waiting", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mark("first");
+    const app = new HouseApp({ guest: backDoor([waiting], ["confirming"]) }, "guest");
+    await app.start();
+    await app.arrive("p", null);
+    for (let i = 0; i < 6; i += 1) {
+      renderVals(app);
+      await vi.advanceTimersByTimeAsync(5);
+    }
+    const cf = renderVals(app)["cf"] as V;
+    expect([app.state.payBack?.stage, cf["bankOn"], cf["bankCardOn"], cf["holdOn"], cf["checkingOn"]]).toEqual(["bank", true, true, false, false]);
+  });
+
+  it("keeps checking while the service has not said, then is paid once the stay says so", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    mark("first");
+    const paid = { ...waiting, status: "booked", paid_online: 370.6, pay_due: 0 };
+    const app = new HouseApp({ guest: backDoor([waiting, waiting, paid], ["open", "open", "paid"]) }, "guest");
+    await app.start();
+    const back = app.arrive("p", null);
+    await vi.advanceTimersByTimeAsync(100);
+    expect(app.state.payBack?.stage).toBe("checking");
+    await vi.advanceTimersByTimeAsync(10_000);
     await back;
     expect(app.state.payBack?.stage).toBe("paid");
   });

@@ -861,5 +861,7 @@
   "You are inside the notice we ask for. You can still cancel until {time} on {day}; it will be marked as a late cancellation.": "Vous êtes dans le délai de préavis demandé. Vous pouvez encore annuler jusqu'à {time} le {day} ; ce sera noté comme une annulation tardive.",
   "You’ll pay on the Stripe or PayPal page.": "Vous payez sur la page Stripe ou PayPal.",
   "Your room is still reserved. You can try again, or pay at the desk.": "Votre chambre reste réservée. Vous pouvez réessayer, ou payer à la réception.",
-  "No money moves here. The room is kept a few minutes while the guest pays.": "Ici, aucun argent ne circule. La chambre est gardée quelques minutes pendant que le client paie."
+  "No money moves here. The room is kept a few minutes while the guest pays.": "Ici, aucun argent ne circule. La chambre est gardée quelques minutes pendant que le client paie.",
+  "Your bank is confirming the payment": "Votre banque confirme le paiement",
+  "Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.": "Certains moyens de paiement prennent quelques jours. Votre chambre est gardée. Merci de ne pas payer à nouveau. Nous vous enverrons un e-mail dès qu'il sera confirmé."
 }
