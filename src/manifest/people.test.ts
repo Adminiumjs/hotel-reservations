@@ -129,12 +129,19 @@ describe("the reservation's tick", () => {
 
   it("is carried by the reservation alone, kept for the guest the address finds or the guest signed in", () => {
     const ticks = manifest.publicAccess.filter((e) => (e.writable ?? []).includes("opt_in"));
-    expect(ticks.map((e) => [e.table, e.key ?? "customer", e.methods.join()])).toEqual([["stays", "customer", "POST"]]);
-    const e = ticks[0]!;
-    expect(e.consent).toEqual({ column: "opt_in", purpose: "newsletter", wording });
-    expect([e.identity!["table"], e.identity!["link"], e.claimedBy!["table"], e.claimedBy!["column"]]).toEqual(["customers", "customer_id", "customers", "customer_id"]);
+    // The reservation, and the same reservation paid as it is made (by the guest's choice, or first): each its own door.
+    expect(ticks.map((e) => [e.table, e.key ?? "customer", e.methods.join()])).toEqual([
+      ["stays", "customer", "POST"],
+      ["stays", "customer", "POST"],
+      ["stays", "customer", "POST"],
+    ]);
+    for (const e of ticks) {
+      expect(e.consent).toEqual({ column: "opt_in", purpose: "newsletter", wording });
+      expect([e.identity!["table"], e.identity!["link"], e.claimedBy!["table"], e.claimedBy!["column"]]).toEqual(["customers", "customer_id", "customers", "customer_id"]);
+    }
+    expect(ticks.slice(1).map((e) => e["pay"])).toEqual([true, true]);
     // No other door of the site takes a tick.
-    expect(manifest.publicAccess.filter((x) => x.consent !== undefined)).toEqual([e]);
+    expect(manifest.publicAccess.filter((x) => x.consent !== undefined)).toEqual(ticks);
   });
 
   it("is the only yes the guest's side can give: their own account cannot set the newsletter by hand", () => {

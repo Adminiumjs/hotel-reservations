@@ -219,8 +219,9 @@ describe("the stay's life is Adminium's", () => {
 
   it("adds a stay's rows only while it is live, and lets a manager void one after", () => {
     const children = states()["children"] as Record<string, Json>;
-    expect(children["stay_extras"]).toEqual({ via: "stay_id", parentIn: ["booked", "in_house"] });
-    const any = ["booked", "in_house", "departed", "cancelled", "no_show"];
+    // A stay held while its guest pays is live too: it is made with its extras and codes.
+    expect(children["stay_extras"]).toEqual({ via: "stay_id", parentIn: ["pending_payment", "booked", "in_house"] });
+    const any = ["pending_payment", "booked", "in_house", "departed", "cancelled", "no_show"];
     expect(children["charges"]).toEqual({ via: "stay_id", createIn: ["booked", "in_house"], changeIn: any });
     expect(children["stay_credits"]).toEqual({ via: "stay_id", createIn: ["in_house", "no_show"], changeIn: any });
     // Money in and money given back: on a stay in any state.
@@ -229,7 +230,10 @@ describe("the stay's life is Adminium's", () => {
 
   it("moves one step at a time and refuses a second desk's repeat", () => {
     expect(states()["strict"]).toBe(true);
-    expect(Object.keys(states().moves).sort()).toEqual(["booked", "in_house", "no_show"]);
+    expect(Object.keys(states().moves).sort()).toEqual(["booked", "in_house", "no_show", "pending_payment"]);
+    // Made waiting for its payment, a stay is booked by the payment, by a manager's hand, or let go.
+    expect(states()["starts"]).toEqual(["pending_payment"]);
+    expect(states().moves["pending_payment"]).toEqual([{ to: "booked", roles: ["manager"] }, { to: "cancelled", requires: { where: [{ column: "cancel_code", isNull: false }] } }]);
   });
 
   it("checks in only to a ready room, from the arrival day; checks out only with nothing owing", () => {
@@ -261,6 +265,14 @@ describe("the stay's life is Adminium's", () => {
           plus: { days: 1 },
           or: [{ column: "arrive", time: { table: "settings", column: "no_show_at" }, plus: { days: 1 } }],
         },
+      },
+      // A stay held while its guest pays lets its room go at the end of the hold, nothing taken, unless a payment is on its way.
+      {
+        from: "pending_payment",
+        to: "cancelled",
+        at: { column: "created_at", plus: { minutes: { table: "settings", column: "pay_hold_minutes" } } },
+        set: { cancel_code: "unpaid", pay_lapsed: true },
+        waitsForPayment: true,
       },
     ]);
     for (const move of states().moves["no_show"]!) {

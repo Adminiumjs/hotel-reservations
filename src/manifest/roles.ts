@@ -16,7 +16,11 @@
  *                  figure;
  *   manager        everything: the dashboard section, the room types, rooms,
  *                  rates, extras, charge items, settings and house notes; voids
- *                  a charge, a payment or a credit; the guests, the emails.
+ *                  a charge, a payment or a credit; the guests, the emails;
+ *                  and gives back what a guest paid online.
+ *
+ * Nobody types what a payment taken online carries — its reference, the
+ * service, a card's last four, where a refund stands: Adminium writes those.
  *
  * A one-person guest house is simply the workspace's admin.
  *
@@ -101,9 +105,10 @@ const OFFERS_AT_THE_DESK = [
 
 /** What an add-on's answer fills, table by table: no role writes these. */
 export const DECIDED: Readonly<Record<string, readonly string[]>> = {
-  stays: ["discount", "room_discount", "customer_proved", "balance"],
+  // How the guest chose to pay as they booked, and a hold that ended unpaid: the guest's choice and Adminium's mark.
+  stays: ["discount", "room_discount", "customer_proved", "balance", "pay_now", "pay_part", "pay_lapsed"],
   stay_extras: ["discount"],
-  payments: ["card_id", "card_last4", "card_balance_after"],
+  payments: ["card_id", "card_last4", "card_balance_after", "payment_ref", "provider", "payment_last4", "refunded_elsewhere", "refund_ref", "refund_state", "automatic"],
 };
 /** What only the guest gives, on their own reservation: the tick for the house's news. No role writes it on their behalf. */
 export const GUESTS_OWN: Readonly<Record<string, readonly string[]>> = { stays: ["opt_in"] };
@@ -156,7 +161,8 @@ export const ROLES = [
       },
       stay_extras: { writable: ["state"], creatable: ["stay_id", "extra_id", "state"] },
       stay_codes: { readable: STAY_CODE_READS, creatable: ["stay_id", "typed"] },
-      payments: { readable: PAYMENT_READS, creatable: DESK_PAYMENT_COLUMNS },
+      // Money the desk takes or gives back by hand: never "online", which is Adminium's (and a refund's, for those who may).
+      payments: { readable: PAYMENT_READS, creatable: DESK_PAYMENT_COLUMNS, creatableValues: { method: ["card", "cash", "transfer", "gift_card"] } },
       rooms: { writable: ["status", "note"], writableValues: { status: ["ready", "cleaning"] } },
       room_closures: { writable: ["to_date", "reason", "active"] },
     },
@@ -191,6 +197,8 @@ export const ROLES = [
       ),
       ...PAGE_REFS.flatMap((page) => [view(page), `page:@${page}:edit`]),
       ...["stays", "customers", "messages"].map(pii),
+      // Gives back what guests paid online for the house's own stays (the install review shows it, and may untick it).
+      "payments:@:refund",
     ],
     limits: {
       // A code's whole text is typed and never read back, by a manager either.

@@ -14,11 +14,19 @@
  * the guest's language and on the house's clock; money in the connection's
  * currency.
  *
+ * Money paid online (`email-pay-words.ts`) is said only beside the value it
+ * reads: a block tied to it (`showWhen`) is left out when the value is empty,
+ * and a sentence with `otherwise` says today's words instead. So with payments
+ * off — or nothing paid online — every email reads exactly as it did. The
+ * folio so far carries a button to pay it online only while Adminium fills
+ * `{{pay_url}}`, the stay's own live pay link.
+ *
  * Only the online confirmation and a new link the signed-in guest asked for
  * carry the reservation's own link: a code is sent only to the person it
  * opens the stay for. A change of dates says the dates before (`was.*`, kept
  * on the message) and now.
  */
+import { PAY_WORDS, type PayWords } from "./email-pay-words.ts";
 import { EMAIL_AR, EMAIL_CS, EMAIL_DA, EMAIL_DE, EMAIL_FR, EMAIL_ZH_CN, EMAIL_ZH_TW } from "./email-words.ts";
 import type { Tag } from "./labels.ts";
 import type { Kind } from "./outbox.ts";
@@ -174,8 +182,37 @@ export const EMAIL_EN: EmailWords = {
   },
 };
 
-type Block = { block: string; id: string; data: Record<string, unknown> };
+/** A block of an email; `showWhen` sends it only while that value is there, and `otherwise` says other words in its place. */
+type Block = { block: string; id: string; data: Record<string, unknown>; showWhen?: { var: string }; otherwise?: string };
 const para = (id: string, ...paras: string[]): Block => ({ block: "email.text", id, data: { paras } });
+/** A sentence sent only while the stay's value is there. */
+const when = (id: string, value: string, text: string): Block => ({ ...para(id, text), showWhen: { var: `stay.${value}` } });
+
+/**
+ * The cancellations and the no-show: the sentence that ends "Nothing is
+ * charged." says, while the stay still holds money paid online, what becomes
+ * of it instead — the hotel gives it back (in time), or keeps it (late, or a
+ * no-show) unless it gives it back. Money already on its way back is said
+ * first, on the kinds that give it back by themselves.
+ */
+const KEPT: Partial<Record<Kind, { say: (p: PayWords) => string; back: boolean }>> = {
+  "stay-cancelled-self": { say: (p) => p.willRefund, back: true },
+  "stay-cancelled-desk": { say: (p) => p.willRefund, back: true },
+  "stay-cancelled-house": { say: (p) => p.houseWillRefund, back: true },
+  "stay-cancelled-self-late": { say: (p) => p.keeps, back: false },
+  "stay-cancelled-desk-late": { say: (p) => p.keeps, back: false },
+  "stay-no-show": { say: (p) => p.keeps, back: false },
+};
+
+/** What the reservation says it costs the guest now: paid online (part or all), being paid, or settled at the desk as ever. */
+function settleBlocks(all: EmailWords, pay: PayWords): Block[] {
+  return [
+    when("paid-part", "online_part", pay.paidPart),
+    when("paid-full", "online_full", pay.paidFull),
+    when("paying", "pay_pending", pay.payPending),
+    when("settle", "settle_desk", all.settle),
+  ];
+}
 /** The folio's documents: an email that carries one, if Invoices & Receipts draws it. */
 const FOLIO: ReadonlySet<Kind> = new Set(["stay-folio", "stay-folio-owing"]);
 
@@ -206,14 +243,26 @@ const REDUCTIONS: Block = {
 /** The emails that set out the stay and what it costs. */
 const WITH_STAY: ReadonlySet<Kind> = new Set(["stay-made", "stay-made-desk"]);
 
-function layout(kind: Kind, all: EmailWords) {
+function layout(kind: Kind, all: EmailWords, pay: PayWords) {
   const w = all[kind];
   const blocks: Block[] = [];
   if (w.heading !== undefined) blocks.push({ block: "email.heading", id: "heading", data: { text: w.heading } });
   blocks.push({ block: "email.stats", id: "reference", data: { items: [{ label: all.reference, value: "{{stay.ref}}" }] } });
   // Sent only with the document: an email that went without it says nothing of it.
   if (FOLIO.has(kind)) blocks.push({ block: "email.text", id: "attached", data: { paras: [all.attached], withAttachment: true } });
-  blocks.push(para("body", ...w.paras));
+  const kept = KEPT[kind];
+  if (kept !== undefined) {
+    const [first, ...rest] = w.paras;
+    if (first === undefined || !first.includes(pay.nothing)) throw new Error(`${kind}: its first sentence does not end "${pay.nothing}"`);
+    if (kept.back) blocks.push(when("back", "online_back", pay.back));
+    blocks.push({ ...para("body", first.replace(pay.nothing, kept.say(pay))), showWhen: { var: "stay.online_kept" }, otherwise: first });
+    if (rest.length > 0) blocks.push(para("more", ...rest));
+  } else if (kind === "stay-folio-owing") {
+    // While the stay can be paid online: what they owe, a button to pay it, and that the desk still takes it.
+    blocks.push({ ...para("body", pay.owe), showWhen: { var: "pay_url" }, otherwise: w.paras.join(" ") });
+    blocks.push({ block: "email.button", id: "pay", data: { label: pay.payButton, url: "{{pay_url}}" }, showWhen: { var: "pay_url" } });
+    blocks.push({ ...para("pay-note", pay.payNote), showWhen: { var: "pay_url" } });
+  } else blocks.push(para("body", ...w.paras));
   if (FOLIO.has(kind)) {
     blocks.push(REDUCTIONS);
     blocks.push({
@@ -246,12 +295,12 @@ function layout(kind: Kind, all: EmailWords) {
         ],
       },
     });
-    blocks.push(para("settle", all.settle));
+    blocks.push(...settleBlocks(all, pay));
     blocks.push(para("cancel", all.cancelBy, all.lateOrEarly));
   }
   if (kind === "stay-dates-changed") {
     blocks.push({ block: "email.tax-breakdown", id: "totals", data: { lines: [{ label: all.totalWas, amount: "{{stay.total.money}}" }] } });
-    blocks.push(para("settle", all.settle));
+    blocks.push(...settleBlocks(all, pay));
     blocks.push(para("cancel", all.cancelBy, all.lateOrEarly));
   }
   // The reservation's own link goes only to the person it was made for, and
@@ -278,7 +327,7 @@ export function emailWords(): Record<Tag, EmailWords> {
 
 /** The variables each template reads, for the template editor's list. */
 function varsOf(kind: Kind): string[] {
-  const text = JSON.stringify(layout(kind, EMAIL_EN));
+  const text = JSON.stringify(layout(kind, EMAIL_EN, PAY_WORDS["en-US"]));
   const found = new Set<string>();
   for (const [, name] of text.matchAll(/\{\{([A-Za-z_.]+)\}\}/g)) found.add(name!);
   return [...found].filter((name) => /^[a-z_]+(\.[a-z_]+)*$/.test(name) && !name.startsWith("row.")).sort();
@@ -292,6 +341,6 @@ export function emailTemplates(kinds: readonly Kind[]): unknown[] {
     ...(FOLIO.has(kind) ? { attach: { kind: "invoice", link: "stay", optional: true } } : {}),
     name: Object.fromEntries(Object.entries(words).map(([tag, w]) => [tag, w[kind].name])),
     vars: varsOf(kind),
-    locales: Object.fromEntries(Object.entries(words).map(([tag, w]) => [tag, layout(kind, w)])),
+    locales: Object.fromEntries(Object.entries(words).map(([tag, w]) => [tag, layout(kind, w, PAY_WORDS[tag as Tag])])),
   }));
 }

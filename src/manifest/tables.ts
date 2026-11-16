@@ -22,7 +22,17 @@
  *     expected; checking in needs a ready room and makes it occupied, checking
  *     out needs nothing owing and sends the room to be cleaned;
  *   - money cannot run backwards: a payment, a void or a credit that would
- *     leave more paid than the stay costs is refused.
+ *     leave more paid than the stay costs is refused;
+ *   - once the house takes payments online (switched on in Adminium's
+ *     Payments), a guest may pay the first night or the whole stay as they
+ *     reserve, by the house's choice: if they want, or before the room is
+ *     theirs. Asked to pay first, the stay is made waiting for the payment,
+ *     its room held for a few minutes; the payment books it, and a stay left
+ *     unpaid past the hold lets its room go — never while a payment for it is
+ *     still on its way. What is left on a folio can be paid by a pay link.
+ *     Money paid online is Adminium's to write, with the service it went
+ *     through; money given back of it is a row of the stay's own payments,
+ *     sent back through that service.
  *
  * The house's own words — the room types, the extras, the notes — are the
  * house's, shown as typed.
@@ -167,10 +177,10 @@ function language(ref: string): Column {
   };
 }
 
-export const STATUSES = ["booked", "in_house", "departed", "cancelled", "no_show"] as const;
+export const STATUSES = ["pending_payment", "booked", "in_house", "departed", "cancelled", "no_show"] as const;
 
-/** The stays a night counts: every one still coming, and every one in the house. */
-export const COUNTED = ["booked", "in_house"];
+/** The stays a night counts: every one still coming, every one in the house, and one held while its guest pays. */
+export const COUNTED = ["pending_payment", "booked", "in_house"];
 
 /**
  * The times a guest may say they will arrive. "22:30" is the late arrival:
@@ -184,14 +194,34 @@ export const ARRIVAL_TIMES = ["15:00", "16:00", "17:00", "18:00", "19:00", "20:0
  * or the house is cancelling. A cancellation by the house is never the guest's
  * late cancellation.
  */
-export const CANCEL_CODES = ["self", "guest_asked", "house"] as const;
+export const CANCEL_CODES = ["self", "guest_asked", "house", "unpaid"] as const;
 export const DESK_CANCEL_CODES = ["guest_asked", "house"];
 
 const WHO_CANCELLED = {
   self: "The guest, online",
   guest_asked: "The guest asked the desk",
   house: "The house",
+  // A stay made waiting for its payment, left unpaid past the hold: its room went back. Nothing was taken.
+  unpaid: "Not paid in time",
 };
+
+/** When a guest pays online for a stay they reserve: never (the default), if they want, or before the room is theirs. */
+const PAY_AT_BOOKING = {
+  none: "Nothing online (they settle at the desk)",
+  optional: "Let them pay now if they want",
+  required: "Ask them to pay now",
+};
+/** What a guest pays as they reserve: one night of the room with its tax, or the whole stay. */
+const PAY_HOW_MUCH = { one_night: "One night", whole_stay: "The whole stay" };
+
+/** Nothing: a formula's way of leaving a column empty (an email leaves out what reads it). */
+const EMPTY = { div: [0, 0] };
+/** A figure, or nothing when it is not above zero. */
+const shownIf = (column: string) => ({ if: [{ gt: [{ coalesce: [column, 0] }, 0] }, column, EMPTY] });
+/** The guest chose to pay as they booked, and has not paid what that was yet. */
+const PAYING_NOW = { and: [{ eq: ["pay_now", true] }, { lt: [{ coalesce: ["paid", 0] }, "deposit"] }] };
+/** What the stay still owes, never below nothing. */
+const STILL_OWED = { max: [0, { sub: ["total", { coalesce: ["paid", 0] }] }] };
 
 /** The outbox's kinds, as the Emails page names them. */
 export const EMAIL_KINDS: Record<string, string> = {
@@ -263,9 +293,17 @@ const readyRoom = {
 const STAY_STATES = {
   column: "status",
   initial: "booked",
+  // A guest asked to pay as they reserve: the stay is made waiting for the payment, its room held.
+  starts: ["pending_payment"],
   // "Checked in at 15:04 by Maeve R.": a second desk's tap is refused, naming the first.
   strict: true,
   moves: {
+    // The payment books it (Adminium's own move); a manager may book it by hand (a guest who paid by telephone).
+    // Left unpaid past the hold, Adminium lets the room go.
+    pending_payment: [
+      { to: "booked", roles: ["manager"] },
+      { to: "cancelled", requires: { where: [{ column: "cancel_code", isNull: false }] } },
+    ],
     booked: [
       { to: "in_house", requires: { ...readyRoom, time: { after: arrivalDay } } },
       { to: "cancelled", requires: { where: [{ column: "cancel_code", isNull: false }] } },
@@ -290,9 +328,9 @@ const STAY_STATES = {
   // A finished stay keeps what it was.
   lock: { when: ["departed", "cancelled"], except: ["link_stopped", "language"] },
   children: {
-    stay_extras: { via: "stay_id", parentIn: ["booked", "in_house"] },
+    stay_extras: { via: "stay_id", parentIn: ["pending_payment", "booked", "in_house"] },
     // A code is typed when the stay is booked; it is kept with the stay, and nothing adds one to a finished stay.
-    stay_codes: { via: "stay_id", parentIn: ["booked", "in_house"] },
+    stay_codes: { via: "stay_id", parentIn: ["pending_payment", "booked", "in_house"] },
     // Charged while the stay is live; voided whatever state it is in, so a
     // manager can correct what was recorded before it closed.
     charges: { via: "stay_id", createIn: ["booked", "in_house"], changeIn: [...STATUSES] },
@@ -301,8 +339,18 @@ const STAY_STATES = {
   },
   // Inside the cancel-by moment a cancellation is marked late. Nothing is charged.
   late: [{ to: "cancelled", from: ["booked"], moment: { column: "cancel_by" }, within: { minutes: 0 }, mode: "flag", flag: "late_cancel" }],
-  // Not come by the morning after the day they were expected: a no-show, the nights freed.
-  timed: [{ from: "booked", to: "no_show", at: noShowAt }],
+  timed: [
+    // Not come by the morning after the day they were expected: a no-show, the nights freed.
+    { from: "booked", to: "no_show", at: noShowAt },
+    // Not paid by the end of the hold: the room goes back, nothing taken — never while a payment for it is on its way.
+    {
+      from: "pending_payment",
+      to: "cancelled",
+      at: { column: "created_at", plus: { minutes: setting("pay_hold_minutes") } },
+      set: { cancel_code: "unpaid", pay_lapsed: true },
+      waitsForPayment: true,
+    },
+  ],
   // Checking in makes the room occupied; checking out sends it to be cleaned.
   effects: [
     { on: { to: "in_house" }, via: "room_id", set: { status: "occupied" } },
@@ -365,6 +413,15 @@ export const TABLES: Table[] = [
       int("ref_start", "First reference number", { default: 1001, rules: { validation: { min: 1 } } }),
       text("ref_prefix", 12, "Reference prefix", { default: "R-" }),
       bool("guest_emails_on", "Email guests", true),
+      // Paying online, once the house takes payments: nothing when booking (the guests settle at the desk), the
+      // guest's choice, or before the room is theirs; the first night or the whole stay; how long a room is held
+      // while its guest pays; and whether a cancellation in time gives the money back by itself.
+      choice("pay_at_booking", "When guests book", PAY_AT_BOOKING, { default: "none" }),
+      choice("pay_how_much", "How much they pay when booking", PAY_HOW_MUCH, { default: "one_night" }),
+      int("pay_hold_minutes", "Room held while a guest pays (minutes)", { default: 15, rules: { validation: { min: 5, max: 60 } } }),
+      bool("auto_refund", "Refund cancellations in time automatically", true),
+      // How many hours before the free-cancellation time a refund stops starting by itself: none, so up to that moment.
+      int("auto_refund_stop_hours", "Automatic refunds stop (hours before the time to cancel at no charge)", { default: 0, rules: { validation: { min: 0, max: 720 } } }),
     ],
   },
   {
@@ -594,6 +651,7 @@ export const TABLES: Table[] = [
       }),
       text("ref", 16, "Reference", { ...opt, unique: true, rules: { format: { from: "ref_seq", prefixSetting: setting("ref_prefix") } } }),
       choice("status", "Status", {
+        pending_payment: "Waiting for payment",
         booked: "Booked",
         in_house: "In house",
         departed: "Checked out",
@@ -601,7 +659,7 @@ export const TABLES: Table[] = [
         no_show: "No-show",
       }, {
         default: "booked",
-        tones: { booked: "info", in_house: "pos", departed: "neutral", cancelled: "danger", no_show: "warn" },
+        tones: { pending_payment: "neutral", booked: "info", in_house: "pos", departed: "neutral", cancelled: "danger", no_show: "warn" },
       }),
       fk("room_type_id", "room_types", "Room type", { index: true }),
       fk("room_id", "rooms", "Room", { ...opt, index: true }),
@@ -711,6 +769,57 @@ export const TABLES: Table[] = [
       text("client_key", 64, "Retry key", { ...opt, unique: true }),
       // The tick the guest gave on their reservation ("Email me news and offers"): the guest's own, written by nobody else.
       bool("opt_in", "News from us", false),
+      // ── paying online ──
+      // The guest chose to pay as they reserved (or was asked to): what they pay then is the deposit below.
+      bool("pay_now", "Paying when booking", false),
+      // What the house asked for when the stay was made, kept with it: one night, or the whole stay.
+      choice("pay_part", "Paid when booking", PAY_HOW_MUCH, { ...opt, rules: { default: { from: setting("pay_how_much") } } }),
+      // One night of the room at the stay's own rate, with its tax; or the whole stay. Never more than the stay costs.
+      money("deposit", "Asked when booking", {
+        formula: {
+          if: [
+            { eq: ["pay_part", "whole_stay"] },
+            "total",
+            {
+              min: [
+                "total",
+                {
+                  mul: [
+                    { div: [{ sub: ["room_total", { coalesce: ["room_discount", 0] }] }, "nights"] },
+                    { add: [1, { div: [{ coalesce: ["tax_rate", 0] }, 100] }] },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      }),
+      // What is due online now: the deposit, while it is what the guest is paying (the stay waits for it, or they chose to
+      // pay as they booked and it is not paid yet); else what the stay still owes, which a pay link asks for.
+      money("pay_due", "Due online now", {
+        formula: {
+          if: [
+            { or: [{ eq: ["status", "pending_payment"] }, PAYING_NOW] },
+            { max: [0, { sub: ["deposit", { coalesce: ["paid", 0] }] }] },
+            STILL_OWED,
+          ],
+        },
+      }),
+      // Paid online, and given back of it through the payment service; and what it still holds.
+      money("taken_online", "Taken online", { rollup: { from: "payments", via: "stay_id", sum: "online_taken", where: { column: "voided", eq: false } } }),
+      money("refunded_online", "Given back online", { rollup: { from: "payments", via: "stay_id", sum: "online_back", where: { column: "voided", eq: false } } }),
+      money("paid_online", "Paid online", { formula: { sub: [{ coalesce: ["taken_online", 0] }, { coalesce: ["refunded_online", 0] }] } }),
+      // What the emails say of it, each empty when it does not apply: being paid as the guest booked; nothing paid
+      // online, so settled at the desk as ever; paid online with some still to settle, or the whole of it; what the house
+      // still holds; what went back.
+      money("pay_pending", "Being paid online", { formula: { if: [{ and: [PAYING_NOW, { lte: [{ coalesce: ["taken_online", 0] }, 0] }] }, "deposit", EMPTY] } }),
+      money("settle_desk", "Settled at the desk", { formula: { if: [{ or: [{ gt: [{ coalesce: ["taken_online", 0] }, 0] }, PAYING_NOW] }, EMPTY, 0] } }),
+      money("online_part", "Paid online, the rest at the desk", { formula: { if: [{ and: [{ gt: [{ coalesce: ["paid_online", 0] }, 0] }, { gt: [STILL_OWED, 0] }] }, "paid_online", EMPTY] } }),
+      money("online_full", "Paid online in full", { formula: { if: [{ and: [{ gt: [{ coalesce: ["paid_online", 0] }, 0] }, { lte: [STILL_OWED, 0] }] }, "paid_online", EMPTY] } }),
+      money("online_kept", "Paid online and kept", { formula: shownIf("paid_online") }),
+      money("online_back", "Given back online", { formula: shownIf("refunded_online") }),
+      // Set when the hold ended before the guest paid: the room went back, and nothing was taken.
+      bool("pay_lapsed", "Not paid in time", false),
     ],
   },
   {
@@ -867,23 +976,34 @@ export const TABLES: Table[] = [
     ],
     columns: [
       id,
-      fk("stay_id", "stays", "Reservation", { index: true }),
+      // Money given back online by Adminium itself (a cancellation in time) names only the payment it gives back: its stay is that payment's.
+      fk("stay_id", "stays", "Reservation", { index: true, rules: { copy: { via: "refund_of", from: "stay_id", mode: "default" } } }),
       // Money taken, or money handed back to the guest.
       choice("kind", "Kind", { taken: "Taken", given_back: "Given back" }, { default: "taken", tones: { taken: "pos", given_back: "warn" } }),
       price("amount", "Amount", { rules: { validation: { min: 0.01 } } }),
-      choice("method", "How", { card: "Card", cash: "Cash", transfer: "Transfer", gift_card: "Gift card" }, { default: "card" }),
+      // `online`: paid on the pay page and written by Adminium alone (with its reference and the service it went through),
+      // or given back through that service.
+      choice("method", "How", { card: "Card", cash: "Cash", transfer: "Transfer", gift_card: "Gift card", online: "Online" }, { default: "card" }),
       text("reference", 80, "Payment reference", opt),
       // Money handed back says why.
       text("note", 240, "Note", { ...opt, rules: { requiredWhen: { column: "kind", in: ["given_back"] } } }),
       // What it does to what was paid: money given back takes it off.
       // A gift card's payment counts once the card has answered (what it then holds is written with what it gave): until then
       // the stay still owes all of it, which is what the card is asked against.
+      // Money given back online counts once it is asked of the payment service, and not at all when it could not be sent.
+      // Money taken online counts less what was given back at the service itself (a refund made there, a lost dispute).
       money("signed", "Counted", {
         formula: {
           if: [
             { eq: ["kind", "given_back"] },
-            { sub: [0, "amount"] },
-            { if: [{ and: [{ eq: ["method", "gift_card"] }, { isNull: "card_balance_after" }] }, 0, "amount"] },
+            { if: [{ eq: ["refund_state", "not-sent"] }, 0, { sub: [0, "amount"] }] },
+            {
+              if: [
+                { and: [{ eq: ["method", "gift_card"] }, { isNull: "card_balance_after" }] },
+                0,
+                { sub: ["amount", { coalesce: ["refunded_elsewhere", 0] }] },
+              ],
+            },
           ],
         },
       }),
@@ -910,6 +1030,33 @@ export const TABLES: Table[] = [
       text("client_key", 64, "Retry key", { ...opt, unique: true }),
       // The gift card payment a given-back row returns its money to.
       fk("against_id", "payments", "Returns to", { ...opt, rules: { requiredWhen: { column: "settle_as", in: [2] } } }),
+      // ── paid online ──
+      // The payment's own reference at Adminium, the service it went through and, from a card reader, the card's last
+      // four: written by Adminium alone. (`reference` above stays the desk's own, and `card_last4` a gift card's.)
+      text("payment_ref", 64, "Online payment reference", { ...opt, unique: true }),
+      text("provider", 40, "Paid through", opt),
+      text("payment_last4", 4, "Card ending (online)", opt),
+      // What was given back of it at the payment service itself, which no row here says: written by Adminium.
+      amount("refunded_elsewhere", "Given back at the service"),
+      // Money given back online: the online payment it goes back to (never `against_id`, which is a gift card's), and
+      // where it stands at the service — asked, on its way, done, or not sent — with the service's own reference.
+      fk("refund_of", "payments", "Gives back", opt),
+      text("refund_ref", 80, "Refund reference", opt),
+      choice("refund_state", "Refund", { asked: "Asked", pending: "On its way", done: "Done", "not-sent": "Not sent" }, {
+        ...opt,
+        tones: { asked: "info", pending: "info", done: "pos", "not-sent": "danger" },
+      }),
+      // Given back by Adminium itself, after a cancellation in time.
+      bool("automatic", "Given back by itself", false),
+      // What a row adds to "paid online" and to "given back online", for the stay's totals.
+      money("online_taken", "Taken online", {
+        formula: { if: [{ and: [{ eq: ["kind", "taken"] }, { eq: ["method", "online"] }] }, { sub: ["amount", { coalesce: ["refunded_elsewhere", 0] }] }, 0] },
+      }),
+      money("online_back", "Given back online", {
+        formula: {
+          if: [{ and: [{ eq: ["kind", "given_back"] }, { eq: ["method", "online"] }] }, { if: [{ eq: ["refund_state", "not-sent"] }, 0, "amount"] }, 0],
+        },
+      }),
     ],
   },
   {

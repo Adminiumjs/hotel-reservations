@@ -4,9 +4,12 @@
  * house's "Email guests" switch in Settings is off.
  *
  *   stay-made                  a reservation made online: the dates, the room
- *                              type, the nights and extras, what it costs, when
- *                              it can be cancelled at no charge, and the link
- *                              that opens it;
+ *                              type, the nights and extras, what it costs (and
+ *                              what was paid online), when it can be cancelled
+ *                              at no charge, and the link that opens it. A
+ *                              stay made waiting for its payment is confirmed
+ *                              when the payment books it: its message on
+ *                              making waits a few seconds and is dropped;
  *   stay-made-desk             a reservation the desk took, when the guest
  *                              gave an email: the same without the link (a
  *                              desk booking is nobody's signed-in reservation
@@ -104,7 +107,24 @@ export const OUTBOX = {
   // Every email is about a guest's own reservation: none is stopped by the do-not-email list.
   classes: Object.fromEntries(KINDS.map((kind) => [kind, "service"])),
   producers: [
-    { kind: "stay-made", link: "stay_id", ...GATE, onCreate: { table: "stays", where: { column: "channel", eq: "online" } } },
+    {
+      kind: "stay-made",
+      link: "stay_id",
+      ...GATE,
+      onCreate: { table: "stays", where: { column: "channel", eq: "online" } },
+      holdSeconds: 5,
+      dropWhen: [{ column: "status", in: ["pending_payment", "cancelled"], reason: "no-longer-needed" }],
+    },
+    // A stay that waited for its payment, booked by it (or by a manager's hand): the confirmation goes now. One booked
+    // from the start had its confirmation already, and is not told again.
+    {
+      kind: "stay-made",
+      link: "stay_id",
+      ...GATE,
+      onChange: { table: "stays", column: "status", to: "booked", where: { column: "channel", eq: "online" } },
+      holdSeconds: 5,
+      dropWhen: [{ column: "status", in: ["pending_payment", "cancelled"], reason: "no-longer-needed" }],
+    },
     { kind: "stay-made-desk", link: "stay_id", ...GATE, onCreate: { table: "stays", where: { column: "channel", eq: "desk" } } },
     { kind: "stay-cancelled-self", link: "stay_id", ...GATE, ...cancelled("self"), ...unlessLate },
     { kind: "stay-cancelled-self-late", link: "stay_id", ...GATE, ...cancelledLate("self") },
