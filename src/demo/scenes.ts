@@ -299,6 +299,8 @@ export class Scenes {
       const desk = this.demo.desk;
       const boss = !desk.person.roles.includes("manager");
       desk.person = boss ? PEOPLE.manager : PEOPLE.desk;
+      // A manager may give back what a guest paid online; the front desk may not.
+      this.app.payDesk = { ...this.app.payDesk, refund: boss };
       this.app.forget("desk:me");
       this.app.setState({ rowMenu: null, tipKey: null });
       this.app.toast(tr("Signed in as {name}.", { name: desk.person.name }), "info");

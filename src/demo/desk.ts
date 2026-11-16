@@ -48,7 +48,17 @@ export class DemoDesk implements DeskPort {
   async config() {
     // The demo's house has Invoices & Receipts: its folio prints and emails (the demo sends nothing).
     // …and counts its linen, takes a code and a gift card: the demo's own stand-ins (`offers.ts`), never an add-on.
-    return { timezone: this.world.zone, currency: this.world.currency, now: new Date(this.engine.now).toISOString(), folio: true, linen: true, codes: true, giftCards: true };
+    // …and takes payments online, where no money moves: a manager may give one back.
+    return {
+      timezone: this.world.zone,
+      currency: this.world.currency,
+      now: new Date(this.engine.now).toISOString(),
+      folio: true,
+      linen: true,
+      codes: true,
+      giftCards: true,
+      payments: { on: true, online: true, test: false, refund: this.person.roles.includes("manager") },
+    };
   }
 
   async lookUpCode(code: string): Promise<CodeFound | null> {
@@ -404,6 +414,20 @@ export class DemoDesk implements DeskPort {
         voided_at: null,
         voided_by: null,
       });
+      Object.assign(row, this.engine.stampsFor("payments", null, row, this.writer));
+      return { ...row };
+    });
+  }
+
+  /** Money paid online given back, as the house's own row: the demo's service sends it at once. */
+  async refundOnline(stayId: Id, paymentId: Id, amount: string, note: string, _key: string): Promise<Row> {
+    return this.engine.write(() => {
+      this.engine.judgeCreate("payments", this.writer);
+      const paid = this.world.get("payments", paymentId);
+      if (paid === undefined || paid["stay_id"] !== stayId || paid["method"] !== "online") throw notFound("staff");
+      if (!MONEY.test(amount.trim()) || Number(amount) <= 0) throw refusedValue("amount", "invalid", "staff");
+      if (empty(note)) throw refusedValue("note", "required", "staff");
+      const row = this.world.insert("payments", { stay_id: stayId, kind: "given_back", amount: Number(amount), method: "online", refund_of: paymentId, note: note.trim(), refund_state: "done", voided: false, void_reason: null, voided_at: null, voided_by: null });
       Object.assign(row, this.engine.stampsFor("payments", null, row, this.writer));
       return { ...row };
     });

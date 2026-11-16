@@ -70,7 +70,7 @@ const SHOW_LEFT = Object.fromEntries(
     .map((e) => [String(e["table"]), Number((e["showLeft"] as Json | undefined)?.["below"] ?? 0)]),
 ) as Record<string, number>;
 
-const COUNTED = ["booked", "in_house"];
+const COUNTED = ["pending_payment", "booked", "in_house"];
 const iso = (ms: number) => new Date(ms).toISOString();
 const empty = (value: unknown) => value === null || value === undefined || (typeof value === "string" && value.trim() === "");
 const cents = (value: unknown) => Math.round(Number(value ?? 0) * 100);
@@ -421,6 +421,8 @@ export class Engine {
       link_stopped: false,
       tax_rate: this.setting("tax_rate"),
       tax_label: this.setting("tax_label"),
+      // What the house asks a guest to pay as they reserve, kept with the stay as it was made.
+      pay_part: this.setting("pay_how_much") ?? "one_night",
       ...values,
       ...this.nextRef(),
       link_token: randomCode(16),

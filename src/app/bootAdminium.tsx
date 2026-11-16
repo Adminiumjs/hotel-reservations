@@ -18,9 +18,13 @@ import { HouseApp } from "./house.ts";
 
 export type StartupFailure = (detail: string, code: string | null) => void;
 
-/** Where a guest's page was opened: a sign-in link (`…/c#<code>`), a stay's own link (`…/r#<code>`), or neither. */
-export function entryOf(pathname: string, hash: string): { place: "c" | "r" | "g" | null; token: string | null } {
+/**
+ * Where a guest's page was opened: a sign-in link (`…/c#<code>`), a stay's own link (`…/r#<code>`), back from the
+ * pay page (`…/paid`, never with a code), or none of them.
+ */
+export function entryOf(pathname: string, hash: string): { place: "c" | "r" | "g" | "p" | null; token: string | null } {
   const last = pathname.replace(/\/+$/, "").split("/").pop() ?? "";
+  if (last === "paid") return { place: "p", token: null };
   const token = hash.replace(/^#/, "").split("&")[0] ?? "";
   // A gift card's emailed link lands on the balance page (`…/gift-card#<code>`), with or without a code.
   const place = last === "c" || last === "r" ? last : last === "gift-card" && token !== "" ? "g" : null;
@@ -69,7 +73,7 @@ export async function bootAdminium(mount: HTMLElement, fail: StartupFailure): Pr
   const entry = app.persona === "guest" ? entryOf(window.location.pathname, window.location.hash) : { place: null, token: null };
   // The link's code leaves the address bar at once: a reload must not spend it again.
   if (entry.place === "g") window.history.replaceState(window.history.state, "", window.location.pathname);
-  else if (entry.place !== null) window.history.replaceState(window.history.state, "", window.location.pathname.replace(/\/(c|r)\/?$/, "/"));
+  else if (entry.place !== null) window.history.replaceState(window.history.state, "", window.location.pathname.replace(/\/(c|r|paid)\/?$/, "/"));
   // The address bar's screen first, then where the guest's link or kept session takes them: the link wins.
   if (HOSTED) await attachToHost(app);
   if (app.persona === "guest") {

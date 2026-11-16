@@ -53,6 +53,7 @@ const config = (over: Partial<StaffConfig> = {}): StaffConfig => ({
   publicKeys: {},
   access: { tables: {}, roles: [{ slug: "hotel-front-desk", name: "Front desk" }] },
   addOns: {},
+  payments: { on: false, online: false, test: false, refund: false },
   ...over,
 });
 const readsAll = { tables: Object.fromEntries(["settings", "room_types", "room_type_features", "rooms", "extras", "house_notes", "room_closures", "rate_rules", "charge_items", "customers", "stays", "stay_extras", "charges", "stay_credits", "payments"].map((t): [string, TableAction[]] => [t, ["read", "create", "update"]])) };
@@ -61,7 +62,7 @@ describe("the real desk door", () => {
   it("says who is signed in and the app's roles by their own names", async () => {
     const desk = new AdminiumDesk(transport({}).t, config({ access: { tables: {}, roles: [{ slug: "hotel-manager", name: "Manager" }] } }));
     expect(await desk.me()).toEqual({ name: "Maeve R.", roles: ["manager"] });
-    expect(await desk.config()).toEqual({ timezone: "America/New_York", currency: "USD", folio: false, linen: false, codes: false, giftCards: false });
+    expect(await desk.config()).toEqual({ timezone: "America/New_York", currency: "USD", folio: false, linen: false, codes: false, giftCards: false, payments: { on: false, online: false, test: false, refund: false } });
   });
 
   it("prints the folio through Invoices & Receipts, and emails it by stamping when it was asked for", async () => {
@@ -78,7 +79,7 @@ describe("the real desk door", () => {
 
   it("takes the house's clock from Adminium's config, not the browser's", async () => {
     const desk = new AdminiumDesk(transport({}).t, config({ now: "2026-07-28T13:05:00.000Z" }));
-    expect(await desk.config()).toEqual({ timezone: "America/New_York", currency: "USD", now: "2026-07-28T13:05:00.000Z", folio: false, linen: false, codes: false, giftCards: false });
+    expect(await desk.config()).toEqual({ timezone: "America/New_York", currency: "USD", now: "2026-07-28T13:05:00.000Z", folio: false, linen: false, codes: false, giftCards: false, payments: { on: false, online: false, test: false, refund: false } });
   });
 
   it("reads only the tables the person may read", async () => {
@@ -370,6 +371,29 @@ describe("the desk door, with the add-ons in use", () => {
     expect(sent[2]!.body).toEqual({ values: { stay_id: 7, kind: "taken", method: "gift_card", card_code: "gc-abcd-efgh-jklm", amount: "100.00", asked: "100.00", client_key: "key-one" } });
     await desk.giveBackToCard(7, 9, "20.00", " One towel short ", "key-two");
     expect(sent[3]!.body).toEqual({ values: { stay_id: 7, kind: "given_back", method: "gift_card", against_id: 9, amount: "20.00", note: "One towel short", client_key: "key-two" } });
+  });
+
+  it("copies a stay's pay link: the one the guest holds while it works, else a new one; and says the payments as the config does", async () => {
+    const { t, sent } = transport({
+      "POST /api/v1/payments/links/current": () => ({ data: null }),
+      "POST /api/v1/payments/links": () => ({ data: { link: { url: "https://pay.example/p/abc", expiresAt: 1_790_000_000_000 }, replaced: false } }),
+    });
+    const desk = new AdminiumDesk(t, config({ payments: { on: true, online: true, test: false, refund: true } }));
+    expect((await desk.config()).payments).toEqual({ on: true, online: true, test: false, refund: true });
+    expect(await desk.payLink(7)).toEqual({ url: "https://pay.example/p/abc", expiresAt: 1_790_000_000_000 });
+    // The stay as Adminium's payments name it: the connection, the stays table's id there, the row's key.
+    const payable = { kind: "profile", connectionId: "c1", tableName: "public.hotel_stays", rowKey: "7" };
+    expect(sent.map((one) => [one.method, one.path, one.body])).toEqual([
+      ["POST", "/api/v1/payments/links/current", payable],
+      ["POST", "/api/v1/payments/links", payable],
+    ]);
+  });
+
+  it("gives money paid online back as the house's own given-back row, naming the payment — never `against_id`", async () => {
+    const { t, sent } = transport({ "POST /api/v1/data/c1/hotel_payments": (one) => ({ data: { id: 12, ...((one.body as { values: object }).values) } }) });
+    const desk = new AdminiumDesk(t, config());
+    await desk.refundOnline(7, 4, "50.00", " The lift was out on Saturday ", "key-three");
+    expect(sent[0]!.body).toEqual({ values: { stay_id: 7, kind: "given_back", method: "online", refund_of: 4, amount: "50.00", note: "The lift was out on Saturday", client_key: "key-three" } });
   });
 
   it("answers a save sent again with the payment the first one made: refused as a duplicate, found by its key", async () => {

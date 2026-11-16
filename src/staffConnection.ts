@@ -129,6 +129,27 @@ export interface StaffConfig {
    * needs one stays off.
    */
   addOns: Record<string, StaffAddOn>;
+  /**
+   * Whether the app takes payments, and what this person may do with them:
+   * `on` someone switched the app on in Adminium's Payments; `online` guests
+   * can pay online right now; `test` this person is rehearsing it; `refund`
+   * they may give money back. All false from a server that does not say, and
+   * then the desk reads exactly as it always has.
+   */
+  payments: StaffPayments;
+}
+
+export interface StaffPayments {
+  on: boolean;
+  online: boolean;
+  test: boolean;
+  refund: boolean;
+}
+
+/** `payments` as the server sent it: each flag true only when it said so. */
+export function paymentsOf(value: unknown): StaffPayments {
+  const doc = record(value);
+  return { on: doc.on === true, online: doc.online === true, test: doc.test === true, refund: doc.refund === true };
 }
 
 export interface StaffAddOn {
@@ -222,6 +243,7 @@ export async function loadStaffConfig(opts: StaffConfigOptions = {}): Promise<St
       ),
       access: accessOf(d.access),
       addOns: addOnsOf(d.addOns),
+      payments: paymentsOf(d.payments),
     };
   } catch {
     // An older server answers this path with the SPA index (HTML).

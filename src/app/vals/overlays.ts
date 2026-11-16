@@ -27,6 +27,7 @@ const CLOSED = {
   mv: { open: false, rooms: [], ups: [] },
   dd: { open: false },
   ex: { open: false, days: [] },
+  rf: { open: false },
 };
 
 
@@ -79,7 +80,12 @@ export function overlayVals(app: HouseApp, w: WorldV): V {
         border: s.cancelWho === x.id ? "var(--accent)" : "var(--border-strong)",
       })),
       noteOn: inside && !house,
-      note: deskVoice ? tr("This is inside the notice period ({n} day), so it will be marked late.|This is inside the notice period ({n} days), so it will be marked late.", { n: w.H.cancelDays }) : tr("This is a late cancellation. Nothing is charged."),
+      // Paid online: a late cancellation keeps the payment unless the hotel gives it back, and the guest is told before.
+      note: deskVoice
+        ? tr("This is inside the notice period ({n} day), so it will be marked late.|This is inside the notice period ({n} days), so it will be marked late.", { n: w.H.cancelDays })
+        : cst.pay.online > 0.004
+          ? tr("Cancelling now keeps your payment unless the hotel refunds it.")
+          : tr("This is a late cancellation. Nothing is charged."),
       noteBg: "var(--warn-soft)",
       noteFg: "var(--warn)",
       confirmLabel: tr("Cancel the reservation"),

@@ -106,6 +106,7 @@ describe("loadStaffConfig", () => {
       publicKeys: { kiosk: "adm_pub_k", broken: 3 },
       access: { tables: { tickets: ["read", "update", "fly"], odd: "all" }, roles: [{ slug: "pos-cashier", name: "POS cashier" }, { name: "no slug" }] },
       addOns: { invoices: { version: "1.0.3", settings: { business_name: "Harbour Café" } }, odd: 3 },
+      payments: { on: true, online: "yes", test: false, refund: true, extra: 1 },
     });
     expect(await loadStaffConfig({ hostedStaff: true, base: "/apps/pos/staff/", fetchImpl })).toEqual({
       connectionId: "con_42",
@@ -123,6 +124,8 @@ describe("loadStaffConfig", () => {
       publicKeys: { kiosk: "adm_pub_k" },
       access: { tables: { tickets: ["read", "update"] }, roles: [{ slug: "pos-cashier", name: "POS cashier" }] },
       addOns: { invoices: { version: "1.0.3", settings: { business_name: "Harbour Café" } } },
+      // Each flag only when the server said true: a "yes" is not a yes.
+      payments: { on: true, online: false, test: false, refund: true },
     });
   });
 
@@ -131,6 +134,8 @@ describe("loadStaffConfig", () => {
     const config = await loadStaffConfig({ hostedStaff: true, base: "/apps/pos/staff/", fetchImpl });
     expect(config?.access).toBeNull();
     expect(config?.publicKeys).toEqual({});
+    // Nothing said of payments: none of it, and the desk reads as it always has.
+    expect(config?.payments).toEqual({ on: false, online: false, test: false, refund: false });
     // An Adminium older than installs per database names none: the screens then send no install header.
     expect(config?.installId).toBeNull();
     // No add-on said attached: a feature that needs one stays off.

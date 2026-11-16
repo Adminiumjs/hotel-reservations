@@ -473,10 +473,18 @@ export function OverlaysDeskView({ v }: { v: any }) {
                       {v.co.blockBody}
                     </p>
                     {" "}
-                    <button onClick={v.co.goSettle} style={st("display:flex;align-items:center;gap:7px;padding:9px 14px;border:1px solid var(--warn);border-radius:10px;background:transparent;color:var(--warn);font-size:12.5px;font-weight:700;cursor:pointer")} className={fx("background:var(--surface)", null)}>
-                      <span data-icon="wallet" style={st("display:inline-flex;inline-size:14px;block-size:14px")}><Icon name={"wallet"} /></span>
-                      {tr("Record the balance now")}
-                    </button>
+                    <div style={st("display:flex;gap:8px;flex-wrap:wrap")}>
+                      <button onClick={v.co.goSettle} style={st("display:flex;align-items:center;gap:7px;padding:9px 14px;border:1px solid var(--warn);border-radius:10px;background:transparent;color:var(--warn);font-size:12.5px;font-weight:700;cursor:pointer")} className={fx("background:var(--surface)", null)}>
+                        <span data-icon="wallet" style={st("display:inline-flex;inline-size:14px;block-size:14px")}><Icon name={"wallet"} /></span>
+                        {tr("Record the balance now")}
+                      </button>
+                      {v.co.payLinkOn ? (
+                        <button onClick={v.co.copyPayLink} style={st("display:flex;align-items:center;gap:7px;padding:9px 14px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);color:var(--fg);font-size:12.5px;font-weight:700;cursor:pointer")} className={fx("background:var(--surface-2)", null)}>
+                          <span data-icon="link" style={st("display:inline-flex;inline-size:14px;block-size:14px")}><Icon name={"link"} /></span>
+                          {tr("Copy pay link")}
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 </>
               ) : null}
@@ -1048,6 +1056,16 @@ export function OverlaysDeskView({ v }: { v: any }) {
               ) : null}
             </div>
             {" "}
+            {v.se.payLinkOn ? (
+              <div style={st("margin:0 18px 16px;padding:13px 14px;border:1px dashed var(--border-strong);border-radius:12px;display:flex;flex-direction:column;gap:8px")}>
+                <span style={st("font-size:12px;font-weight:700;color:var(--fg-muted)")}>{tr("Or let them pay online")}</span>
+                <span style={st("font-size:12.5px;line-height:1.5;color:var(--fg-muted)")}>{v.se.payLinkHint}</span>
+                <button onClick={v.se.copyPayLink} style={st("align-self:flex-start;display:flex;align-items:center;gap:7px;padding:8px 13px;border:1px solid var(--border-strong);border-radius:9px;background:var(--surface);color:var(--fg);font-size:12.5px;font-weight:700;cursor:pointer")} className={fx("background:var(--surface-2)", null)}>
+                  <span data-icon="link" style={st("display:inline-flex;inline-size:14px;block-size:14px")}><Icon name={"link"} /></span>
+                  {tr("Copy pay link")}
+                </button>
+              </div>
+            ) : null}
             <div style={st("padding:14px 18px;border-block-start:1px solid var(--border);background:var(--surface-2);display:flex;align-items:center;gap:12px")}>
               <div style={st("font-size:12px;line-height:1.5;color:var(--fg-subtle);flex:1")}>
                 {v.se.foot}
@@ -1057,6 +1075,54 @@ export function OverlaysDeskView({ v }: { v: any }) {
                 {v.se.btnLabel}
               </button>
             </div>
+          </div>
+        </div>
+      </>
+    ) : null}
+    {" "}
+    {DESK && v.rf.open ? (
+      <>
+        <div onClick={v.rf.close} style={st("position:fixed;inset:0;z-index:85;background:rgba(10,10,15,.55);backdrop-filter:blur(3px);display:grid;place-items:center;padding:20px")}>
+          <div role="dialog" aria-modal="true" aria-labelledby="rf-title" aria-describedby={v.rf.step2 ? "rf-sentence" : "rf-sub"} onClick={v.stop} style={st("inline-size:min(460px,100%);max-block-size:90vh;overflow:auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;box-shadow:var(--shadow-lift);animation:wh-pop .18s ease-out;padding:20px")}>
+            <div style={st("display:flex;align-items:center;gap:10px")}>
+              <span style={st("inline-size:34px;block-size:34px;border-radius:9px;background:var(--warn-soft);color:var(--warn);display:grid;place-items:center;flex:0 0 auto")}>
+                <span data-icon="undo-2" style={st("display:inline-flex;inline-size:17px;block-size:17px")}><Icon name={"undo-2"} /></span>
+              </span>
+              <div style={st("min-inline-size:0")}>
+                <div id="rf-title" style={st("font-size:16px;font-weight:800")}>{v.rf.title}</div>
+                <div id="rf-sub" style={st("font-size:12px;color:var(--fg-subtle);margin-block-start:2px")}>{v.rf.sub}</div>
+              </div>
+            </div>
+            {v.rf.step1 ? (
+              <>
+                <div style={st("margin-block-start:16px;display:flex;flex-direction:column;gap:6px")}>
+                  <label htmlFor="rf-amount" style={st("font-size:12px;font-weight:700;color:var(--fg-muted)")}>{tr("Amount")}</label>
+                  <input id="rf-amount" inputMode="decimal" value={v.rf.amount} onChange={v.rf.onAmount} aria-invalid={v.rf.amountInv} aria-describedby={v.rf.amountErrOn ? "rf-amount-help rf-amount-err" : "rf-amount-help"} style={st(`padding:10px 12px;border:1px solid ${v.rf.amountBorder};border-radius:10px;background:var(--surface-2);color:var(--fg);font-family:var(--mono);font-size:14px;font-weight:600;direction:ltr`)} />
+                  <span id="rf-amount-help" style={st("font-size:12px;color:var(--fg-subtle)")}>{v.rf.help}</span>
+                  {v.rf.amountErrOn ? <span id="rf-amount-err" role="alert" style={st("font-size:12px;font-weight:700;color:var(--danger)")}>{v.rf.amountErr}</span> : null}
+                </div>
+                <div style={st("margin-block-start:12px;display:flex;flex-direction:column;gap:6px")}>
+                  <label htmlFor="rf-reason" style={st("font-size:12px;font-weight:700;color:var(--fg-muted)")}>{tr("Reason")}</label>
+                  <input id="rf-reason" value={v.rf.reason} onChange={v.rf.onReason} placeholder={tr("A few words for the record")} aria-invalid={v.rf.reasonInv} aria-describedby={v.rf.reasonErrOn ? "rf-reason-err" : undefined} style={st(`padding:10px 12px;border:1px solid ${v.rf.reasonBorder};border-radius:10px;background:var(--surface-2);color:var(--fg);font-size:13px`)} />
+                  {v.rf.reasonErrOn ? <span id="rf-reason-err" role="alert" style={st("font-size:12px;font-weight:700;color:var(--danger)")}>{v.rf.reasonErr}</span> : null}
+                </div>
+                <div style={st("display:flex;gap:9px;margin-block-start:18px;flex-wrap:wrap")}>
+                  <button onClick={v.rf.next} style={st("flex:1;min-inline-size:140px;padding:12px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-fg);font-size:13.5px;font-weight:700;cursor:pointer")} className={fx("filter:brightness(1.08)", null)}>{tr("Next")}</button>
+                  <button onClick={v.rf.close} style={st("flex:1;min-inline-size:120px;padding:12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2);color:var(--fg);font-size:13.5px;font-weight:700;cursor:pointer")} className={fx("background:var(--surface-3)", null)}>{tr("Cancel")}</button>
+                </div>
+              </>
+            ) : null}
+            {v.rf.step2 ? (
+              <>
+                <p id="rf-sentence" style={st("margin:16px 0 0;font-size:13.5px;line-height:1.6;color:var(--fg);text-wrap:pretty")}>
+                  {v.rf.sentence} <strong>{tr("This can’t be undone.")}</strong>
+                </p>
+                <div style={st("display:flex;gap:9px;margin-block-start:18px;flex-wrap:wrap")}>
+                  <button id="rf-confirm" onClick={v.rf.confirm} aria-busy={v.rf.busyAttr} disabled={v.rf.busy} style={st("flex:1;min-inline-size:140px;padding:12px;border:0;border-radius:10px;background:var(--danger);color:#fff;font-size:13.5px;font-weight:700;cursor:pointer")} className={fx("filter:brightness(1.08)", null)}>{v.rf.confirmLabel}</button>
+                  <button onClick={v.rf.back} disabled={v.rf.busy} style={st("flex:1;min-inline-size:120px;padding:12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2);color:var(--fg);font-size:13.5px;font-weight:700;cursor:pointer")} className={fx("background:var(--surface-3)", null)}>{tr("Back")}</button>
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
       </>
