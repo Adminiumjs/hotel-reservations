@@ -35,10 +35,12 @@ export const VERSION = "0.3.2";
  * type's linen and amenities posted at check-out; and (0.3.38) the house's
  * guests, each email's class, the tables the law keeps and the reservation's
  * tick kept in the consent log; and (0.3.49) the same app installed once per
- * database, each install's screens at their own address. Written from the
- * version actually released, never guessed.
+ * database, each install's screens at their own address; and (0.3.60) a
+ * booking and a folio paid online, refunds kept as the house's own rows, and a
+ * stay made waiting for its payment. Written from the version actually
+ * released, never guessed.
  */
-export const MIN_ADMINIUM = "0.3.49";
+export const MIN_ADMINIUM = "0.3.60";
 
 const ENV = {
   VITE_ADMINIUM_API_BASE_URL: { required: false, example: "https://admin.example.com" },
