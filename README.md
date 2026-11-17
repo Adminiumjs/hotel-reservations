@@ -21,7 +21,7 @@ because $1,099.03 is still on the folio.
 
 ## What it needs
 
-- Adminium **0.3.61** or later, on SQLite, Postgres or MySQL.
+- Adminium **0.3.62** or later, on SQLite, Postgres or MySQL.
 - Nothing else. Three add-ons are offered at install, and the house is whole
   with none of them:
 
@@ -97,7 +97,10 @@ Once it is on:
   is held for a few minutes (*Room held while a guest pays*); the payment
   books it, and a room left unpaid at the end of the hold goes back, with
   nothing taken — never while a payment for it is still on its way. Such a
-  stay is paid only by a way that settles at once (a card, a wallet).
+  stay is paid only by a way that settles at once (a card, a wallet). While
+  paying first is the rule and the house can take payments online, the only
+  booking the guest site — or anyone calling it — can make is one that waits
+  for its payment; with payments off, it books as it always did.
 - *The folio*: what a stay still owes can be paid by its **pay link** — the
   desk's **Copy pay link** (on the folio, in Record a payment and at check-out),
   a button in the folio-so-far email, and the code printed on the folio by
@@ -133,7 +136,7 @@ at `/apps/hotel/customer/`. A hotel can also give the guest site a domain of
 its own.
 
 **Moving from 0.3.2.** 0.3.3 updates a 0.3.2 install in place — update
-Adminium to 0.3.61 first, then the app. The update adds empty columns for
+Adminium to 0.3.62 first, then the app. The update adds empty columns for
 paying online — on the settings (what is asked of a guest who books, nothing
 by default; refunds in time automatic), on the stays (what is paid and given
 back online, all of it nothing on a stay that was there) and on the payments
