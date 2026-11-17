@@ -335,4 +335,6 @@ export const WORDS: Record<string, Translation> = {
   "The whole stay": w("Der ganze Aufenthalt", "Tout le séjour", "Hele opholdet", "Celý pobyt", "الإقامة كلها", "整个住宿", "整個住宿"),
   "Waiting for payment": w("Wartet auf Zahlung", "En attente de paiement", "Venter på betaling", "Čeká na platbu", "بانتظار الدفع", "等待付款", "等待付款"),
   "When guests book": w("Wenn Gäste buchen", "Quand les clients réservent", "Når gæster booker", "Když hosté rezervují", "عندما يحجز الضيوف", "客人预订时", "客人訂房時"),
+  "Reservation made, paying online": w("Reservierung eingegangen, online bezahlbar", "Réservation effectuée, paiement en ligne", "Reservation foretaget, betaling online", "Rezervace provedena, platba online", "حجز تم، مع الدفع عبر الإنترنت", "已预订，可网上付款", "已訂房，可線上付款"),
+  "The folio so far, with a pay link": w("Die Zwischenrechnung, mit Zahlungslink", "La note du séjour à ce jour, avec un lien de paiement", "Opholdsregningen indtil nu, med betalingslink", "Průběžný účet pobytu, s platebním odkazem", "حساب الإقامة حتى الآن، مع رابط الدفع", "目前的住宿结算单，附付款链接", "目前的住宿結算單，附付款連結"),
 };

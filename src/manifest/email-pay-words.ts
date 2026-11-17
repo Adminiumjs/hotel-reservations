@@ -20,6 +20,9 @@
 import type { Tag } from "./labels.ts";
 
 export interface PayWords {
+  /** The names of the two kinds sent while the house takes payments online, as the Emails page lists them. */
+  madeName: string;
+  owingName: string;
   /** The language's own "Nothing is charged.", as the cancellation emails end it. */
   nothing: string;
   payPending: string;
@@ -36,6 +39,8 @@ export interface PayWords {
 
 export const PAY_WORDS: Record<Tag, PayWords> = {
   "en-US": {
+    madeName: "Reservation made, paying online",
+    owingName: "The folio so far, with a pay link",
     nothing: "Nothing is charged.",
     payPending: "You are paying {{stay.pay_pending.money}} online. Your receipt comes in its own email. Anything not paid online is settled at the desk.",
     paidPart: "Paid {{stay.online_part.money}} online. The rest is settled at the desk.",
@@ -49,6 +54,8 @@ export const PAY_WORDS: Record<Tag, PayWords> = {
     payNote: "The button opens a pay link. You'll pay on the Stripe or PayPal page. You can also settle at the desk.",
   },
   "de-DE": {
+    madeName: "Reservierung eingegangen, online bezahlbar",
+    owingName: "Die Zwischenrechnung, mit Zahlungslink",
     nothing: "Es wird nichts berechnet.",
     payPending: "Sie bezahlen {{stay.pay_pending.money}} online. Ihre Quittung kommt in einer eigenen E-Mail. Was nicht online bezahlt ist, begleichen Sie an der Rezeption.",
     paidPart: "{{stay.online_part.money}} online bezahlt. Den Rest begleichen Sie an der Rezeption.",
@@ -62,6 +69,8 @@ export const PAY_WORDS: Record<Tag, PayWords> = {
     payNote: "Der Button öffnet einen Zahlungslink. Sie bezahlen auf der Stripe- oder PayPal-Seite. Sie können auch an der Rezeption bezahlen.",
   },
   "fr-FR": {
+    madeName: "Réservation effectuée, paiement en ligne",
+    owingName: "La note du séjour à ce jour, avec un lien de paiement",
     nothing: "Vous ne payez rien.",
     payPending: "Vous payez {{stay.pay_pending.money}} en ligne. Votre reçu arrive dans un e-mail séparé. Ce qui n'est pas payé en ligne se règle à la réception.",
     paidPart: "{{stay.online_part.money}} payés en ligne. Le reste se règle à la réception.",
@@ -75,6 +84,8 @@ export const PAY_WORDS: Record<Tag, PayWords> = {
     payNote: "Le bouton ouvre un lien de paiement. Vous payez sur la page Stripe ou PayPal. Vous pouvez aussi régler à la réception.",
   },
   "da-DK": {
+    madeName: "Reservation foretaget, betaling online",
+    owingName: "Opholdsregningen indtil nu, med betalingslink",
     nothing: "Der opkræves intet.",
     payPending: "Du betaler {{stay.pay_pending.money}} online. Din kvittering kommer i sin egen e-mail. Det, der ikke er betalt online, betaler du i receptionen.",
     paidPart: "{{stay.online_part.money}} betalt online. Resten betaler du i receptionen.",
@@ -88,6 +99,8 @@ export const PAY_WORDS: Record<Tag, PayWords> = {
     payNote: "Knappen åbner et betalingslink. Du betaler på Stripe- eller PayPal-siden. Du kan også betale i receptionen.",
   },
   "cs-CZ": {
+    madeName: "Rezervace provedena, platba online",
+    owingName: "Průběžný účet pobytu, s platebním odkazem",
     nothing: "Nic se neúčtuje.",
     payPending: "Platíte online {{stay.pay_pending.money}}. Potvrzení přijde v samostatném e-mailu. Co nezaplatíte online, zaplatíte na recepci.",
     paidPart: "Online zaplaceno {{stay.online_part.money}}. Zbytek zaplatíte na recepci.",
@@ -101,6 +114,8 @@ export const PAY_WORDS: Record<Tag, PayWords> = {
     payNote: "Tlačítko otevře platební odkaz. Zaplatíte na stránce Stripe nebo PayPal. Zaplatit můžete i na recepci.",
   },
   "ar-EG": {
+    madeName: "حجز تم، مع الدفع عبر الإنترنت",
+    owingName: "حساب الإقامة حتى الآن، مع رابط الدفع",
     nothing: "لا يُحتسب أي مبلغ.",
     payPending: "أنت تدفع {{stay.pay_pending.money}} عبر الإنترنت. يصلك الإيصال في رسالة منفصلة. ما لا يُدفع عبر الإنترنت يُسدَّد في مكتب الاستقبال.",
     paidPart: "دُفع {{stay.online_part.money}} عبر الإنترنت. الباقي يُسدَّد في مكتب الاستقبال.",
@@ -114,6 +129,8 @@ export const PAY_WORDS: Record<Tag, PayWords> = {
     payNote: "يفتح الزر رابط دفع. ستدفع على صفحة Stripe أو PayPal. يمكنك أيضًا الدفع في مكتب الاستقبال.",
   },
   "zh-CN": {
+    madeName: "已预订，可网上付款",
+    owingName: "目前的住宿结算单，附付款链接",
     nothing: "不收取任何费用。",
     payPending: "你正在网上支付 {{stay.pay_pending.money}}。收据将另行发送邮件。未在网上支付的部分在前台结清。",
     paidPart: "已在网上支付 {{stay.online_part.money}}。其余在前台结清。",
@@ -127,6 +144,8 @@ export const PAY_WORDS: Record<Tag, PayWords> = {
     payNote: "按钮会打开付款链接。你将在 Stripe 或 PayPal 页面付款。也可以在前台结清。",
   },
   "zh-TW": {
+    madeName: "已訂房，可線上付款",
+    owingName: "目前的住宿結算單，附付款連結",
     nothing: "不收取任何費用。",
     payPending: "你正在線上支付 {{stay.pay_pending.money}}。收據將另行寄送郵件。未線上支付的部分在櫃檯結清。",
     paidPart: "已線上支付 {{stay.online_part.money}}。其餘在櫃檯結清。",

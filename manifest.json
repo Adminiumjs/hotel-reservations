@@ -18,7 +18,7 @@
     "hospitality"
   ],
   "compatibility": {
-    "minAdminiumVersion": "0.3.61",
+    "minAdminiumVersion": "0.3.62",
     "engines": [
       "sqlite",
       "postgres",
@@ -7522,7 +7522,9 @@
               "stay-dates-changed",
               "stay-new-link",
               "stay-folio",
-              "stay-folio-owing"
+              "stay-folio-owing",
+              "stay-made-pay",
+              "stay-folio-owing-pay"
             ],
             "label": {
               "en-US": "Kind",
@@ -7656,6 +7658,26 @@
                     "ar-EG": "حساب الإقامة حتى الآن",
                     "zh-CN": "目前的住宿结算单",
                     "zh-TW": "目前的住宿結算單"
+                  },
+                  "stay-made-pay": {
+                    "en-US": "Reservation made, paying online",
+                    "de-DE": "Reservierung eingegangen, online bezahlbar",
+                    "fr-FR": "Réservation effectuée, paiement en ligne",
+                    "da-DK": "Reservation foretaget, betaling online",
+                    "cs-CZ": "Rezervace provedena, platba online",
+                    "ar-EG": "حجز تم، مع الدفع عبر الإنترنت",
+                    "zh-CN": "已预订，可网上付款",
+                    "zh-TW": "已訂房，可線上付款"
+                  },
+                  "stay-folio-owing-pay": {
+                    "en-US": "The folio so far, with a pay link",
+                    "de-DE": "Die Zwischenrechnung, mit Zahlungslink",
+                    "fr-FR": "La note du séjour à ce jour, avec un lien de paiement",
+                    "da-DK": "Opholdsregningen indtil nu, med betalingslink",
+                    "cs-CZ": "Průběžný účet pobytu, s platebním odkazem",
+                    "ar-EG": "حساب الإقامة حتى الآن، مع رابط الدفع",
+                    "zh-CN": "目前的住宿结算单，附付款链接",
+                    "zh-TW": "目前的住宿結算單，附付款連結"
                   }
                 }
               }
@@ -11996,7 +12018,17 @@
       },
       "dryRun": true,
       "expect": "total",
-      "clientKey": "client_key"
+      "clientKey": "client_key",
+      "requireSetting": [
+        {
+          "table": "settings",
+          "column": "pay_at_booking",
+          "in": [
+            "none",
+            "optional"
+          ]
+        }
+      ]
     },
     {
       "table": "stays",
@@ -12444,7 +12476,8 @@
             "optional"
           ]
         }
-      ]
+      ],
+      "requirePayments": "on"
     },
     {
       "table": "stays",
@@ -12621,7 +12654,181 @@
             "required"
           ]
         }
-      ]
+      ],
+      "requirePayments": "on"
+    },
+    {
+      "table": "stays",
+      "methods": [
+        "POST"
+      ],
+      "humanCheck": true,
+      "level": "verified",
+      "select": [
+        "id",
+        "ref",
+        "status",
+        "room_type_id",
+        "room_id",
+        "arrive",
+        "depart",
+        "guests",
+        "nights",
+        "arrival_time",
+        "language",
+        "room_total",
+        "extras_total",
+        "charges_total",
+        "credits_total",
+        "discount",
+        "room_discount",
+        "subtotal",
+        "tax_rate",
+        "tax_label",
+        "tax",
+        "total",
+        "paid",
+        "balance",
+        "cancel_by",
+        "created_at",
+        "checked_in_at",
+        "checked_out_at",
+        "cancelled_at",
+        "no_show_marked_at",
+        "pay_now",
+        "deposit",
+        "pay_due",
+        "paid_online",
+        "refunded_online",
+        "pay_lapsed"
+      ],
+      "writable": [
+        "room_type_id",
+        "arrive",
+        "depart",
+        "guests",
+        "first_name",
+        "last_name",
+        "email",
+        "mobile",
+        "arrival_time",
+        "note",
+        "language",
+        "client_key",
+        "opt_in"
+      ],
+      "requires": [
+        "first_name",
+        "last_name",
+        "email"
+      ],
+      "claimedBy": {
+        "table": "customers",
+        "column": "customer_id",
+        "optional": true
+      },
+      "identity": {
+        "table": "customers",
+        "email": "email",
+        "link": "customer_id",
+        "fill": {
+          "first_name": "first_name",
+          "last_name": "last_name",
+          "language": "language"
+        }
+      },
+      "consent": {
+        "column": "opt_in",
+        "purpose": "newsletter",
+        "wording": {
+          "version": 1,
+          "text": {
+            "en-US": "Email me news and offers from {hotel}\nEvery email has a link to stop them.",
+            "de-DE": "Schicken Sie mir Neuigkeiten und Angebote von {hotel} per E-Mail\nJede E-Mail enthält einen Link, mit dem Sie sie abbestellen können.",
+            "fr-FR": "M'envoyer par e-mail les nouvelles et les offres de {hotel}\nChaque e-mail contient un lien pour ne plus les recevoir.",
+            "da-DK": "Send mig nyheder og tilbud fra {hotel} på mail\nHver mail har et link, så du kan stoppe dem.",
+            "cs-CZ": "Chci dostávat e-mailem novinky a nabídky od {hotel}\nKaždý e-mail obsahuje odkaz, kterým je můžete odhlásit.",
+            "ar-EG": "راسلوني بالبريد الإلكتروني بأخبار {hotel} وعروضه\nكل رسالة فيها رابط لإيقاف هذه الرسائل.",
+            "zh-CN": "通过邮件给我发送{hotel}的消息和优惠\n每封邮件都附有停止接收的链接。",
+            "zh-TW": "以電子郵件寄送{hotel}的消息與優惠給我\n每封郵件都附有停止接收的連結。"
+          }
+        }
+      },
+      "shareLink": "link_token",
+      "agrees": [
+        {
+          "column": "guests",
+          "lte": {
+            "via": "room_type_id",
+            "column": "sleeps"
+          }
+        },
+        {
+          "column": "guests",
+          "lte": {
+            "via": "room_id",
+            "column": "sleeps"
+          }
+        }
+      ],
+      "anonymous": {
+        "perValue": {
+          "columns": [
+            "email"
+          ],
+          "n": 10
+        },
+        "perKeyHour": 300,
+        "perIpHour": 10,
+        "plainText": [
+          "first_name",
+          "last_name"
+        ]
+      },
+      "children": {
+        "stay_extras": {
+          "via": "stay_id",
+          "writable": [
+            "extra_id"
+          ],
+          "select": [
+            "id",
+            "extra_id",
+            "state",
+            "label",
+            "each",
+            "per",
+            "nights",
+            "guests",
+            "amount",
+            "discount"
+          ],
+          "max": 8
+        },
+        "stay_codes": {
+          "via": "stay_id",
+          "writable": [
+            "typed"
+          ],
+          "select": [
+            "id"
+          ],
+          "max": 12
+        }
+      },
+      "dryRun": true,
+      "expect": "total",
+      "clientKey": "client_key",
+      "requireSetting": [
+        {
+          "table": "settings",
+          "column": "pay_at_booking",
+          "in": [
+            "required"
+          ]
+        }
+      ],
+      "requirePayments": "off"
     }
   ],
   "outbox": {
@@ -12679,7 +12886,9 @@
       "stay-dates-changed": "hotel-stay-dates-changed",
       "stay-new-link": "hotel-stay-new-link",
       "stay-folio": "hotel-stay-folio",
-      "stay-folio-owing": "hotel-stay-folio-owing"
+      "stay-folio-owing": "hotel-stay-folio-owing",
+      "stay-made-pay": "hotel-stay-made-pay",
+      "stay-folio-owing-pay": "hotel-stay-folio-owing-pay"
     },
     "classes": {
       "stay-made": "service",
@@ -12693,7 +12902,9 @@
       "stay-dates-changed": "service",
       "stay-new-link": "service",
       "stay-folio": "service",
-      "stay-folio-owing": "service"
+      "stay-folio-owing": "service",
+      "stay-made-pay": "service",
+      "stay-folio-owing-pay": "service"
     },
     "producers": [
       {
@@ -12722,7 +12933,8 @@
             ],
             "reason": "no-longer-needed"
           }
-        ]
+        ],
+        "payments": "off"
       },
       {
         "kind": "stay-made",
@@ -12752,7 +12964,68 @@
             ],
             "reason": "no-longer-needed"
           }
-        ]
+        ],
+        "payments": "off"
+      },
+      {
+        "kind": "stay-made-pay",
+        "link": "stay_id",
+        "gate": {
+          "setting": {
+            "table": "settings",
+            "column": "guest_emails_on"
+          }
+        },
+        "onCreate": {
+          "table": "stays",
+          "where": {
+            "column": "channel",
+            "eq": "online"
+          }
+        },
+        "holdSeconds": 5,
+        "dropWhen": [
+          {
+            "column": "status",
+            "in": [
+              "pending_payment",
+              "cancelled"
+            ],
+            "reason": "no-longer-needed"
+          }
+        ],
+        "payments": "on"
+      },
+      {
+        "kind": "stay-made-pay",
+        "link": "stay_id",
+        "gate": {
+          "setting": {
+            "table": "settings",
+            "column": "guest_emails_on"
+          }
+        },
+        "onChange": {
+          "table": "stays",
+          "column": "status",
+          "to": "booked",
+          "where": {
+            "column": "channel",
+            "eq": "online"
+          }
+        },
+        "holdSeconds": 5,
+        "dropWhen": [
+          {
+            "column": "status",
+            "in": [
+              "pending_payment",
+              "cancelled"
+            ],
+            "reason": "no-longer-needed"
+          }
+        ],
+        "payments": "on"
       },
       {
         "kind": "stay-made-desk",
@@ -12959,7 +13232,27 @@
           ],
           "changed": true
         },
-        "repeat": true
+        "repeat": true,
+        "payments": "off"
+      },
+      {
+        "kind": "stay-folio-owing-pay",
+        "link": "stay_id",
+        "gate": {
+          "setting": {
+            "table": "settings",
+            "column": "guest_emails_on"
+          }
+        },
+        "onChange": {
+          "table": "stays",
+          "columns": [
+            "folio_so_far_at"
+          ],
+          "changed": true
+        },
+        "repeat": true,
+        "payments": "on"
       }
     ]
   },
@@ -20522,7 +20815,6 @@
         "zh-TW": "目前的住宿結算單"
       },
       "vars": [
-        "pay_url",
         "practice.address",
         "practice.email",
         "practice.phone",
@@ -20539,6 +20831,2151 @@
         "en-US": {
           "subject": "Your folio so far — {{stay.ref}}",
           "preheader": "{{stay.balance.money}} still to settle",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Your folio so far, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Your reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "attached",
+              "data": {
+                "paras": [
+                  "Your folio for the {{room_type.name}}, {{stay.arrive.day_month}} to {{stay.depart.day_month}}, is attached."
+                ],
+                "withAttachment": true
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "There is {{stay.balance.money}} still to settle at the desk."
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "folio",
+              "data": {
+                "lines": [
+                  {
+                    "label": "Total",
+                    "amount": "{{stay.total.money}}"
+                  },
+                  {
+                    "label": "Paid",
+                    "amount": "{{stay.paid.money}}"
+                  },
+                  {
+                    "label": "Still to settle",
+                    "amount": "{{stay.balance.money}}"
+                  }
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us."
+        },
+        "de-DE": {
+          "subject": "Ihre Zwischenrechnung – {{stay.ref}}",
+          "preheader": "{{stay.balance.money}} noch offen",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Ihre Zwischenrechnung, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Ihre Referenz",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "attached",
+              "data": {
+                "paras": [
+                  "Ihre Gastrechnung für {{room_type.name}}, {{stay.arrive.day_month}} bis {{stay.depart.day_month}}, liegt bei."
+                ],
+                "withAttachment": true
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "An der Rezeption sind noch {{stay.balance.money}} zu begleichen."
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "folio",
+              "data": {
+                "lines": [
+                  {
+                    "label": "Gesamt",
+                    "amount": "{{stay.total.money}}"
+                  },
+                  {
+                    "label": "Bezahlt",
+                    "amount": "{{stay.paid.money}}"
+                  },
+                  {
+                    "label": "Noch offen",
+                    "amount": "{{stay.balance.money}}"
+                  }
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Sie erhalten diese E-Mail, weil Sie bei uns ein Zimmer reserviert haben."
+        },
+        "fr-FR": {
+          "subject": "Votre note du séjour à ce jour – {{stay.ref}}",
+          "preheader": "{{stay.balance.money}} restent à régler",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Votre note du séjour à ce jour, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Votre référence",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "attached",
+              "data": {
+                "paras": [
+                  "Votre note du séjour pour {{room_type.name}}, du {{stay.arrive.day_month}} au {{stay.depart.day_month}}, est jointe."
+                ],
+                "withAttachment": true
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Il reste {{stay.balance.money}} à régler à la réception."
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "folio",
+              "data": {
+                "lines": [
+                  {
+                    "label": "Total",
+                    "amount": "{{stay.total.money}}"
+                  },
+                  {
+                    "label": "Payé",
+                    "amount": "{{stay.paid.money}}"
+                  },
+                  {
+                    "label": "Reste à régler",
+                    "amount": "{{stay.balance.money}}"
+                  }
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Vous recevez cet e-mail parce que vous avez réservé une chambre chez nous."
+        },
+        "da-DK": {
+          "subject": "Din opholdsregning indtil nu – {{stay.ref}}",
+          "preheader": "{{stay.balance.money}} mangler at blive betalt",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Din opholdsregning indtil nu, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Din reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "attached",
+              "data": {
+                "paras": [
+                  "Din opholdsregning for {{room_type.name}}, {{stay.arrive.day_month}} til {{stay.depart.day_month}}, er vedhæftet."
+                ],
+                "withAttachment": true
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Der mangler {{stay.balance.money}} at blive betalt i receptionen."
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "folio",
+              "data": {
+                "lines": [
+                  {
+                    "label": "I alt",
+                    "amount": "{{stay.total.money}}"
+                  },
+                  {
+                    "label": "Betalt",
+                    "amount": "{{stay.paid.money}}"
+                  },
+                  {
+                    "label": "Mangler at betale",
+                    "amount": "{{stay.balance.money}}"
+                  }
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Du får denne e-mail, fordi du har reserveret et værelse hos os."
+        },
+        "cs-CZ": {
+          "subject": "Váš dosavadní účet pobytu – {{stay.ref}}",
+          "preheader": "Zbývá zaplatit {{stay.balance.money}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Váš dosavadní účet pobytu, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Číslo vaší rezervace",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "attached",
+              "data": {
+                "paras": [
+                  "V příloze posíláme účet pobytu za {{room_type.name}}, {{stay.arrive.day_month}} až {{stay.depart.day_month}}."
+                ],
+                "withAttachment": true
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Na recepci zbývá zaplatit {{stay.balance.money}}."
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "folio",
+              "data": {
+                "lines": [
+                  {
+                    "label": "Celkem",
+                    "amount": "{{stay.total.money}}"
+                  },
+                  {
+                    "label": "Zaplaceno",
+                    "amount": "{{stay.paid.money}}"
+                  },
+                  {
+                    "label": "Zbývá zaplatit",
+                    "amount": "{{stay.balance.money}}"
+                  }
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Tento e-mail dostáváte, protože jste si u nás rezervovali pokoj."
+        },
+        "ar-EG": {
+          "subject": "حساب إقامتك حتى الآن — {{stay.ref}}",
+          "preheader": "{{stay.balance.money}} متبقية للسداد",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "حساب إقامتك حتى الآن يا {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "رقم حجزك",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "attached",
+              "data": {
+                "paras": [
+                  "مرفق حساب إقامتك لـ {{room_type.name}}، من {{stay.arrive.day_month}} إلى {{stay.depart.day_month}}."
+                ],
+                "withAttachment": true
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "يتبقى {{stay.balance.money}} للسداد في الاستقبال."
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "folio",
+              "data": {
+                "lines": [
+                  {
+                    "label": "الإجمالي",
+                    "amount": "{{stay.total.money}}"
+                  },
+                  {
+                    "label": "المدفوع",
+                    "amount": "{{stay.paid.money}}"
+                  },
+                  {
+                    "label": "المتبقي للسداد",
+                    "amount": "{{stay.balance.money}}"
+                  }
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. تصلك هذه الرسالة لأنك حجزت غرفة لدينا."
+        },
+        "zh-CN": {
+          "subject": "您目前的住宿结算单 — {{stay.ref}}",
+          "preheader": "待结清 {{stay.balance.money}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "{{recipient.first_name}}，这是您目前的住宿结算单。"
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "您的预订号",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "attached",
+              "data": {
+                "paras": [
+                  "附件是您入住{{room_type.name}}（{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}）的住宿结算单。"
+                ],
+                "withAttachment": true
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "尚有 {{stay.balance.money}} 需在前台结清。"
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "folio",
+              "data": {
+                "lines": [
+                  {
+                    "label": "总计",
+                    "amount": "{{stay.total.money}}"
+                  },
+                  {
+                    "label": "已付",
+                    "amount": "{{stay.paid.money}}"
+                  },
+                  {
+                    "label": "待结清",
+                    "amount": "{{stay.balance.money}}"
+                  }
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到此邮件，是因为您在我们这里预订了房间。"
+        },
+        "zh-TW": {
+          "subject": "您目前的住宿結算單 — {{stay.ref}}",
+          "preheader": "待結清 {{stay.balance.money}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "{{recipient.first_name}}，這是您目前的住宿結算單。"
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "訂房編號",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "attached",
+              "data": {
+                "paras": [
+                  "附件是您入住{{room_type.name}}（{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}）的住宿結算單。"
+                ],
+                "withAttachment": true
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "尚有 {{stay.balance.money}} 需在櫃檯結清。"
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "folio",
+              "data": {
+                "lines": [
+                  {
+                    "label": "總計",
+                    "amount": "{{stay.total.money}}"
+                  },
+                  {
+                    "label": "已付",
+                    "amount": "{{stay.paid.money}}"
+                  },
+                  {
+                    "label": "待結清",
+                    "amount": "{{stay.balance.money}}"
+                  }
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到這封郵件，是因為您在我們這裡預訂了房間。"
+        }
+      }
+    },
+    {
+      "key": "hotel-stay-made-pay",
+      "name": {
+        "en-US": "Reservation made, paying online",
+        "de-DE": "Reservierung eingegangen, online bezahlbar",
+        "fr-FR": "Réservation effectuée, paiement en ligne",
+        "da-DK": "Reservation foretaget, betaling online",
+        "cs-CZ": "Rezervace provedena, platba online",
+        "ar-EG": "حجز تم، مع الدفع عبر الإنترنت",
+        "zh-CN": "已预订，可网上付款",
+        "zh-TW": "已訂房，可線上付款"
+      },
+      "vars": [
+        "manage_url",
+        "practice.address",
+        "practice.arrive_from.time",
+        "practice.email",
+        "practice.leave_by.time",
+        "practice.phone",
+        "recipient.first_name",
+        "room_type.name",
+        "stay.arrive.day_month",
+        "stay.cancel_by.date",
+        "stay.cancel_by.time",
+        "stay.depart.day_month",
+        "stay.link_token",
+        "stay.online_full.money",
+        "stay.online_part.money",
+        "stay.pay_pending.money",
+        "stay.ref",
+        "stay.room_total.money",
+        "stay.tax.money",
+        "stay.tax_label",
+        "stay.tax_rate.percent",
+        "stay.total.money"
+      ],
+      "locales": {
+        "en-US": {
+          "subject": "Your room at {{appName}}, {{stay.ref}}",
+          "preheader": "{{stay.arrive.day_month}} to {{stay.depart.day_month}} · {{stay.total.money}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "You have a room, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Your reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Arriving {{stay.arrive.day_month}}, from {{practice.arrive_from.time}}. Leaving {{stay.depart.day_month}}, by {{practice.leave_by.time}}."
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "room",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{room_type.name}}, {{stay.arrive.day_month}} to {{stay.depart.day_month}}",
+                    "amount": "{{stay.room_total.money}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "extras",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "table": "stay_extras",
+                  "via": "stay_id",
+                  "orderBy": "id",
+                  "where": {
+                    "column": "state",
+                    "in": [
+                      "on"
+                    ]
+                  },
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.label}}",
+                  "amount": "{{row.amount.money}}"
+                }
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
+                    "amount": "{{stay.tax.money}}"
+                  },
+                  {
+                    "label": "Total",
+                    "amount": "{{stay.total.money}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paid-part",
+              "data": {
+                "paras": [
+                  "Paid {{stay.online_part.money}} online. The rest is settled at the desk."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.online_part"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paid-full",
+              "data": {
+                "paras": [
+                  "Paid in full online: {{stay.online_full.money}}."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.online_full"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paying",
+              "data": {
+                "paras": [
+                  "You are paying {{stay.pay_pending.money}} online. Your receipt comes in its own email. Anything not paid online is settled at the desk."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.pay_pending"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "settle",
+              "data": {
+                "paras": [
+                  "Nothing is taken online. You settle at the desk."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.settle_desk"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "Cancelling costs nothing. After {{stay.cancel_by.time}} on {{stay.cancel_by.date}}, a cancellation is marked as late.",
+                  "Late or early? Write to {{practice.email}} or ring us on {{practice.phone}}."
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "See your reservation",
+                "url": "{{manage_url}}#{{stay.link_token}}"
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us."
+        },
+        "de-DE": {
+          "subject": "Ihr Zimmer bei {{appName}}, {{stay.ref}}",
+          "preheader": "{{stay.arrive.day_month}} bis {{stay.depart.day_month}} · {{stay.total.money}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Ihr Zimmer ist reserviert, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Ihre Referenz",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Anreise am {{stay.arrive.day_month}} ab {{practice.arrive_from.time}}. Abreise am {{stay.depart.day_month}} bis {{practice.leave_by.time}}."
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "room",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{room_type.name}}, {{stay.arrive.day_month}} bis {{stay.depart.day_month}}",
+                    "amount": "{{stay.room_total.money}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "extras",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "table": "stay_extras",
+                  "via": "stay_id",
+                  "orderBy": "id",
+                  "where": {
+                    "column": "state",
+                    "in": [
+                      "on"
+                    ]
+                  },
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.label}}",
+                  "amount": "{{row.amount.money}}"
+                }
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
+                    "amount": "{{stay.tax.money}}"
+                  },
+                  {
+                    "label": "Gesamt",
+                    "amount": "{{stay.total.money}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paid-part",
+              "data": {
+                "paras": [
+                  "{{stay.online_part.money}} online bezahlt. Den Rest begleichen Sie an der Rezeption."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.online_part"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paid-full",
+              "data": {
+                "paras": [
+                  "Online vollständig bezahlt: {{stay.online_full.money}}."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.online_full"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paying",
+              "data": {
+                "paras": [
+                  "Sie bezahlen {{stay.pay_pending.money}} online. Ihre Quittung kommt in einer eigenen E-Mail. Was nicht online bezahlt ist, begleichen Sie an der Rezeption."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.pay_pending"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "settle",
+              "data": {
+                "paras": [
+                  "Online wird nichts abgebucht. Sie begleichen alles an der Rezeption."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.settle_desk"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "Eine Stornierung kostet nichts. Nach {{stay.cancel_by.time}} am {{stay.cancel_by.date}} wird sie als verspätet vermerkt.",
+                  "Später oder früher? Schreiben Sie an {{practice.email}} oder rufen Sie uns an: {{practice.phone}}."
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "Ihre Reservierung ansehen",
+                "url": "{{manage_url}}#{{stay.link_token}}"
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Sie erhalten diese E-Mail, weil Sie bei uns ein Zimmer reserviert haben."
+        },
+        "fr-FR": {
+          "subject": "Votre chambre à {{appName}}, {{stay.ref}}",
+          "preheader": "Du {{stay.arrive.day_month}} au {{stay.depart.day_month}} · {{stay.total.money}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Votre chambre est réservée, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Votre référence",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Arrivée le {{stay.arrive.day_month}} à partir de {{practice.arrive_from.time}}. Départ le {{stay.depart.day_month}} avant {{practice.leave_by.time}}."
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "room",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{room_type.name}}, du {{stay.arrive.day_month}} au {{stay.depart.day_month}}",
+                    "amount": "{{stay.room_total.money}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "extras",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "table": "stay_extras",
+                  "via": "stay_id",
+                  "orderBy": "id",
+                  "where": {
+                    "column": "state",
+                    "in": [
+                      "on"
+                    ]
+                  },
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.label}}",
+                  "amount": "{{row.amount.money}}"
+                }
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
+                    "amount": "{{stay.tax.money}}"
+                  },
+                  {
+                    "label": "Total",
+                    "amount": "{{stay.total.money}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paid-part",
+              "data": {
+                "paras": [
+                  "{{stay.online_part.money}} payés en ligne. Le reste se règle à la réception."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.online_part"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paid-full",
+              "data": {
+                "paras": [
+                  "Payé en totalité en ligne : {{stay.online_full.money}}."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.online_full"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paying",
+              "data": {
+                "paras": [
+                  "Vous payez {{stay.pay_pending.money}} en ligne. Votre reçu arrive dans un e-mail séparé. Ce qui n'est pas payé en ligne se règle à la réception."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.pay_pending"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "settle",
+              "data": {
+                "paras": [
+                  "Rien n'est prélevé en ligne. Vous réglez à la réception."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.settle_desk"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "Annuler ne coûte rien. Après {{stay.cancel_by.time}} le {{stay.cancel_by.date}}, une annulation est notée comme tardive.",
+                  "En retard ou en avance ? Écrivez à {{practice.email}} ou appelez-nous au {{practice.phone}}."
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "Voir votre réservation",
+                "url": "{{manage_url}}#{{stay.link_token}}"
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Vous recevez cet e-mail parce que vous avez réservé une chambre chez nous."
+        },
+        "da-DK": {
+          "subject": "Dit værelse på {{appName}}, {{stay.ref}}",
+          "preheader": "{{stay.arrive.day_month}} til {{stay.depart.day_month}} · {{stay.total.money}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Du har et værelse, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Din reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Ankomst {{stay.arrive.day_month}} fra kl. {{practice.arrive_from.time}}. Afrejse {{stay.depart.day_month}} senest kl. {{practice.leave_by.time}}."
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "room",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{room_type.name}}, {{stay.arrive.day_month}} til {{stay.depart.day_month}}",
+                    "amount": "{{stay.room_total.money}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "extras",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "table": "stay_extras",
+                  "via": "stay_id",
+                  "orderBy": "id",
+                  "where": {
+                    "column": "state",
+                    "in": [
+                      "on"
+                    ]
+                  },
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.label}}",
+                  "amount": "{{row.amount.money}}"
+                }
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
+                    "amount": "{{stay.tax.money}}"
+                  },
+                  {
+                    "label": "I alt",
+                    "amount": "{{stay.total.money}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paid-part",
+              "data": {
+                "paras": [
+                  "{{stay.online_part.money}} betalt online. Resten betaler du i receptionen."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.online_part"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paid-full",
+              "data": {
+                "paras": [
+                  "Betalt fuldt ud online: {{stay.online_full.money}}."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.online_full"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paying",
+              "data": {
+                "paras": [
+                  "Du betaler {{stay.pay_pending.money}} online. Din kvittering kommer i sin egen e-mail. Det, der ikke er betalt online, betaler du i receptionen."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.pay_pending"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "settle",
+              "data": {
+                "paras": [
+                  "Der trækkes intet online. Du betaler i receptionen."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.settle_desk"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "Det koster intet at afbestille. Efter kl. {{stay.cancel_by.time}} den {{stay.cancel_by.date}} noteres en afbestilling som sen.",
+                  "Sent eller tidligt? Skriv til {{practice.email}}, eller ring til os på {{practice.phone}}."
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "Se din reservation",
+                "url": "{{manage_url}}#{{stay.link_token}}"
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Du får denne e-mail, fordi du har reserveret et værelse hos os."
+        },
+        "cs-CZ": {
+          "subject": "Váš pokoj v {{appName}}, {{stay.ref}}",
+          "preheader": "{{stay.arrive.day_month}} až {{stay.depart.day_month}} · {{stay.total.money}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Pokoj je váš, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Číslo vaší rezervace",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Příjezd {{stay.arrive.day_month}} od {{practice.arrive_from.time}}. Odjezd {{stay.depart.day_month}} do {{practice.leave_by.time}}."
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "room",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{room_type.name}}, {{stay.arrive.day_month}} až {{stay.depart.day_month}}",
+                    "amount": "{{stay.room_total.money}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "extras",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "table": "stay_extras",
+                  "via": "stay_id",
+                  "orderBy": "id",
+                  "where": {
+                    "column": "state",
+                    "in": [
+                      "on"
+                    ]
+                  },
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.label}}",
+                  "amount": "{{row.amount.money}}"
+                }
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
+                    "amount": "{{stay.tax.money}}"
+                  },
+                  {
+                    "label": "Celkem",
+                    "amount": "{{stay.total.money}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paid-part",
+              "data": {
+                "paras": [
+                  "Online zaplaceno {{stay.online_part.money}}. Zbytek zaplatíte na recepci."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.online_part"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paid-full",
+              "data": {
+                "paras": [
+                  "Online zaplaceno v plné výši: {{stay.online_full.money}}."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.online_full"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paying",
+              "data": {
+                "paras": [
+                  "Platíte online {{stay.pay_pending.money}}. Potvrzení přijde v samostatném e-mailu. Co nezaplatíte online, zaplatíte na recepci."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.pay_pending"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "settle",
+              "data": {
+                "paras": [
+                  "Online se nic nestrhává. Platíte na recepci."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.settle_desk"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "Zrušení nic nestojí. Po {{stay.cancel_by.time}} dne {{stay.cancel_by.date}} se zrušení zaznamená jako pozdní.",
+                  "Přijedete později nebo dříve? Napište na {{practice.email}} nebo nám zavolejte na {{practice.phone}}."
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "Zobrazit rezervaci",
+                "url": "{{manage_url}}#{{stay.link_token}}"
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Tento e-mail dostáváte, protože jste si u nás rezervovali pokoj."
+        },
+        "ar-EG": {
+          "subject": "غرفتك في {{appName}}، {{stay.ref}}",
+          "preheader": "من {{stay.arrive.day_month}} إلى {{stay.depart.day_month}} · {{stay.total.money}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "غرفتك محجوزة يا {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "رقم حجزك",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "الوصول في {{stay.arrive.day_month}} ابتداءً من {{practice.arrive_from.time}}. المغادرة في {{stay.depart.day_month}} قبل {{practice.leave_by.time}}."
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "room",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{room_type.name}}، من {{stay.arrive.day_month}} إلى {{stay.depart.day_month}}",
+                    "amount": "{{stay.room_total.money}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "extras",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "table": "stay_extras",
+                  "via": "stay_id",
+                  "orderBy": "id",
+                  "where": {
+                    "column": "state",
+                    "in": [
+                      "on"
+                    ]
+                  },
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.label}}",
+                  "amount": "{{row.amount.money}}"
+                }
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{stay.tax_label}} ({{stay.tax_rate.percent}})",
+                    "amount": "{{stay.tax.money}}"
+                  },
+                  {
+                    "label": "الإجمالي",
+                    "amount": "{{stay.total.money}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paid-part",
+              "data": {
+                "paras": [
+                  "دُفع {{stay.online_part.money}} عبر الإنترنت. الباقي يُسدَّد في مكتب الاستقبال."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.online_part"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paid-full",
+              "data": {
+                "paras": [
+                  "دُفع المبلغ كاملًا عبر الإنترنت: {{stay.online_full.money}}."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.online_full"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paying",
+              "data": {
+                "paras": [
+                  "أنت تدفع {{stay.pay_pending.money}} عبر الإنترنت. يصلك الإيصال في رسالة منفصلة. ما لا يُدفع عبر الإنترنت يُسدَّد في مكتب الاستقبال."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.pay_pending"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "settle",
+              "data": {
+                "paras": [
+                  "لا يُقتطع أي مبلغ عبر الإنترنت. تدفع في مكتب الاستقبال."
+                ]
+              },
+              "showWhen": {
+                "var": "stay.settle_desk"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "الإلغاء لا يكلّف شيئًا. بعد {{stay.cancel_by.time}} يوم {{stay.cancel_by.date}} يُسجَّل الإلغاء على أنه متأخر.",
+                  "ستتأخر أو تصل مبكرًا؟ راسلنا على {{practice.email}} أو اتصل بنا على {{practice.phone}}."
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "عرض حجزك",
+                "url": "{{manage_url}}#{{stay.link_token}}"
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. تصلك هذه الرسالة لأنك حجزت غرفة لدينا."
+        },
+        "zh-CN": {
+          "subject": "您在 {{appName}} 的房间，{{stay.ref}}",
+          "preheader": "{{stay.arrive.day_month}} 至 {{stay.depart.day_month}} · {{stay.total.money}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "{{recipient.first_name}}，您的房间已订好。"
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "您的预订号",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "{{stay.arrive.day_month}} 入住，{{practice.arrive_from.time}} 起可办理。{{stay.depart.day_month}} 退房，请于 {{practice.leave_by.time}} 前离开。"
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "room",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{room_type.name}}，{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}",
+                    "amount": "{{stay.room_total.money}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "extras",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "table": "stay_extras",
+                  "via": "stay_id",
+                  "orderBy": "id",
+                  "where": {
+                    "column": "state",
+                    "in": [
+                      "on"
+                    ]
+                  },
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.label}}",
+                  "amount": "{{row.amount.money}}"
+                }
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{stay.tax_label}}（{{stay.tax_rate.percent}}）",
+                    "amount": "{{stay.tax.money}}"
+                  },
+                  {
+                    "label": "总计",
+                    "amount": "{{stay.total.money}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paid-part",
+              "data": {
+                "paras": [
+                  "已在网上支付 {{stay.online_part.money}}。其余在前台结清。"
+                ]
+              },
+              "showWhen": {
+                "var": "stay.online_part"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paid-full",
+              "data": {
+                "paras": [
+                  "已在网上全额支付：{{stay.online_full.money}}。"
+                ]
+              },
+              "showWhen": {
+                "var": "stay.online_full"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paying",
+              "data": {
+                "paras": [
+                  "你正在网上支付 {{stay.pay_pending.money}}。收据将另行发送邮件。未在网上支付的部分在前台结清。"
+                ]
+              },
+              "showWhen": {
+                "var": "stay.pay_pending"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "settle",
+              "data": {
+                "paras": [
+                  "网上不收取任何费用，请在前台结清。"
+                ]
+              },
+              "showWhen": {
+                "var": "stay.settle_desk"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "取消不收取任何费用。{{stay.cancel_by.date}} {{stay.cancel_by.time}} 之后取消，将记为逾期取消。",
+                  "会晚到或早到？请发邮件至 {{practice.email}} 或致电 {{practice.phone}}。"
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "查看您的预订",
+                "url": "{{manage_url}}#{{stay.link_token}}"
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到此邮件，是因为您在我们这里预订了房间。"
+        },
+        "zh-TW": {
+          "subject": "您在 {{appName}} 的房間，{{stay.ref}}",
+          "preheader": "{{stay.arrive.day_month}} 至 {{stay.depart.day_month}} · {{stay.total.money}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "{{recipient.first_name}}，您的房間已訂好。"
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "訂房編號",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "{{stay.arrive.day_month}} 入住，{{practice.arrive_from.time}} 起可辦理。{{stay.depart.day_month}} 退房，請於 {{practice.leave_by.time}} 前離開。"
+                ]
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "room",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{room_type.name}}，{{stay.arrive.day_month}} 至 {{stay.depart.day_month}}",
+                    "amount": "{{stay.room_total.money}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "extras",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "table": "stay_extras",
+                  "via": "stay_id",
+                  "orderBy": "id",
+                  "where": {
+                    "column": "state",
+                    "in": [
+                      "on"
+                    ]
+                  },
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.label}}",
+                  "amount": "{{row.amount.money}}"
+                }
+              }
+            },
+            {
+              "block": "email.rows",
+              "id": "reductions",
+              "data": {
+                "from": {
+                  "link": "stay",
+                  "addOn": "offers",
+                  "table": "applied",
+                  "match": {
+                    "table": "source_table",
+                    "row": "source_row"
+                  },
+                  "orderBy": "id",
+                  "limit": 20
+                },
+                "row": {
+                  "title": "{{row.name}}",
+                  "amount": "−{{row.amount}}"
+                }
+              }
+            },
+            {
+              "block": "email.tax-breakdown",
+              "id": "totals",
+              "data": {
+                "lines": [
+                  {
+                    "label": "{{stay.tax_label}}（{{stay.tax_rate.percent}}）",
+                    "amount": "{{stay.tax.money}}"
+                  },
+                  {
+                    "label": "總計",
+                    "amount": "{{stay.total.money}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paid-part",
+              "data": {
+                "paras": [
+                  "已線上支付 {{stay.online_part.money}}。其餘在櫃檯結清。"
+                ]
+              },
+              "showWhen": {
+                "var": "stay.online_part"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paid-full",
+              "data": {
+                "paras": [
+                  "已線上全額支付：{{stay.online_full.money}}。"
+                ]
+              },
+              "showWhen": {
+                "var": "stay.online_full"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "paying",
+              "data": {
+                "paras": [
+                  "你正在線上支付 {{stay.pay_pending.money}}。收據將另行寄送郵件。未線上支付的部分在櫃檯結清。"
+                ]
+              },
+              "showWhen": {
+                "var": "stay.pay_pending"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "settle",
+              "data": {
+                "paras": [
+                  "線上不收取任何費用，請在櫃檯結清。"
+                ]
+              },
+              "showWhen": {
+                "var": "stay.settle_desk"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "cancel",
+              "data": {
+                "paras": [
+                  "取消不收取任何費用。{{stay.cancel_by.date}} {{stay.cancel_by.time}} 之後取消，將記為逾期取消。",
+                  "會晚到或早到？請寄信至 {{practice.email}} 或來電 {{practice.phone}}。"
+                ]
+              }
+            },
+            {
+              "block": "email.button",
+              "id": "see",
+              "data": {
+                "label": "查看您的訂房",
+                "url": "{{manage_url}}#{{stay.link_token}}"
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到這封郵件，是因為您在我們這裡預訂了房間。"
+        }
+      }
+    },
+    {
+      "key": "hotel-stay-folio-owing-pay",
+      "attach": {
+        "kind": "invoice",
+        "link": "stay",
+        "optional": true
+      },
+      "name": {
+        "en-US": "The folio so far, with a pay link",
+        "de-DE": "Die Zwischenrechnung, mit Zahlungslink",
+        "fr-FR": "La note du séjour à ce jour, avec un lien de paiement",
+        "da-DK": "Opholdsregningen indtil nu, med betalingslink",
+        "cs-CZ": "Průběžný účet pobytu, s platebním odkazem",
+        "ar-EG": "حساب الإقامة حتى الآن، مع رابط الدفع",
+        "zh-CN": "目前的住宿结算单，附付款链接",
+        "zh-TW": "目前的住宿結算單，附付款連結"
+      },
+      "vars": [
+        "pay_url",
+        "practice.address",
+        "practice.email",
+        "practice.phone",
+        "recipient.first_name",
+        "room_type.name",
+        "stay.arrive.day_month",
+        "stay.balance.money",
+        "stay.depart.day_month",
+        "stay.paid.money",
+        "stay.ref",
+        "stay.total.money"
+      ],
+      "locales": {
+        "en-US": {
+          "subject": "Your folio so far — {{stay.ref}}",
+          "preheader": "You owe {{stay.balance.money}}",
           "blocks": [
             {
               "block": "email.heading",
@@ -20651,7 +23088,7 @@
         },
         "de-DE": {
           "subject": "Ihre Zwischenrechnung – {{stay.ref}}",
-          "preheader": "{{stay.balance.money}} noch offen",
+          "preheader": "Offen sind noch {{stay.balance.money}}",
           "blocks": [
             {
               "block": "email.heading",
@@ -20764,7 +23201,7 @@
         },
         "fr-FR": {
           "subject": "Votre note du séjour à ce jour – {{stay.ref}}",
-          "preheader": "{{stay.balance.money}} restent à régler",
+          "preheader": "Il vous reste {{stay.balance.money}} à payer",
           "blocks": [
             {
               "block": "email.heading",
@@ -20877,7 +23314,7 @@
         },
         "da-DK": {
           "subject": "Din opholdsregning indtil nu – {{stay.ref}}",
-          "preheader": "{{stay.balance.money}} mangler at blive betalt",
+          "preheader": "Du skylder {{stay.balance.money}}",
           "blocks": [
             {
               "block": "email.heading",
@@ -21103,7 +23540,7 @@
         },
         "ar-EG": {
           "subject": "حساب إقامتك حتى الآن — {{stay.ref}}",
-          "preheader": "{{stay.balance.money}} متبقية للسداد",
+          "preheader": "عليك {{stay.balance.money}}",
           "blocks": [
             {
               "block": "email.heading",
@@ -21216,7 +23653,7 @@
         },
         "zh-CN": {
           "subject": "您目前的住宿结算单 — {{stay.ref}}",
-          "preheader": "待结清 {{stay.balance.money}}",
+          "preheader": "你还需支付 {{stay.balance.money}}",
           "blocks": [
             {
               "block": "email.heading",
@@ -21329,7 +23766,7 @@
         },
         "zh-TW": {
           "subject": "您目前的住宿結算單 — {{stay.ref}}",
-          "preheader": "待結清 {{stay.balance.money}}",
+          "preheader": "你還需支付 {{stay.balance.money}}",
           "blocks": [
             {
               "block": "email.heading",

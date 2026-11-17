@@ -293,7 +293,8 @@ export const PUBLIC_ACCESS = [
   { table: "stay_extras", kind: "availability", methods: ["GET"], showLeft: { below: 3 } },
 
   // ── reserving a room ─────────────────────────────────────────────────────────
-  RESERVE,
+  // Unpaid, as always: while the house asks nothing of a guest who books, or leaves paying to them.
+  { ...RESERVE, requireSetting: [{ ...PAY_SETTING, in: ["none", "optional"] }] },
 
   // ── one reservation, by its own link ─────────────────────────────────────────
   { table: "stays", key: "link", methods: ["GET", "PATCH"], select: STAY_SELECT, ...OWN_LINK, ...OWN_CHANGES },
@@ -303,8 +304,11 @@ export const PUBLIC_ACCESS = [
 
   // ── paying as they reserve (after every older entry, so each one keeps its name) ──
   // The guest chose to pay now: the stay is booked as ever, and the reply carries the link to pay one night or the whole stay.
-  { ...RESERVE, defaults: { pay_now: true }, pay: true, requireSetting: [{ ...PAY_SETTING, in: ["optional"] }] },
+  { ...RESERVE, defaults: { pay_now: true }, pay: true, requireSetting: [{ ...PAY_SETTING, in: ["optional"] }], requirePayments: "on" },
   // The house asks for the payment first: the stay is made waiting for it, its room held for a few minutes, and the
   // payment books it. The guest site uses this one only while the house takes payments online.
-  { ...RESERVE, defaults: { status: "pending_payment", pay_now: true }, pay: true, requireSetting: [{ ...PAY_SETTING, in: ["required"] }] },
+  { ...RESERVE, defaults: { status: "pending_payment", pay_now: true }, pay: true, requireSetting: [{ ...PAY_SETTING, in: ["required"] }], requirePayments: "on" },
+  // Paying first is the house's rule, but it cannot take payments online right now: the guest books as they always did.
+  // While paying first is required and possible, this door is shut, and the one above is the only booking there is.
+  { ...RESERVE, requireSetting: [{ ...PAY_SETTING, in: ["required"] }], requirePayments: "off" },
 ];

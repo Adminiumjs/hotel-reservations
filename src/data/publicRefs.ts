@@ -30,6 +30,8 @@ export const PUBLIC_REFS = {
   reserve: ["stays", "_verified_3"],
   reservePay: ["stays", "_verified_4"],
   reservePayFirst: ["stays", "_verified_5"],
+  // Paying first is the house's rule, while it cannot take payments online: booked as always.
+  reserveRequiredOff: ["stays", "_verified_6"],
   // A signed-in guest: their account and their own stays.
   account: ["customers", "_claimed"],
   myStays: ["stays", "_verified"],

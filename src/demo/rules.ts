@@ -333,7 +333,9 @@ export const MANIFEST_RULES = {
         "stay-dates-changed",
         "stay-new-link",
         "stay-folio",
-        "stay-folio-owing"
+        "stay-folio-owing",
+        "stay-made-pay",
+        "stay-folio-owing-pay"
       ],
       "status": [
         "queued",
@@ -1466,7 +1468,17 @@ export const MANIFEST_RULES = {
       },
       "dryRun": true,
       "expect": "total",
-      "clientKey": "client_key"
+      "clientKey": "client_key",
+      "requireSetting": [
+        {
+          "table": "settings",
+          "column": "pay_at_booking",
+          "in": [
+            "none",
+            "optional"
+          ]
+        }
+      ]
     },
     {
       "table": "stays",
@@ -1914,7 +1926,8 @@ export const MANIFEST_RULES = {
             "optional"
           ]
         }
-      ]
+      ],
+      "requirePayments": "on"
     },
     {
       "table": "stays",
@@ -2091,7 +2104,181 @@ export const MANIFEST_RULES = {
             "required"
           ]
         }
-      ]
+      ],
+      "requirePayments": "on"
+    },
+    {
+      "table": "stays",
+      "methods": [
+        "POST"
+      ],
+      "humanCheck": true,
+      "level": "verified",
+      "select": [
+        "id",
+        "ref",
+        "status",
+        "room_type_id",
+        "room_id",
+        "arrive",
+        "depart",
+        "guests",
+        "nights",
+        "arrival_time",
+        "language",
+        "room_total",
+        "extras_total",
+        "charges_total",
+        "credits_total",
+        "discount",
+        "room_discount",
+        "subtotal",
+        "tax_rate",
+        "tax_label",
+        "tax",
+        "total",
+        "paid",
+        "balance",
+        "cancel_by",
+        "created_at",
+        "checked_in_at",
+        "checked_out_at",
+        "cancelled_at",
+        "no_show_marked_at",
+        "pay_now",
+        "deposit",
+        "pay_due",
+        "paid_online",
+        "refunded_online",
+        "pay_lapsed"
+      ],
+      "writable": [
+        "room_type_id",
+        "arrive",
+        "depart",
+        "guests",
+        "first_name",
+        "last_name",
+        "email",
+        "mobile",
+        "arrival_time",
+        "note",
+        "language",
+        "client_key",
+        "opt_in"
+      ],
+      "requires": [
+        "first_name",
+        "last_name",
+        "email"
+      ],
+      "claimedBy": {
+        "table": "customers",
+        "column": "customer_id",
+        "optional": true
+      },
+      "identity": {
+        "table": "customers",
+        "email": "email",
+        "link": "customer_id",
+        "fill": {
+          "first_name": "first_name",
+          "last_name": "last_name",
+          "language": "language"
+        }
+      },
+      "consent": {
+        "column": "opt_in",
+        "purpose": "newsletter",
+        "wording": {
+          "version": 1,
+          "text": {
+            "en-US": "Email me news and offers from {hotel}\nEvery email has a link to stop them.",
+            "de-DE": "Schicken Sie mir Neuigkeiten und Angebote von {hotel} per E-Mail\nJede E-Mail enthält einen Link, mit dem Sie sie abbestellen können.",
+            "fr-FR": "M'envoyer par e-mail les nouvelles et les offres de {hotel}\nChaque e-mail contient un lien pour ne plus les recevoir.",
+            "da-DK": "Send mig nyheder og tilbud fra {hotel} på mail\nHver mail har et link, så du kan stoppe dem.",
+            "cs-CZ": "Chci dostávat e-mailem novinky a nabídky od {hotel}\nKaždý e-mail obsahuje odkaz, kterým je můžete odhlásit.",
+            "ar-EG": "راسلوني بالبريد الإلكتروني بأخبار {hotel} وعروضه\nكل رسالة فيها رابط لإيقاف هذه الرسائل.",
+            "zh-CN": "通过邮件给我发送{hotel}的消息和优惠\n每封邮件都附有停止接收的链接。",
+            "zh-TW": "以電子郵件寄送{hotel}的消息與優惠給我\n每封郵件都附有停止接收的連結。"
+          }
+        }
+      },
+      "shareLink": "link_token",
+      "agrees": [
+        {
+          "column": "guests",
+          "lte": {
+            "via": "room_type_id",
+            "column": "sleeps"
+          }
+        },
+        {
+          "column": "guests",
+          "lte": {
+            "via": "room_id",
+            "column": "sleeps"
+          }
+        }
+      ],
+      "anonymous": {
+        "perValue": {
+          "columns": [
+            "email"
+          ],
+          "n": 10
+        },
+        "perKeyHour": 300,
+        "perIpHour": 10,
+        "plainText": [
+          "first_name",
+          "last_name"
+        ]
+      },
+      "children": {
+        "stay_extras": {
+          "via": "stay_id",
+          "writable": [
+            "extra_id"
+          ],
+          "select": [
+            "id",
+            "extra_id",
+            "state",
+            "label",
+            "each",
+            "per",
+            "nights",
+            "guests",
+            "amount",
+            "discount"
+          ],
+          "max": 8
+        },
+        "stay_codes": {
+          "via": "stay_id",
+          "writable": [
+            "typed"
+          ],
+          "select": [
+            "id"
+          ],
+          "max": 12
+        }
+      },
+      "dryRun": true,
+      "expect": "total",
+      "clientKey": "client_key",
+      "requireSetting": [
+        {
+          "table": "settings",
+          "column": "pay_at_booking",
+          "in": [
+            "required"
+          ]
+        }
+      ],
+      "requirePayments": "off"
     }
   ],
   "roles": [
@@ -2703,7 +2890,8 @@ export const MANIFEST_RULES = {
           ],
           "reason": "no-longer-needed"
         }
-      ]
+      ],
+      "payments": "off"
     },
     {
       "kind": "stay-made",
@@ -2733,7 +2921,68 @@ export const MANIFEST_RULES = {
           ],
           "reason": "no-longer-needed"
         }
-      ]
+      ],
+      "payments": "off"
+    },
+    {
+      "kind": "stay-made-pay",
+      "link": "stay_id",
+      "gate": {
+        "setting": {
+          "table": "settings",
+          "column": "guest_emails_on"
+        }
+      },
+      "onCreate": {
+        "table": "stays",
+        "where": {
+          "column": "channel",
+          "eq": "online"
+        }
+      },
+      "holdSeconds": 5,
+      "dropWhen": [
+        {
+          "column": "status",
+          "in": [
+            "pending_payment",
+            "cancelled"
+          ],
+          "reason": "no-longer-needed"
+        }
+      ],
+      "payments": "on"
+    },
+    {
+      "kind": "stay-made-pay",
+      "link": "stay_id",
+      "gate": {
+        "setting": {
+          "table": "settings",
+          "column": "guest_emails_on"
+        }
+      },
+      "onChange": {
+        "table": "stays",
+        "column": "status",
+        "to": "booked",
+        "where": {
+          "column": "channel",
+          "eq": "online"
+        }
+      },
+      "holdSeconds": 5,
+      "dropWhen": [
+        {
+          "column": "status",
+          "in": [
+            "pending_payment",
+            "cancelled"
+          ],
+          "reason": "no-longer-needed"
+        }
+      ],
+      "payments": "on"
     },
     {
       "kind": "stay-made-desk",
@@ -2940,7 +3189,27 @@ export const MANIFEST_RULES = {
         ],
         "changed": true
       },
-      "repeat": true
+      "repeat": true,
+      "payments": "off"
+    },
+    {
+      "kind": "stay-folio-owing-pay",
+      "link": "stay_id",
+      "gate": {
+        "setting": {
+          "table": "settings",
+          "column": "guest_emails_on"
+        }
+      },
+      "onChange": {
+        "table": "stays",
+        "columns": [
+          "folio_so_far_at"
+        ],
+        "changed": true
+      },
+      "repeat": true,
+      "payments": "on"
     }
   ],
   "kinds": {
@@ -2955,6 +3224,8 @@ export const MANIFEST_RULES = {
     "stay-dates-changed": "hotel-stay-dates-changed",
     "stay-new-link": "hotel-stay-new-link",
     "stay-folio": "hotel-stay-folio",
-    "stay-folio-owing": "hotel-stay-folio-owing"
+    "stay-folio-owing": "hotel-stay-folio-owing",
+    "stay-made-pay": "hotel-stay-made-pay",
+    "stay-folio-owing-pay": "hotel-stay-folio-owing-pay"
   }
 } as const;

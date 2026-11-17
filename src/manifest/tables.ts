@@ -237,6 +237,8 @@ export const EMAIL_KINDS: Record<string, string> = {
   "stay-new-link": "A new link",
   "stay-folio": "The folio",
   "stay-folio-owing": "The folio so far",
+  "stay-made-pay": "Reservation made, paying online",
+  "stay-folio-owing-pay": "The folio so far, with a pay link",
 };
 
 // ── the stay's rules ────────────────────────────────────────────────────────

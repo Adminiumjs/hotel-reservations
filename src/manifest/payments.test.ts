@@ -11,7 +11,7 @@ import { PAY_WORDS } from "./email-pay-words.ts";
 import { LOCALES } from "./labels.ts";
 
 type Json = Record<string, unknown>;
-type Entry = Json & { table: string; methods: string[]; key?: string; select?: string[]; writable?: string[]; defaults?: Json };
+type Entry = Json & { table: string; methods: string[]; key?: string; select?: string[]; writable?: string[]; defaults?: Json; requirePayments?: string };
 const manifest = buildManifest() as Json & {
   requiredSchema: { tables: (Json & { ref: string; columns: (Json & { ref: string; default?: unknown; enum?: string[]; unique?: boolean })[] })[] };
   publicAccess: Entry[];
@@ -101,18 +101,25 @@ describe("who touches online money", () => {
 
 describe("the guest site's reservation, paid as it is made", () => {
   const posts = manifest.publicAccess.filter((e) => e.table === "stays" && e.methods.includes("POST") && e.key === undefined);
-  it("is today's reservation, and two more doors after every older entry: the guest's choice, and payment first", () => {
-    expect(posts).toHaveLength(3);
-    const [plain, choice, first] = posts as [Entry, Entry, Entry];
-    expect(plain["pay"]).toBeUndefined();
-    expect(plain["requireSetting"]).toBeUndefined();
-    const { defaults: _c, pay: _cp, requireSetting: _cr, ...choiceRest } = choice;
-    const { defaults: _f, pay: _fp, requireSetting: _fr, ...firstRest } = first;
-    expect(choiceRest).toEqual(plain);
-    expect(firstRest).toEqual(plain);
-    expect(choice).toMatchObject({ pay: true, defaults: { pay_now: true }, requireSetting: [{ table: "settings", column: "pay_at_booking", in: ["optional"] }] });
-    expect(first).toMatchObject({ pay: true, defaults: { status: "pending_payment", pay_now: true }, requireSetting: [{ table: "settings", column: "pay_at_booking", in: ["required"] }] });
-    expect(manifest.publicAccess.slice(-2)).toEqual([choice, first]);
+  const setting = (...values: string[]) => [{ table: "settings", column: "pay_at_booking", in: values }];
+  it("is four doors, each open only while the house's setting and its payments say so: no caller books unpaid while paying first is required and possible", () => {
+    expect(posts).toHaveLength(4);
+    const [plain, choice, first, firstOff] = posts as [Entry, Entry, Entry, Entry];
+    const rest = (e: Entry) => {
+      const { defaults: _d, pay: _p, requireSetting: _r, requirePayments: _q, ...kept } = e;
+      return kept;
+    };
+    for (const e of [choice, first, firstOff]) expect(rest(e)).toEqual(rest(plain));
+    // Unpaid, as ever, while the house asks nothing or leaves it to the guest; unpaid while paying first is required and impossible.
+    expect([plain["requireSetting"], plain["requirePayments"], plain["pay"], plain["defaults"]]).toEqual([setting("none", "optional"), undefined, undefined, undefined]);
+    expect([firstOff["requireSetting"], firstOff["requirePayments"], firstOff["pay"], firstOff["defaults"]]).toEqual([setting("required"), "off", undefined, undefined]);
+    // Paid as it is made, only while the house takes payments online: by the guest's choice, or waiting for the payment.
+    expect(choice).toMatchObject({ pay: true, defaults: { pay_now: true }, requireSetting: setting("optional"), requirePayments: "on" });
+    expect(first).toMatchObject({ pay: true, defaults: { status: "pending_payment", pay_now: true }, requireSetting: setting("required"), requirePayments: "on" });
+    // The state a booking starts in is the door's, never the caller's.
+    for (const e of posts) expect(e.writable ?? []).not.toContain("status");
+    // Every new door after every older entry, so each older one keeps its name.
+    expect(manifest.publicAccess.slice(-3)).toEqual([choice, first, firstOff]);
   });
 });
 
@@ -146,16 +153,30 @@ describe("the emails say online money only beside it", () => {
     ]);
   });
 
-  it("puts a pay button on the folio so far only while Adminium fills the stay's own pay link", () => {
-    const blocks = template("stay-folio-owing").blocks;
-    expect(blocks.find((b) => b.id === "pay")).toMatchObject({ block: "email.button", data: { url: "{{pay_url}}" }, showWhen: { var: "pay_url" } });
-    expect(blocks.find((b) => b.id === "body")!.otherwise).toBe("There is {{stay.balance.money}} still to settle at the desk.");
+  it("sends the folio so far as ever while the house takes no payments online, and its twin with a pay button while it does", () => {
+    const off = template("stay-folio-owing");
+    expect(off.blocks.find((b) => b.id === "pay")).toBeUndefined();
+    expect(off.preheader).toBe("{{stay.balance.money}} still to settle");
+    const on = template("stay-folio-owing-pay");
+    expect(on.preheader).toBe("You owe {{stay.balance.money}}");
+    expect(on.blocks.find((b) => b.id === "pay")).toMatchObject({ block: "email.button", data: { url: "{{pay_url}}" }, showWhen: { var: "pay_url" } });
+    expect(on.blocks.find((b) => b.id === "body")!.otherwise).toBe("There is {{stay.balance.money}} still to settle at the desk.");
+    const producers = manifest.outbox.producers.filter((p) => p.kind.startsWith("stay-folio-owing"));
+    expect(producers.map((p) => [p.kind, p["payments"]])).toEqual([["stay-folio-owing", "off"], ["stay-folio-owing-pay", "on"]]);
   });
 
-  it("confirms a stay made waiting for its payment when the payment books it, not when it is made", () => {
-    const made = manifest.outbox.producers.filter((p) => p.kind === "stay-made");
-    expect(made).toHaveLength(2);
-    for (const p of made) expect(p["dropWhen"]).toEqual([{ column: "status", in: ["pending_payment", "cancelled"], reason: "no-longer-needed" }]);
-    expect(made[1]!["onChange"]).toEqual({ table: "stays", column: "status", to: "booked", where: { column: "channel", eq: "online" } });
+  it("says nothing is taken online in the reservation's preheader only while the house takes no payments online", () => {
+    expect(template("stay-made").preheader).toContain("nothing is taken online");
+    expect(template("stay-made-pay").preheader).not.toContain("nothing is taken online");
+    for (const tag of LOCALES) expect(template("stay-made-pay", tag).preheader, tag).not.toBe(template("stay-made", tag).preheader);
+  });
+
+  it("confirms a stay made waiting for its payment when the payment books it, not when it is made — one twin or the other", () => {
+    for (const [kind, payments] of [["stay-made", "off"], ["stay-made-pay", "on"]] as const) {
+      const made = manifest.outbox.producers.filter((p) => p.kind === kind);
+      expect(made).toHaveLength(2);
+      for (const p of made) expect([p["dropWhen"], p["payments"]]).toEqual([[{ column: "status", in: ["pending_payment", "cancelled"], reason: "no-longer-needed" }], payments]);
+      expect(made[1]!["onChange"]).toEqual({ table: "stays", column: "status", to: "booked", where: { column: "channel", eq: "online" } });
+    }
   });
 });

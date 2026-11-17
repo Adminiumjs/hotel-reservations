@@ -131,7 +131,7 @@ export class AdminiumGuest implements GuestPort {
     this.plainFetch = base;
     this.keys = { customer: config.publishableKey, link: linkKey };
     this.customerSession = keptSession("customer", storage, base, options.clock);
-    const reserveAt = [this.refs.reserve, this.refs.reservePay, this.refs.reservePayFirst].map((ref) => `/api/v1/public/records/${ref}`);
+    const reserveAt = [this.refs.reserve, this.refs.reservePay, this.refs.reservePayFirst, this.refs.reserveRequiredOff].map((ref) => `/api/v1/public/records/${ref}`);
     // The client answers a create without the stay's own link: read it off the reply as it passes.
     const tapped: typeof fetch = async (input, init) => {
       const res = await this.customerSession.fetch(input, init);
@@ -219,9 +219,32 @@ export class AdminiumGuest implements GuestPort {
 
   // ── reserving ──────────────────────────────────────────────────────────────
 
+  /**
+   * The booking door open now. Which one is the house's setting and whether it takes payments online right now
+   * (`requireSetting`, `requirePayments`); a shut door answers `PUBLIC_SWITCHED_OFF` and writes nothing, so the next
+   * is tried. The one that answered is tried first next time.
+   */
+  private openDoor: string | null = null;
+  private async throughOpenDoor<T>(doors: string[], run: (ref: string) => Promise<T>): Promise<T> {
+    const order = this.openDoor !== null && doors.includes(this.openDoor) ? [this.openDoor, ...doors.filter((d) => d !== this.openDoor)] : doors;
+    let last: unknown = null;
+    for (const ref of order) {
+      try {
+        const got = await run(ref);
+        this.openDoor = ref;
+        return got;
+      } catch (error) {
+        if ((error as { code?: unknown } | null)?.code !== "PUBLIC_SWITCHED_OFF") throw error;
+        last = error;
+      }
+    }
+    throw last;
+  }
+
   quote(body: StayBody): Promise<QuoteReply> {
     return answer(async () => {
-      const got = await this.customer.quote(this.refs.reserve, { values: body.values, children: body.children });
+      const r = this.refs;
+      const got = await this.throughOpenDoor([r.reserve, r.reserveRequiredOff, r.reservePayFirst], (ref) => this.customer.quote(ref, { values: body.values, children: body.children }));
       const raw = got as unknown as { nights?: unknown };
       return {
         data: got.data,
@@ -234,8 +257,9 @@ export class AdminiumGuest implements GuestPort {
     });
   }
 
+  /** Booked unpaid: as always, or while paying first is the house's rule and it cannot take payments online right now. */
   reserve(body: StayBody, clientKey: string): Promise<StayReply> {
-    return this.reserveAt(this.refs.reserve, body, clientKey);
+    return this.throughOpenDoor([this.refs.reserve, this.refs.reserveRequiredOff], (ref) => this.reserveAt(ref, body, clientKey));
   }
 
   /** Reserved and paid as it is made: through the door the house's setting opens (the guest's choice, or payment first). */

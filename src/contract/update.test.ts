@@ -88,6 +88,8 @@ const NEW_COLUMNS: Record<string, string[]> = {
 const NEW_ENUM_VALUES: Record<string, Record<string, string[]>> = {
   stays: { status: ["pending_payment"], cancel_code: ["unpaid"] },
   payments: { method: ["online"] },
+  // The two emails sent only while the house takes payments online.
+  messages: { kind: ["stay-made-pay", "stay-folio-owing-pay"] },
 };
 /**
  * What a paying column holds on a row that was there: a setting's own default (nothing asked of a guest who books;

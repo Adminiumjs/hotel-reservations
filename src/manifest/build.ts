@@ -41,10 +41,11 @@ export const VERSION = "0.3.3";
  * database, each install's screens at their own address; and (0.3.60) a
  * booking and a folio paid online, refunds kept as the house's own rows, and a
  * stay made waiting for its payment; and (0.3.61) how a guest's payment stands
- * when they come back from the pay page. Written from the version actually
- * released, never guessed.
+ * when they come back from the pay page; and (0.3.62) the booking doors and
+ * the emails that follow whether the house takes payments online right now.
+ * Written from the version actually released, never guessed.
  */
-export const MIN_ADMINIUM = "0.3.61";
+export const MIN_ADMINIUM = "0.3.62";
 
 const ENV = {
   VITE_ADMINIUM_API_BASE_URL: { required: false, example: "https://admin.example.com" },

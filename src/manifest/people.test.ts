@@ -60,8 +60,8 @@ describe("the house's guests", () => {
         ],
       },
     ]);
-    // 0.3.38 first read the house's guests; the floor has since moved on (0.3.61, paying online).
-    expect(manifest.compatibility["minAdminiumVersion"]).toBe("0.3.61");
+    // 0.3.38 first read the house's guests; the floor has since moved on (0.3.62, paying online).
+    expect(manifest.compatibility["minAdminiumVersion"]).toBe("0.3.62");
   });
 
   it("have one address: the outbox's and the one they sign in with", () => {
@@ -134,12 +134,13 @@ describe("the reservation's tick", () => {
       ["stays", "customer", "POST"],
       ["stays", "customer", "POST"],
       ["stays", "customer", "POST"],
+      ["stays", "customer", "POST"],
     ]);
     for (const e of ticks) {
       expect(e.consent).toEqual({ column: "opt_in", purpose: "newsletter", wording });
       expect([e.identity!["table"], e.identity!["link"], e.claimedBy!["table"], e.claimedBy!["column"]]).toEqual(["customers", "customer_id", "customers", "customer_id"]);
     }
-    expect(ticks.slice(1).map((e) => e["pay"])).toEqual([true, true]);
+    expect(ticks.map((e) => e["pay"] ?? false)).toEqual([false, true, true, false]);
     // No other door of the site takes a tick.
     expect(manifest.publicAccess.filter((x) => x.consent !== undefined)).toEqual(ticks);
   });

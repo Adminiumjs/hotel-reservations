@@ -29,7 +29,10 @@
 import { PAY_WORDS, type PayWords } from "./email-pay-words.ts";
 import { EMAIL_AR, EMAIL_CS, EMAIL_DA, EMAIL_DE, EMAIL_FR, EMAIL_ZH_CN, EMAIL_ZH_TW } from "./email-words.ts";
 import type { Tag } from "./labels.ts";
-import type { Kind } from "./outbox.ts";
+import type { Kind, PAY_KINDS } from "./outbox.ts";
+
+/** The kinds sent only while the house takes payments online: their words are their twins', with their own name and preheader. */
+type PayKind = (typeof PAY_KINDS)[number];
 
 /** One email's sentences. */
 export interface Words {
@@ -41,7 +44,7 @@ export interface Words {
   button?: string;
 }
 
-export type EmailWords = Record<Kind, Words> & {
+export type EmailWords = Record<Exclude<Kind, PayKind>, Words> & {
   reference: string;
   theRoom: string;
   total: string;
@@ -214,7 +217,7 @@ function settleBlocks(all: EmailWords, pay: PayWords): Block[] {
   ];
 }
 /** The folio's documents: an email that carries one, if Invoices & Receipts draws it. */
-const FOLIO: ReadonlySet<Kind> = new Set(["stay-folio", "stay-folio-owing"]);
+const FOLIO: ReadonlySet<Kind> = new Set(["stay-folio", "stay-folio-owing", "stay-folio-owing-pay"]);
 
 /** A stay's extras, each its own line with what it costs. */
 const EXTRAS: Block = {
@@ -241,9 +244,9 @@ const REDUCTIONS: Block = {
 };
 
 /** The emails that set out the stay and what it costs. */
-const WITH_STAY: ReadonlySet<Kind> = new Set(["stay-made", "stay-made-desk"]);
+const WITH_STAY: ReadonlySet<Kind> = new Set(["stay-made", "stay-made-desk", "stay-made-pay"]);
 
-function layout(kind: Kind, all: EmailWords, pay: PayWords) {
+function layout(kind: Kind, all: AllWords, pay: PayWords) {
   const w = all[kind];
   const blocks: Block[] = [];
   if (w.heading !== undefined) blocks.push({ block: "email.heading", id: "heading", data: { text: w.heading } });
@@ -257,7 +260,7 @@ function layout(kind: Kind, all: EmailWords, pay: PayWords) {
     if (kept.back) blocks.push(when("back", "online_back", pay.back));
     blocks.push({ ...para("body", first.replace(pay.nothing, kept.say(pay))), showWhen: { var: "stay.online_kept" }, otherwise: first });
     if (rest.length > 0) blocks.push(para("more", ...rest));
-  } else if (kind === "stay-folio-owing") {
+  } else if (kind === "stay-folio-owing-pay") {
     // While the stay can be paid online: what they owe, a button to pay it, and that the desk still takes it.
     blocks.push({ ...para("body", pay.owe), showWhen: { var: "pay_url" }, otherwise: w.paras.join(" ") });
     blocks.push({ block: "email.button", id: "pay", data: { label: pay.payButton, url: "{{pay_url}}" }, showWhen: { var: "pay_url" } });
@@ -305,7 +308,7 @@ function layout(kind: Kind, all: EmailWords, pay: PayWords) {
   }
   // The reservation's own link goes only to the person it was made for, and
   // only in the confirmation and a new link they asked for.
-  if ((kind === "stay-made" || kind === "stay-new-link") && w.button !== undefined) {
+  if ((kind === "stay-made" || kind === "stay-made-pay" || kind === "stay-new-link") && w.button !== undefined) {
     blocks.push({ block: "email.button", id: "see", data: { label: w.button, url: "{{manage_url}}#{{stay.link_token}}" } });
   }
   return { subject: w.subject, preheader: w.preheader, blocks, footer: all.foot };
@@ -325,9 +328,20 @@ export function emailWords(): Record<Tag, EmailWords> {
   };
 }
 
+/** Every kind's words in one language: its own, and the payments-on twins made from them. */
+type AllWords = EmailWords & Record<PayKind, Words>;
+function withPayKinds(w: EmailWords, pay: PayWords): AllWords {
+  return {
+    ...w,
+    // What it costs, never that nothing is taken online: the desk's confirmation already says it so.
+    "stay-made-pay": { ...w["stay-made"], name: pay.madeName, preheader: w["stay-made-desk"].preheader },
+    "stay-folio-owing-pay": { ...w["stay-folio-owing"], name: pay.owingName, preheader: pay.owe.replace(/[.。]$/, "") },
+  };
+}
+
 /** The variables each template reads, for the template editor's list. */
 function varsOf(kind: Kind): string[] {
-  const text = JSON.stringify(layout(kind, EMAIL_EN, PAY_WORDS["en-US"]));
+  const text = JSON.stringify(layout(kind, withPayKinds(EMAIL_EN, PAY_WORDS["en-US"]), PAY_WORDS["en-US"]));
   const found = new Set<string>();
   for (const [, name] of text.matchAll(/\{\{([A-Za-z_.]+)\}\}/g)) found.add(name!);
   return [...found].filter((name) => /^[a-z_]+(\.[a-z_]+)*$/.test(name) && !name.startsWith("row.")).sort();
@@ -335,7 +349,7 @@ function varsOf(kind: Kind): string[] {
 
 /** The manifest's `emailTemplates`: one per kind, in every language the words are in. */
 export function emailTemplates(kinds: readonly Kind[]): unknown[] {
-  const words = emailWords();
+  const words = Object.fromEntries(Object.entries(emailWords()).map(([tag, w]) => [tag, withPayKinds(w, PAY_WORDS[tag as Tag])])) as Record<Tag, AllWords>;
   return kinds.map((kind) => ({
     key: `hotel-${kind}`,
     ...(FOLIO.has(kind) ? { attach: { kind: "invoice", link: "stay", optional: true } } : {}),
