@@ -697,9 +697,18 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
           return { "x-adminium-proof": `${challenge.id}.${solve(challenge.salt, challenge.difficulty)}` };
         };
         const body = { values: { room_type_id: loft.id, arrive: "2026-08-24", depart: "2026-08-26", guests: 2, first_name: "Ines", last_name: "Hale", email: "ines.hale@wrenhouse.test", arrival_time: "16:00", client_key: "p".repeat(43) }, children: { stay_extras: [] } };
-        const made = ok(await guest.post<{ data: Row; payUrl?: string | null }>(`/api/v1/public/records/${first}`, body, await proof()), 201);
-        // Made waiting for its payment, its room held; no pay link while the house takes no payments online.
-        expect([made.data["status"], made.payUrl ?? null, money(made.data["pay_due"]), money(made.data["deposit"])]).toEqual(["pending_payment", null, money(made.data["total"]), money(made.data["total"])]);
+        // While payments are off nobody can be held to pay: the paying door is shut to a stranger.
+        expect([(await guest.post(`/api/v1/public/records/${first}`, body, await proof())).status]).toEqual([403]);
+        // Payments on, as they are for someone who manages payments rehearsing the checkout: the booking waits for its payment.
+        ok(await staff.put("/api/v1/payments/rehearsal", { on: true }));
+        const csrf = ok(await staff.get<{ data: { csrfToken: string } }>("/api/v1/bootstrap")).data.csrfToken;
+        const rehearsing = new Caller(server.base, { authorization: `Bearer ${config.publishableKey}`, origin: server.base, cookie: staff.cookies, "x-adminium-csrf": csrf });
+        const challenge = ok(await rehearsing.get<{ data: { id: string; salt: string; difficulty: number } }>("/api/v1/public/challenge?purpose=write")).data;
+        const made = ok(await rehearsing.post<{ data: Row; payUrl?: string | null }>(`/api/v1/public/records/${first}`, body, { "x-adminium-proof": `${challenge.id}.${solve(challenge.salt, challenge.difficulty)}` }), 201);
+        ok(await staff.put("/api/v1/payments/rehearsal", { on: false }));
+        // Made waiting for its payment, its room held; the rehearsal's reply carries a test link to pay it, or none.
+        expect([made.data["status"], money(made.data["pay_due"]), money(made.data["deposit"])]).toEqual(["pending_payment", money(made.data["total"]), money(made.data["total"])]);
+        expect(made.payUrl === undefined || made.payUrl === null || typeof made.payUrl === "string").toBe(true);
         const held = byRef(await rows("stays"), String(made.data["ref"]));
         expect([held["status"], held["pay_now"] === true || held["pay_now"] === 1, held["pay_part"]]).toEqual(["pending_payment", true, "whole_stay"]);
         const counted = async () => {
@@ -719,6 +728,44 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         expect(await counted()).toBe(whileHeld - 1);
         ok(await staff.patch(`${data("settings")}/${String(settings.id)}`, { values: { pay_at_booking: "none" } }));
       }, 240_000);
+
+      it("books nobody unpaid while paying first is required and payments are on, and books as ever while they are off — whoever calls", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        const settings = (await rows("settings"))[0]!;
+        ok(await staff.patch(`${data("settings")}/${String(settings.id)}`, { values: { pay_at_booking: "required", pay_how_much: "whole_stay" } }));
+        const config = ok(await new Caller(server.base).get<{ publishableKey: string }>("/apps/hotel/customer/surface-config.json"));
+        const key = { authorization: `Bearer ${config.publishableKey}`, origin: server.base };
+        const refs = publicRefs(real);
+        const types = await rows("room_types");
+        const garden = types.find((t) => t["name"] === "Garden double")!;
+        let n = 0;
+        const book = async (caller: Caller, ref: string, more: Record<string, unknown> = {}) => {
+          n += 1;
+          const challenge = ok(await caller.get<{ data: { id: string; salt: string; difficulty: number } }>("/api/v1/public/challenge?purpose=write")).data;
+          const body = { values: { room_type_id: garden.id, arrive: "2026-09-07", depart: "2026-09-08", guests: 2, first_name: "Cora", last_name: "Venn", email: `cora.venn${String(n)}@wrenhouse.test`, arrival_time: "16:00", client_key: `${"g".repeat(40)}${String(n).padStart(3, "0")}`, ...more }, children: { stay_extras: [] } };
+          return caller.post<{ data?: Row; error?: { code?: string } }>(`/api/v1/public/records/${ref}`, body, { "x-adminium-proof": `${challenge.id}.${solve(challenge.salt, challenge.difficulty)}` });
+        };
+        const said = (reply: { status: number; body: { data?: Row; error?: { code?: string } } }) => [reply.status, reply.body.error?.code ?? reply.body.data?.["status"]];
+        // Payments off (no service live, the app not switched on): paying first is required and impossible, so the
+        // house books as it always did — through the one door open for that, never the paying one.
+        const stranger = new Caller(server.base, key);
+        expect(said(await book(stranger, refs.reserve))).toEqual([403, "PUBLIC_SWITCHED_OFF"]);
+        expect(said(await book(stranger, refs.reservePayFirst))).toEqual([403, "PUBLIC_SWITCHED_OFF"]);
+        expect(said(await book(stranger, refs.reserveRequiredOff))).toEqual([201, "booked"]);
+        // Payments on, as they are for someone who manages payments rehearsing the checkout: the only booking a
+        // caller can make waits for its payment; the unpaid doors are shut, whatever is sent through them.
+        ok(await staff.put("/api/v1/payments/rehearsal", { on: true }));
+        const csrf = ok(await staff.get<{ data: { csrfToken: string } }>("/api/v1/bootstrap")).data.csrfToken;
+        const rehearsing = new Caller(server.base, { ...key, cookie: staff.cookies, "x-adminium-csrf": csrf });
+        expect(said(await book(rehearsing, refs.reserve))).toEqual([403, "PUBLIC_SWITCHED_OFF"]);
+        expect(said(await book(rehearsing, refs.reserveRequiredOff))).toEqual([403, "PUBLIC_SWITCHED_OFF"]);
+        expect(said(await book(rehearsing, refs.reservePay))).toEqual([403, "PUBLIC_SWITCHED_OFF"]);
+        // Which state a booking starts in is the door's, never the caller's.
+        expect((await book(rehearsing, refs.reservePayFirst, { status: "booked" })).status).toBe(400);
+        expect(said(await book(rehearsing, refs.reservePayFirst))).toEqual([201, "pending_payment"]);
+        ok(await staff.put("/api/v1/payments/rehearsal", { on: false }));
+        ok(await staff.patch(`${data("settings")}/${String(settings.id)}`, { values: { pay_at_booking: "none" } }));
+      }, 180_000);
 
       it("removes the sample", async (ctx) => {
         needsWrites(() => ctx.skip());
