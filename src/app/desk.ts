@@ -77,6 +77,99 @@ export function openGiveBackToCard(app: HouseApp, stayId: Id, paymentId: Id, cap
   app.setState({ settleAgainst: paymentId, settleMethod: "gift_card", rowMenu: null });
 }
 
+// ── paying online ───────────────────────────────────────────────────────────
+
+/** The service a payment went through, by its plain name: "Stripe", "PayPal" — never a logo, never possessive. */
+export function serviceWord(provider: string): string {
+  if (provider === "payments-stripe") return "Stripe";
+  if (provider === "payments-paypal") return "PayPal";
+  if (provider === "payments-square") return "Square";
+  return "";
+}
+/** The chip beside a payment taken online: "Online · Stripe". */
+export const onlineChip = (provider: string): string => (serviceWord(provider) === "" ? tr("Online") : tr("Online · {service}", { service: serviceWord(provider) }));
+/** Where money paid online goes back to: the card, or the PayPal account the guest paid with. */
+export const backTo = (provider: string): "paypal" | "card" => (provider === "payments-paypal" ? "paypal" : "card");
+
+/**
+ * Whether the desk offers a stay's pay link: the house takes payments online right now (never while a payment
+ * manager rehearses it: a pay link is live money), the stay is still to come or in the house, and something is owed.
+ */
+export function payLinkOn(app: HouseApp, st: StV): boolean {
+  return app.payDesk.online && !app.payDesk.test && app.ports.desk?.payLink !== undefined && (st.state === "booked" || st.state === "in") && st.m.balance > 0.004;
+}
+
+/** "Copy pay link": the one the guest already holds while it works, else a new one; said with what it asks. */
+export async function copyPayLink(app: HouseApp, st: StV, short = false): Promise<void> {
+  await app.once("pay-link", async () => {
+    try {
+      const link = await app.ports.desk!.payLink!(st.id);
+      try {
+        await navigator.clipboard.writeText(link.url);
+        app.toast(short ? tr("Pay link copied.") : tr("Pay link copied. It opens the pay page for {amount}.", { amount: strip(money(st.m.balance)) }));
+      } catch {
+        // The browser would not copy: the address is said, to copy by hand.
+        app.toast(tr("The pay link is made, but this browser would not copy it: {url}", { url: link.url }), "info");
+      }
+    } catch (error) {
+      app.toast(app.refused(error), "warn");
+    }
+  });
+}
+
+/** What an online payment can still give back: what it took, less what went back of it (and was not refused). */
+export function refundable(st: StV, payId: Id): number {
+  const p = st.pays.find((x) => x.id === payId);
+  if (p === undefined || !p.online || p.voided) return 0;
+  const back = st.pays.filter((x) => x.kind === "given_back" && !x.voided && x.refundOf === p.id && x.refundState !== "not-sent").reduce((sum, x) => sum + x.amount, 0);
+  return Math.max(0, Math.round((p.amount - back) * 100) / 100);
+}
+
+/** Refund: what and why first. */
+export function openRefund(app: HouseApp, st: StV, payId: Id): void {
+  const cap = refundable(st, payId);
+  app.setState({ rowMenu: null, rf: { stayId: st.id, payId, cap, step: 1, amount: cap.toFixed(2), reason: "", touched: false, key: mintKey(), busy: false } });
+  app.focusSoon("#rf-amount");
+}
+/** The typed amount, when it is one the payment can give back. */
+export function refundAmount(rf: NonNullable<HouseApp["state"]["rf"]>): number | null {
+  const n = Number(rf.amount.trim());
+  return rf.amount.trim() !== "" && Number.isFinite(n) && n > 0.004 && n <= rf.cap + 0.004 ? Math.round(n * 100) / 100 : null;
+}
+/** Next: the sentence that says what will happen, once the amount and the reason are said. */
+export function refundNext(app: HouseApp): void {
+  const rf = app.state.rf;
+  if (rf === null) return;
+  if (refundAmount(rf) === null || rf.reason.trim() === "") {
+    app.setState({ rf: { ...rf, touched: true } });
+    app.focusSoon(refundAmount(rf) === null ? "#rf-amount" : "#rf-reason");
+    return;
+  }
+  app.setState({ rf: { ...rf, step: 2 } });
+  app.focusSoon("#rf-confirm");
+}
+/** Refund: the house's given-back row, naming the payment; Adminium sends the money back. Pressed again, never twice. */
+export async function doRefund(app: HouseApp): Promise<void> {
+  const rf = app.state.rf;
+  const amount = rf === null ? null : refundAmount(rf);
+  if (rf === null || amount === null || rf.busy) return;
+  const st = app.stay(rf.stayId);
+  const p = st?.pays.find((x) => x.id === rf.payId);
+  app.setState({ rf: { ...rf, busy: true } });
+  await app.write(
+    () => app.ports.desk!.refundOnline!(rf.stayId, rf.payId, amount.toFixed(2), rf.reason, rf.key),
+    () => {
+      app.setState({ rf: null });
+      app.toast(backTo(p?.provider ?? "") === "paypal" ? tr("Refunded {amount} to the PayPal account.", { amount: strip(money(amount)) }) : tr("Refunded {amount} to the card.", { amount: strip(money(amount)) }));
+    },
+    (error) => {
+      const now = app.state.rf;
+      if (now !== null) app.setState({ rf: { ...now, busy: false } });
+      app.toast(app.refused(error), "warn");
+    },
+  );
+}
+
 /** "Check the card": what it would pay of what the stay owes, written nowhere. */
 export async function checkCard(app: HouseApp, stayId: Id): Promise<void> {
   const code = app.state.cardCode.trim();

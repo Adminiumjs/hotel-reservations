@@ -226,7 +226,17 @@ export const MANIFEST_RULES = {
     }
   },
   "enums": {
-    "settings": {},
+    "settings": {
+      "pay_at_booking": [
+        "none",
+        "optional",
+        "required"
+      ],
+      "pay_how_much": [
+        "one_night",
+        "whole_stay"
+      ]
+    },
     "house_notes": {},
     "room_types": {},
     "room_type_features": {},
@@ -250,6 +260,7 @@ export const MANIFEST_RULES = {
     "customers": {},
     "stays": {
       "status": [
+        "pending_payment",
         "booked",
         "in_house",
         "departed",
@@ -263,7 +274,12 @@ export const MANIFEST_RULES = {
       "cancel_code": [
         "self",
         "guest_asked",
-        "house"
+        "house",
+        "unpaid"
+      ],
+      "pay_part": [
+        "one_night",
+        "whole_stay"
       ]
     },
     "stay_extras": {
@@ -294,7 +310,14 @@ export const MANIFEST_RULES = {
         "card",
         "cash",
         "transfer",
-        "gift_card"
+        "gift_card",
+        "online"
+      ],
+      "refund_state": [
+        "asked",
+        "pending",
+        "done",
+        "not-sent"
       ]
     },
     "messages": {
@@ -310,7 +333,9 @@ export const MANIFEST_RULES = {
         "stay-dates-changed",
         "stay-new-link",
         "stay-folio",
-        "stay-folio-owing"
+        "stay-folio-owing",
+        "stay-made-pay",
+        "stay-folio-owing-pay"
       ],
       "status": [
         "queued",
@@ -336,6 +361,7 @@ export const MANIFEST_RULES = {
         "countWhere": {
           "column": "status",
           "values": [
+            "pending_payment",
             "booked",
             "in_house"
           ]
@@ -388,6 +414,7 @@ export const MANIFEST_RULES = {
         "countWhere": {
           "column": "status",
           "values": [
+            "pending_payment",
             "booked",
             "in_house"
           ]
@@ -430,6 +457,7 @@ export const MANIFEST_RULES = {
         {
           "column": "status",
           "values": [
+            "pending_payment",
             "booked",
             "in_house"
           ],
@@ -480,8 +508,30 @@ export const MANIFEST_RULES = {
     "stays": {
       "column": "status",
       "initial": "booked",
+      "starts": [
+        "pending_payment"
+      ],
       "strict": true,
       "moves": {
+        "pending_payment": [
+          {
+            "to": "booked",
+            "roles": [
+              "manager"
+            ]
+          },
+          {
+            "to": "cancelled",
+            "requires": {
+              "where": [
+                {
+                  "column": "cancel_code",
+                  "isNull": false
+                }
+              ]
+            }
+          }
+        ],
         "booked": [
           {
             "to": "in_house",
@@ -627,6 +677,7 @@ export const MANIFEST_RULES = {
         "stay_extras": {
           "via": "stay_id",
           "parentIn": [
+            "pending_payment",
             "booked",
             "in_house"
           ]
@@ -634,6 +685,7 @@ export const MANIFEST_RULES = {
         "stay_codes": {
           "via": "stay_id",
           "parentIn": [
+            "pending_payment",
             "booked",
             "in_house"
           ]
@@ -645,6 +697,7 @@ export const MANIFEST_RULES = {
             "in_house"
           ],
           "changeIn": [
+            "pending_payment",
             "booked",
             "in_house",
             "departed",
@@ -659,6 +712,7 @@ export const MANIFEST_RULES = {
             "no_show"
           ],
           "changeIn": [
+            "pending_payment",
             "booked",
             "in_house",
             "departed",
@@ -709,6 +763,24 @@ export const MANIFEST_RULES = {
               }
             ]
           }
+        },
+        {
+          "from": "pending_payment",
+          "to": "cancelled",
+          "at": {
+            "column": "created_at",
+            "plus": {
+              "minutes": {
+                "table": "settings",
+                "column": "pay_hold_minutes"
+              }
+            }
+          },
+          "set": {
+            "cancel_code": "unpaid",
+            "pay_lapsed": true
+          },
+          "waitsForPayment": true
         }
       ],
       "effects": [
@@ -829,7 +901,13 @@ export const MANIFEST_RULES = {
         "checked_in_at",
         "checked_out_at",
         "cancelled_at",
-        "no_show_marked_at"
+        "no_show_marked_at",
+        "pay_now",
+        "deposit",
+        "pay_due",
+        "paid_online",
+        "refunded_online",
+        "pay_lapsed"
       ],
       "writable": [
         "arrival_time",
@@ -918,7 +996,13 @@ export const MANIFEST_RULES = {
         "checked_in_at",
         "checked_out_at",
         "cancelled_at",
-        "no_show_marked_at"
+        "no_show_marked_at",
+        "pay_now",
+        "deposit",
+        "pay_due",
+        "paid_online",
+        "refunded_online",
+        "pay_lapsed"
       ],
       "writable": [
         "arrive",
@@ -1184,7 +1268,11 @@ export const MANIFEST_RULES = {
         "cancel_days",
         "max_nights",
         "ahead_days",
-        "guest_emails_on"
+        "guest_emails_on",
+        "pay_at_booking",
+        "pay_how_much",
+        "pay_hold_minutes",
+        "auto_refund"
       ]
     },
     {
@@ -1256,7 +1344,13 @@ export const MANIFEST_RULES = {
         "checked_in_at",
         "checked_out_at",
         "cancelled_at",
-        "no_show_marked_at"
+        "no_show_marked_at",
+        "pay_now",
+        "deposit",
+        "pay_due",
+        "paid_online",
+        "refunded_online",
+        "pay_lapsed"
       ],
       "writable": [
         "room_type_id",
@@ -1374,7 +1468,17 @@ export const MANIFEST_RULES = {
       },
       "dryRun": true,
       "expect": "total",
-      "clientKey": "client_key"
+      "clientKey": "client_key",
+      "requireSetting": [
+        {
+          "table": "settings",
+          "column": "pay_at_booking",
+          "in": [
+            "none",
+            "optional"
+          ]
+        }
+      ]
     },
     {
       "table": "stays",
@@ -1418,7 +1522,13 @@ export const MANIFEST_RULES = {
         "checked_in_at",
         "checked_out_at",
         "cancelled_at",
-        "no_show_marked_at"
+        "no_show_marked_at",
+        "pay_now",
+        "deposit",
+        "pay_due",
+        "paid_online",
+        "refunded_online",
+        "pay_lapsed"
       ],
       "claim": {
         "by": "token",
@@ -1641,6 +1751,534 @@ export const MANIFEST_RULES = {
         }
       ],
       "key": "link"
+    },
+    {
+      "table": "stays",
+      "methods": [
+        "POST"
+      ],
+      "humanCheck": true,
+      "level": "verified",
+      "select": [
+        "id",
+        "ref",
+        "status",
+        "room_type_id",
+        "room_id",
+        "arrive",
+        "depart",
+        "guests",
+        "nights",
+        "arrival_time",
+        "language",
+        "room_total",
+        "extras_total",
+        "charges_total",
+        "credits_total",
+        "discount",
+        "room_discount",
+        "subtotal",
+        "tax_rate",
+        "tax_label",
+        "tax",
+        "total",
+        "paid",
+        "balance",
+        "cancel_by",
+        "created_at",
+        "checked_in_at",
+        "checked_out_at",
+        "cancelled_at",
+        "no_show_marked_at",
+        "pay_now",
+        "deposit",
+        "pay_due",
+        "paid_online",
+        "refunded_online",
+        "pay_lapsed"
+      ],
+      "writable": [
+        "room_type_id",
+        "arrive",
+        "depart",
+        "guests",
+        "first_name",
+        "last_name",
+        "email",
+        "mobile",
+        "arrival_time",
+        "note",
+        "language",
+        "client_key",
+        "opt_in"
+      ],
+      "requires": [
+        "first_name",
+        "last_name",
+        "email"
+      ],
+      "claimedBy": {
+        "table": "customers",
+        "column": "customer_id",
+        "optional": true
+      },
+      "identity": {
+        "table": "customers",
+        "email": "email",
+        "link": "customer_id",
+        "fill": {
+          "first_name": "first_name",
+          "last_name": "last_name",
+          "language": "language"
+        }
+      },
+      "consent": {
+        "column": "opt_in",
+        "purpose": "newsletter",
+        "wording": {
+          "version": 1,
+          "text": {
+            "en-US": "Email me news and offers from {hotel}\nEvery email has a link to stop them.",
+            "de-DE": "Schicken Sie mir Neuigkeiten und Angebote von {hotel} per E-Mail\nJede E-Mail enthält einen Link, mit dem Sie sie abbestellen können.",
+            "fr-FR": "M'envoyer par e-mail les nouvelles et les offres de {hotel}\nChaque e-mail contient un lien pour ne plus les recevoir.",
+            "da-DK": "Send mig nyheder og tilbud fra {hotel} på mail\nHver mail har et link, så du kan stoppe dem.",
+            "cs-CZ": "Chci dostávat e-mailem novinky a nabídky od {hotel}\nKaždý e-mail obsahuje odkaz, kterým je můžete odhlásit.",
+            "ar-EG": "راسلوني بالبريد الإلكتروني بأخبار {hotel} وعروضه\nكل رسالة فيها رابط لإيقاف هذه الرسائل.",
+            "zh-CN": "通过邮件给我发送{hotel}的消息和优惠\n每封邮件都附有停止接收的链接。",
+            "zh-TW": "以電子郵件寄送{hotel}的消息與優惠給我\n每封郵件都附有停止接收的連結。"
+          }
+        }
+      },
+      "shareLink": "link_token",
+      "agrees": [
+        {
+          "column": "guests",
+          "lte": {
+            "via": "room_type_id",
+            "column": "sleeps"
+          }
+        },
+        {
+          "column": "guests",
+          "lte": {
+            "via": "room_id",
+            "column": "sleeps"
+          }
+        }
+      ],
+      "anonymous": {
+        "perValue": {
+          "columns": [
+            "email"
+          ],
+          "n": 10
+        },
+        "perKeyHour": 300,
+        "perIpHour": 10,
+        "plainText": [
+          "first_name",
+          "last_name"
+        ]
+      },
+      "children": {
+        "stay_extras": {
+          "via": "stay_id",
+          "writable": [
+            "extra_id"
+          ],
+          "select": [
+            "id",
+            "extra_id",
+            "state",
+            "label",
+            "each",
+            "per",
+            "nights",
+            "guests",
+            "amount",
+            "discount"
+          ],
+          "max": 8
+        },
+        "stay_codes": {
+          "via": "stay_id",
+          "writable": [
+            "typed"
+          ],
+          "select": [
+            "id"
+          ],
+          "max": 12
+        }
+      },
+      "dryRun": true,
+      "expect": "total",
+      "clientKey": "client_key",
+      "defaults": {
+        "pay_now": true
+      },
+      "pay": true,
+      "requireSetting": [
+        {
+          "table": "settings",
+          "column": "pay_at_booking",
+          "in": [
+            "optional"
+          ]
+        }
+      ],
+      "requirePayments": "on"
+    },
+    {
+      "table": "stays",
+      "methods": [
+        "POST"
+      ],
+      "humanCheck": true,
+      "level": "verified",
+      "select": [
+        "id",
+        "ref",
+        "status",
+        "room_type_id",
+        "room_id",
+        "arrive",
+        "depart",
+        "guests",
+        "nights",
+        "arrival_time",
+        "language",
+        "room_total",
+        "extras_total",
+        "charges_total",
+        "credits_total",
+        "discount",
+        "room_discount",
+        "subtotal",
+        "tax_rate",
+        "tax_label",
+        "tax",
+        "total",
+        "paid",
+        "balance",
+        "cancel_by",
+        "created_at",
+        "checked_in_at",
+        "checked_out_at",
+        "cancelled_at",
+        "no_show_marked_at",
+        "pay_now",
+        "deposit",
+        "pay_due",
+        "paid_online",
+        "refunded_online",
+        "pay_lapsed"
+      ],
+      "writable": [
+        "room_type_id",
+        "arrive",
+        "depart",
+        "guests",
+        "first_name",
+        "last_name",
+        "email",
+        "mobile",
+        "arrival_time",
+        "note",
+        "language",
+        "client_key",
+        "opt_in"
+      ],
+      "requires": [
+        "first_name",
+        "last_name",
+        "email"
+      ],
+      "claimedBy": {
+        "table": "customers",
+        "column": "customer_id",
+        "optional": true
+      },
+      "identity": {
+        "table": "customers",
+        "email": "email",
+        "link": "customer_id",
+        "fill": {
+          "first_name": "first_name",
+          "last_name": "last_name",
+          "language": "language"
+        }
+      },
+      "consent": {
+        "column": "opt_in",
+        "purpose": "newsletter",
+        "wording": {
+          "version": 1,
+          "text": {
+            "en-US": "Email me news and offers from {hotel}\nEvery email has a link to stop them.",
+            "de-DE": "Schicken Sie mir Neuigkeiten und Angebote von {hotel} per E-Mail\nJede E-Mail enthält einen Link, mit dem Sie sie abbestellen können.",
+            "fr-FR": "M'envoyer par e-mail les nouvelles et les offres de {hotel}\nChaque e-mail contient un lien pour ne plus les recevoir.",
+            "da-DK": "Send mig nyheder og tilbud fra {hotel} på mail\nHver mail har et link, så du kan stoppe dem.",
+            "cs-CZ": "Chci dostávat e-mailem novinky a nabídky od {hotel}\nKaždý e-mail obsahuje odkaz, kterým je můžete odhlásit.",
+            "ar-EG": "راسلوني بالبريد الإلكتروني بأخبار {hotel} وعروضه\nكل رسالة فيها رابط لإيقاف هذه الرسائل.",
+            "zh-CN": "通过邮件给我发送{hotel}的消息和优惠\n每封邮件都附有停止接收的链接。",
+            "zh-TW": "以電子郵件寄送{hotel}的消息與優惠給我\n每封郵件都附有停止接收的連結。"
+          }
+        }
+      },
+      "shareLink": "link_token",
+      "agrees": [
+        {
+          "column": "guests",
+          "lte": {
+            "via": "room_type_id",
+            "column": "sleeps"
+          }
+        },
+        {
+          "column": "guests",
+          "lte": {
+            "via": "room_id",
+            "column": "sleeps"
+          }
+        }
+      ],
+      "anonymous": {
+        "perValue": {
+          "columns": [
+            "email"
+          ],
+          "n": 10
+        },
+        "perKeyHour": 300,
+        "perIpHour": 10,
+        "plainText": [
+          "first_name",
+          "last_name"
+        ]
+      },
+      "children": {
+        "stay_extras": {
+          "via": "stay_id",
+          "writable": [
+            "extra_id"
+          ],
+          "select": [
+            "id",
+            "extra_id",
+            "state",
+            "label",
+            "each",
+            "per",
+            "nights",
+            "guests",
+            "amount",
+            "discount"
+          ],
+          "max": 8
+        },
+        "stay_codes": {
+          "via": "stay_id",
+          "writable": [
+            "typed"
+          ],
+          "select": [
+            "id"
+          ],
+          "max": 12
+        }
+      },
+      "dryRun": true,
+      "expect": "total",
+      "clientKey": "client_key",
+      "defaults": {
+        "status": "pending_payment",
+        "pay_now": true
+      },
+      "pay": true,
+      "requireSetting": [
+        {
+          "table": "settings",
+          "column": "pay_at_booking",
+          "in": [
+            "required"
+          ]
+        }
+      ],
+      "requirePayments": "on"
+    },
+    {
+      "table": "stays",
+      "methods": [
+        "POST"
+      ],
+      "humanCheck": true,
+      "level": "verified",
+      "select": [
+        "id",
+        "ref",
+        "status",
+        "room_type_id",
+        "room_id",
+        "arrive",
+        "depart",
+        "guests",
+        "nights",
+        "arrival_time",
+        "language",
+        "room_total",
+        "extras_total",
+        "charges_total",
+        "credits_total",
+        "discount",
+        "room_discount",
+        "subtotal",
+        "tax_rate",
+        "tax_label",
+        "tax",
+        "total",
+        "paid",
+        "balance",
+        "cancel_by",
+        "created_at",
+        "checked_in_at",
+        "checked_out_at",
+        "cancelled_at",
+        "no_show_marked_at",
+        "pay_now",
+        "deposit",
+        "pay_due",
+        "paid_online",
+        "refunded_online",
+        "pay_lapsed"
+      ],
+      "writable": [
+        "room_type_id",
+        "arrive",
+        "depart",
+        "guests",
+        "first_name",
+        "last_name",
+        "email",
+        "mobile",
+        "arrival_time",
+        "note",
+        "language",
+        "client_key",
+        "opt_in"
+      ],
+      "requires": [
+        "first_name",
+        "last_name",
+        "email"
+      ],
+      "claimedBy": {
+        "table": "customers",
+        "column": "customer_id",
+        "optional": true
+      },
+      "identity": {
+        "table": "customers",
+        "email": "email",
+        "link": "customer_id",
+        "fill": {
+          "first_name": "first_name",
+          "last_name": "last_name",
+          "language": "language"
+        }
+      },
+      "consent": {
+        "column": "opt_in",
+        "purpose": "newsletter",
+        "wording": {
+          "version": 1,
+          "text": {
+            "en-US": "Email me news and offers from {hotel}\nEvery email has a link to stop them.",
+            "de-DE": "Schicken Sie mir Neuigkeiten und Angebote von {hotel} per E-Mail\nJede E-Mail enthält einen Link, mit dem Sie sie abbestellen können.",
+            "fr-FR": "M'envoyer par e-mail les nouvelles et les offres de {hotel}\nChaque e-mail contient un lien pour ne plus les recevoir.",
+            "da-DK": "Send mig nyheder og tilbud fra {hotel} på mail\nHver mail har et link, så du kan stoppe dem.",
+            "cs-CZ": "Chci dostávat e-mailem novinky a nabídky od {hotel}\nKaždý e-mail obsahuje odkaz, kterým je můžete odhlásit.",
+            "ar-EG": "راسلوني بالبريد الإلكتروني بأخبار {hotel} وعروضه\nكل رسالة فيها رابط لإيقاف هذه الرسائل.",
+            "zh-CN": "通过邮件给我发送{hotel}的消息和优惠\n每封邮件都附有停止接收的链接。",
+            "zh-TW": "以電子郵件寄送{hotel}的消息與優惠給我\n每封郵件都附有停止接收的連結。"
+          }
+        }
+      },
+      "shareLink": "link_token",
+      "agrees": [
+        {
+          "column": "guests",
+          "lte": {
+            "via": "room_type_id",
+            "column": "sleeps"
+          }
+        },
+        {
+          "column": "guests",
+          "lte": {
+            "via": "room_id",
+            "column": "sleeps"
+          }
+        }
+      ],
+      "anonymous": {
+        "perValue": {
+          "columns": [
+            "email"
+          ],
+          "n": 10
+        },
+        "perKeyHour": 300,
+        "perIpHour": 10,
+        "plainText": [
+          "first_name",
+          "last_name"
+        ]
+      },
+      "children": {
+        "stay_extras": {
+          "via": "stay_id",
+          "writable": [
+            "extra_id"
+          ],
+          "select": [
+            "id",
+            "extra_id",
+            "state",
+            "label",
+            "each",
+            "per",
+            "nights",
+            "guests",
+            "amount",
+            "discount"
+          ],
+          "max": 8
+        },
+        "stay_codes": {
+          "via": "stay_id",
+          "writable": [
+            "typed"
+          ],
+          "select": [
+            "id"
+          ],
+          "max": 12
+        }
+      },
+      "dryRun": true,
+      "expect": "total",
+      "clientKey": "client_key",
+      "requireSetting": [
+        {
+          "table": "settings",
+          "column": "pay_at_booking",
+          "in": [
+            "required"
+          ]
+        }
+      ],
+      "requirePayments": "off"
     }
   ],
   "roles": [
@@ -1819,7 +2457,17 @@ export const MANIFEST_RULES = {
             "card_balance_after",
             "asked",
             "client_key",
-            "against_id"
+            "against_id",
+            "payment_ref",
+            "provider",
+            "payment_last4",
+            "refunded_elsewhere",
+            "refund_of",
+            "refund_ref",
+            "refund_state",
+            "automatic",
+            "online_taken",
+            "online_back"
           ],
           "creatable": [
             "stay_id",
@@ -1832,7 +2480,15 @@ export const MANIFEST_RULES = {
             "asked",
             "against_id",
             "client_key"
-          ]
+          ],
+          "creatableValues": {
+            "method": [
+              "card",
+              "cash",
+              "transfer",
+              "gift_card"
+            ]
+          }
         },
         "rooms": {
           "writable": [
@@ -2049,7 +2705,17 @@ export const MANIFEST_RULES = {
             "card_balance_after",
             "asked",
             "client_key",
-            "against_id"
+            "against_id",
+            "payment_ref",
+            "provider",
+            "payment_last4",
+            "refunded_elsewhere",
+            "refund_of",
+            "refund_ref",
+            "refund_state",
+            "automatic",
+            "online_taken",
+            "online_back"
           ],
           "writable": [
             "stay_id",
@@ -2068,7 +2734,8 @@ export const MANIFEST_RULES = {
             "card_code",
             "asked",
             "client_key",
-            "against_id"
+            "against_id",
+            "refund_of"
           ],
           "creatable": [
             "stay_id",
@@ -2087,7 +2754,8 @@ export const MANIFEST_RULES = {
             "card_code",
             "asked",
             "client_key",
-            "against_id"
+            "against_id",
+            "refund_of"
           ]
         },
         "stays": {
@@ -2211,7 +2879,110 @@ export const MANIFEST_RULES = {
           "column": "channel",
           "eq": "online"
         }
-      }
+      },
+      "holdSeconds": 5,
+      "dropWhen": [
+        {
+          "column": "status",
+          "in": [
+            "pending_payment",
+            "cancelled"
+          ],
+          "reason": "no-longer-needed"
+        }
+      ],
+      "payments": "off"
+    },
+    {
+      "kind": "stay-made",
+      "link": "stay_id",
+      "gate": {
+        "setting": {
+          "table": "settings",
+          "column": "guest_emails_on"
+        }
+      },
+      "onChange": {
+        "table": "stays",
+        "column": "status",
+        "to": "booked",
+        "where": {
+          "column": "channel",
+          "eq": "online"
+        }
+      },
+      "holdSeconds": 5,
+      "dropWhen": [
+        {
+          "column": "status",
+          "in": [
+            "pending_payment",
+            "cancelled"
+          ],
+          "reason": "no-longer-needed"
+        }
+      ],
+      "payments": "off"
+    },
+    {
+      "kind": "stay-made-pay",
+      "link": "stay_id",
+      "gate": {
+        "setting": {
+          "table": "settings",
+          "column": "guest_emails_on"
+        }
+      },
+      "onCreate": {
+        "table": "stays",
+        "where": {
+          "column": "channel",
+          "eq": "online"
+        }
+      },
+      "holdSeconds": 5,
+      "dropWhen": [
+        {
+          "column": "status",
+          "in": [
+            "pending_payment",
+            "cancelled"
+          ],
+          "reason": "no-longer-needed"
+        }
+      ],
+      "payments": "on"
+    },
+    {
+      "kind": "stay-made-pay",
+      "link": "stay_id",
+      "gate": {
+        "setting": {
+          "table": "settings",
+          "column": "guest_emails_on"
+        }
+      },
+      "onChange": {
+        "table": "stays",
+        "column": "status",
+        "to": "booked",
+        "where": {
+          "column": "channel",
+          "eq": "online"
+        }
+      },
+      "holdSeconds": 5,
+      "dropWhen": [
+        {
+          "column": "status",
+          "in": [
+            "pending_payment",
+            "cancelled"
+          ],
+          "reason": "no-longer-needed"
+        }
+      ],
+      "payments": "on"
     },
     {
       "kind": "stay-made-desk",
@@ -2418,7 +3189,27 @@ export const MANIFEST_RULES = {
         ],
         "changed": true
       },
-      "repeat": true
+      "repeat": true,
+      "payments": "off"
+    },
+    {
+      "kind": "stay-folio-owing-pay",
+      "link": "stay_id",
+      "gate": {
+        "setting": {
+          "table": "settings",
+          "column": "guest_emails_on"
+        }
+      },
+      "onChange": {
+        "table": "stays",
+        "columns": [
+          "folio_so_far_at"
+        ],
+        "changed": true
+      },
+      "repeat": true,
+      "payments": "on"
     }
   ],
   "kinds": {
@@ -2433,6 +3224,8 @@ export const MANIFEST_RULES = {
     "stay-dates-changed": "hotel-stay-dates-changed",
     "stay-new-link": "hotel-stay-new-link",
     "stay-folio": "hotel-stay-folio",
-    "stay-folio-owing": "hotel-stay-folio-owing"
+    "stay-folio-owing": "hotel-stay-folio-owing",
+    "stay-made-pay": "hotel-stay-made-pay",
+    "stay-folio-owing-pay": "hotel-stay-folio-owing-pay"
   }
 } as const;

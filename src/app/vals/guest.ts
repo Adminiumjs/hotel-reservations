@@ -425,7 +425,21 @@ export function guestVals(app: HouseApp, w: WorldV): V {
   // ── confirmation
   const b = s.booking;
   const bs = b === null ? null : app.stay(b.id);
-  if (b !== null && bs !== null) {
+  const back = s.payBack !== null && b !== null && s.payBack.id === b.id ? s.payBack : null;
+  // Back from the pay page: being checked; or the payment did not finish, for a stay still waiting for it (its room
+  // held a while), which is no reservation to show yet.
+  const payCard = {
+    checkingOn: back?.stage === "checking",
+    holdOn: back?.stage === "failed" && back.how === "first",
+    // The bank is confirming it: said above the reservation, or — for a stay still waiting for it — on its own.
+    bankOn: back?.stage === "bank",
+    bankCardOn: back?.stage === "bank" && bs === null,
+    retryLabel: s.paying ? tr("Taking you to the secure payment page…") : tr("Pay {amount} now", { amount: strip(money(back?.due ?? 0)) }),
+    retryBusy: s.paying ? "true" : "false",
+    paying: s.paying,
+    retry: () => void app.payAgain(),
+  };
+  if (b !== null && bs !== null && !payCard.checkingOn && !payCard.holdOn && !payCard.bankCardOn) {
     const bt = w.typeById[bs.type]!;
     const stage = cancelStage(app, bs.arrive, bs.cancelBy);
     v["cf"] = {
@@ -455,12 +469,16 @@ export function guestVals(app: HouseApp, w: WorldV): V {
         ? tr("We are sending the details to {email}; this page's link opens your reservation any time.", { email: b.email })
         : tr("Keep this page's link — it opens your reservation any time."),
       moment: momentWords(app, bs.arrive, bs.cancelBy),
+      ...payCard,
+      ...paidVals(bs),
+      // The payment did not finish, for a stay booked anyway: still theirs, to pay again or at the desk.
+      failOn: back?.stage === "failed" && back.how === "choice" && bs.pay.online <= 0.004,
       payNote: tr("Nothing is taken online. You settle at the desk."),
       goOne: () => app.openOne(bs.id),
     };
   } else {
     // Until the stay is read back, the heading already greets the guest by the name they gave.
-    v["cf"] = { first: b?.first ?? "", nights: [], lines: [] };
+    v["cf"] = { first: b?.first ?? "", nights: [], lines: [], ...payCard, okOn: !payCard.checkingOn && !payCard.holdOn && !payCard.bankCardOn };
   }
 
   // ── sign in by email
@@ -698,7 +716,9 @@ function reserveVals(app: HouseApp, w: WorldV, pt: TypeV, n: number, guests: num
   const total = q === undefined ? null : Number(q.data["total"]).toFixed(2);
   // What the guest saw is what the save expects: the price shown when they pressed Reserve.
   if (total !== null && s.rvShown !== total && !s.rvBusy && s.rvAnswer === null) queueMicrotask(() => app.setState({ rvShown: total }));
+  const pay = payVals(app, w, q);
   return {
+    ...pay,
     cols: narrow ? "1fr" : "1fr 336px",
     twoCols: narrow ? "1fr" : "1fr 1fr",
     sticky: narrow ? "static" : "sticky",
@@ -759,12 +779,13 @@ function reserveVals(app: HouseApp, w: WorldV, pt: TypeV, n: number, guests: num
     tax: q === undefined ? wait : money(q.data["tax"]),
     total: q === undefined ? wait : money(q.data["total"]),
     priceNote: q === undefined && qa.error ? NO_PRICE() : "",
-    busy: s.rvBusy,
-    idle: !s.rvBusy,
-    btnLabel: s.rvBusy ? tr("Reserving…") : tr("Reserve the room"),
-    btnBusy: s.rvBusy ? "true" : "false",
-    btnBg: s.rvBusy ? "var(--surface-3)" : "var(--accent)",
-    btnFg: s.rvBusy ? "var(--fg-muted)" : "var(--accent-fg)",
+    busy: s.rvBusy || s.paying,
+    idle: !s.rvBusy && !s.paying,
+    // Paying as it is made: "Pay $185.30 now", then the way to the pay page; otherwise as ever.
+    btnLabel: pay.payOn ? (s.rvBusy || s.paying ? tr("Taking you to the secure payment page…") : pay.payLabel) : s.rvBusy ? tr("Reserving…") : tr("Reserve the room"),
+    btnBusy: s.rvBusy || s.paying ? "true" : "false",
+    btnBg: s.rvBusy || s.paying ? "var(--surface-3)" : "var(--accent)",
+    btnFg: s.rvBusy || s.paying ? "var(--fg-muted)" : "var(--accent-fg)",
     confirm: () => {
       if (!app.state.rvBusy && !app.state.codeBusy) app.tryReserve();
     },
@@ -781,7 +802,96 @@ function reserveVals(app: HouseApp, w: WorldV, pt: TypeV, n: number, guests: num
     downOn: A?.kind === "down",
     changeDates: () => app.go("home", { rvAnswer: null }),
     payNote: tr("Nothing is taken online. You settle at the desk."),
+    // The room went because the payment did not come in time; "Try again" is the card as it was.
+    unpaidOn: A?.kind === "unpaid",
+    retryUnpaid: () => app.setState({ rvAnswer: null }),
   };
+}
+
+/**
+ * Paying as the guest reserves, by the house's setting — once it takes
+ * payments online right now: their choice of now or at the desk; or asked
+ * first, the room kept a few minutes while they pay. What it costs now is
+ * Adminium's: the price's own `deposit` (one night with its tax, or the whole
+ * stay). With payments off, or the house asking nothing, none of this shows.
+ */
+function payVals(app: HouseApp, w: WorldV, q: QuoteReply | undefined): V {
+  const s = app.state;
+  const mode = app.payMode();
+  const deposit = depositOf(w, q);
+  const amount = deposit === null ? "" : strip(money(deposit));
+  const now = mode === "required" || (mode === "optional" && s.payPick === "now");
+  const busy = s.rvBusy || s.paying;
+  const pick = (to: "now" | "desk") => () => {
+    if (!busy) app.setState({ payPick: to });
+  };
+  // Arrows move the choice, as a radio group's do (the other way round where the page reads right to left).
+  const onKey = (e: { key: string; preventDefault(): void }) => {
+    if (!["ArrowDown", "ArrowUp", "ArrowLeft", "ArrowRight"].includes(e.key)) return;
+    e.preventDefault();
+    const to = app.state.payPick === "now" ? "desk" : "now";
+    app.setState({ payPick: to });
+    app.focusSoon(`#rv-pay-${to}`);
+  };
+  const opt = (id: "now" | "desk", title: string, sub: string) => {
+    const on = s.payPick === id;
+    return {
+      id,
+      domId: `rv-pay-${id}`,
+      title,
+      sub,
+      checked: on ? "true" : "false",
+      tab: on ? 0 : -1,
+      go: pick(id),
+      key: onKey,
+      border: on ? "var(--accent)" : "var(--border-strong)",
+      bg: on ? "var(--accent-soft)" : "var(--surface)",
+      ring: on ? "var(--accent)" : "var(--border-strong)",
+      dot: on ? "var(--accent)" : "transparent",
+    };
+  };
+  return {
+    // Someone who manages payments rehearsing the guest site: said once, above the card.
+    payBand: app.payOnline.test && mode !== "none",
+    todayOn: mode === "none",
+    chooseOn: mode === "optional",
+    payOpts: mode === "optional" ? [opt("now", tr("Pay {amount} now", { amount }), tr("You’ll pay on the Stripe or PayPal page.")), opt("desk", tr("Pay at the desk"), tr("Nothing is taken online. You settle at the desk."))] : [],
+    askOn: mode === "required",
+    askTitle: tr("Pay {amount} now", { amount }),
+    payOn: now,
+    payLabel: tr("Pay {amount} now", { amount }),
+    whereOn: mode === "required",
+  };
+}
+
+/**
+ * What a reservation says was paid online: "Paid" with what, the rest at the
+ * desk; or "Paid in full". Nothing paid online: today's line, as ever. Never a
+ * card, never the service: the receipt comes in its own email.
+ */
+function paidVals(st: StV): V {
+  const paid = st.pay.online > 0.004;
+  const full = paid && st.m.balance <= 0.004;
+  return {
+    okOn: true,
+    paidOn: paid,
+    paidChip: full ? tr("Paid in full") : tr("Paid"),
+    paidNote: paid && !full ? tr("Paid {amount} online. The rest is settled at the desk.", { amount: strip(money(st.pay.online)) }) : "",
+    offOn: !paid,
+  };
+}
+
+/** What a guest pays as they reserve: the price's own figure, or — from a door that does not say — worked out the same way. */
+export function depositOf(w: WorldV, q: QuoteReply | undefined): number | null {
+  if (q === undefined) return null;
+  const said = q.data["deposit"];
+  if (said !== null && said !== undefined && said !== "") return Number(said);
+  const total = Number(q.data["total"] ?? 0);
+  if (w.H.payHowMuch === "whole_stay") return total;
+  const nightsN = Number(q.data["nights"] ?? 0);
+  if (!(nightsN > 0)) return total;
+  const night = ((Number(q.data["room_total"] ?? 0) - Number(q.data["room_discount"] ?? 0)) / nightsN) * (1 + Number(q.data["tax_rate"] ?? 0) / 100);
+  return Math.min(total, Math.round(night * 100) / 100);
 }
 
 /** The gift card balance page: one field, and one answer. */
@@ -846,6 +956,20 @@ function oneVals(app: HouseApp, w: WorldV, st: StV, gp: (x: StV) => [string, str
     ]);
   if (paid > 0) rows.push({ id: "pd", label: tr("Paid so far"), amount: iso(`− ${strip(money(paid))}`) });
   const gone = st.state === "cancelled" || st.state === "noshow";
+  // Money paid online on a stay that will not happen: on its way back, the hotel's to give back, or kept (a late
+  // cancellation, a no-show) unless it gives it back. What the desk took by hand is given back at the desk, as ever.
+  const online = st.pay.online;
+  const kept = gone && online > 0.004 && (st.state === "noshow" || (st.cancelCode !== "house" && st.cancelledAt !== null && st.cancelBy !== null && st.cancelledAt > st.cancelBy));
+  const cx = !gone || (online <= 0.004 && st.pay.back <= 0.004)
+    ? null
+    : kept
+      ? { text: tr("Cancelled. The hotel keeps your payment unless it refunds it."), tone: "plain" as const }
+      : online <= 0.004 || (H.autoRefund && st.cancelCode === "self")
+        ? { text: tr("Cancelled. {amount} is on its way back to your card.", { amount: strip(money(online > 0.004 ? online : st.pay.back)) }), tone: "pos" as const }
+        : { text: tr("Cancelled. The hotel will refund {amount}.", { amount: strip(money(online)) }), tone: "info" as const };
+  const byHand = Math.max(0, paid - online);
+  // The line about the money says it all: today's "Cancelled on …" is left for a stay with none paid online.
+  if (cx !== null && st.state === "cancelled" && st.cancelCode !== "house") deadNote = "";
   const signed = s.signedIn !== null && st.email.toLowerCase() === s.signedIn;
   return {
     found: true,
@@ -871,7 +995,11 @@ function oneVals(app: HouseApp, w: WorldV, st: StV, gp: (x: StV) => [string, str
     lineMoment: momentWords(app, st.arrive, st.cancelBy),
     cutMoment: fsi(tr("{time} on {day}", { time: strip(fT(H.arriveFrom)), day: strip(fDW(st.arrive)) })),
     outsideMsg: tr("Cancel at no charge until {moment}.", { moment: strip(momentWords(app, st.arrive, st.cancelBy)) }),
-    insideMsg: tr("You are inside the notice we ask for. You can still cancel until {time} on {day}; it will be marked as a late cancellation. Nothing is charged.", { time: strip(fT(H.arriveFrom)), day: strip(fDW(st.arrive)) }),
+    // Paid online: nothing more is charged, but what was paid is kept — said in the cancel dialog, not here.
+    insideMsg:
+      online > 0.004
+        ? tr("You are inside the notice we ask for. You can still cancel until {time} on {day}; it will be marked as a late cancellation.", { time: strip(fT(H.arriveFrom)), day: strip(fDW(st.arrive)) })
+        : tr("You are inside the notice we ask for. You can still cancel until {time} on {day}; it will be marked as a late cancellation. Nothing is charged.", { time: strip(fT(H.arriveFrom)), day: strip(fDW(st.arrive)) }),
     daysAhead: st.state !== "booked" ? "" : st.arrive > today ? tr("{days} from today", { days: strip(days(nightsOf(today, st.arrive))) }) : st.arrive === today ? tr("Today") : "",
     arrivalTime: st.arrivalTime,
     times: timeOptions(st.arrivalTime, H.lateArrival),
@@ -903,10 +1031,15 @@ function oneVals(app: HouseApp, w: WorldV, st: StV, gp: (x: StV) => [string, str
     refusedOn: s.extraRefused !== "",
     refused: s.extraRefused,
     rows,
-    dueLabel: gone ? (paid > 0 ? tr("To be given back") : tr("Nothing owing")) : tr("Due when you leave"),
-    due: money(gone ? paid : Math.max(0, st.m.balance)),
-    givenBackOn: gone && paid > 0,
-    givenBackLine: tr("You paid {amount}. The desk gives it back — ring us on {phone} if you have not had it.", { amount: strip(money(paid)), phone: H.phone }),
+    dueLabel: gone ? (byHand > 0.004 ? tr("To be given back") : tr("Nothing owing")) : tr("Due when you leave"),
+    due: money(gone ? byHand : Math.max(0, st.m.balance)),
+    givenBackOn: gone && byHand > 0.004,
+    givenBackLine: tr("You paid {amount}. The desk gives it back — ring us on {phone} if you have not had it.", { amount: strip(money(byHand)), phone: H.phone }),
+    cxOn: cx !== null,
+    cx: cx?.text ?? "",
+    cxBg: cx?.tone === "pos" ? "var(--pos-soft)" : cx?.tone === "info" ? "var(--info-soft)" : "var(--surface-3)",
+    cxFg: cx?.tone === "pos" ? "var(--pos)" : cx?.tone === "info" ? "var(--info)" : "var(--fg)",
+    cxIcon: cx?.tone === "pos" ? "circle-check" : cx?.tone === "info" ? "undo-2" : "calendar-x",
     askCancel: () => app.askCancel(st.id, "guest"),
     // A date change needs a signed-in guest: a forwarded link cannot move a stay.
     canChange: live && !inside && signed,

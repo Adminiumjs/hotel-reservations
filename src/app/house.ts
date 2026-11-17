@@ -9,7 +9,7 @@
  * refusal's words.
  */
 import type { DeskPort, GuestPort, StayWithLines } from "../data/ports.ts";
-import { isApiError, type CardCheck, type Id, type LiveFrame, type NightAnswer, type QuoteReply, type StayBody } from "../data/wire.ts";
+import { isApiError, yes, type CardCheck, type Id, type LiveFrame, type NightAnswer, type QuoteReply, type Row, type StayBody } from "../data/wire.ts";
 import { tr, setLocale } from "../i18n/tr.ts";
 import { venueDay, venueMinutes } from "../lib/venueTime.ts";
 import { fDW, money, nightsOf, plus, setCurrency, strip } from "./fmt.ts";
@@ -86,7 +86,7 @@ export function fresh(day: string) {
     form: blankForm(),
     formErr: false,
     rvBusy: false,
-    rvAnswer: null as null | { kind: "gone" | "price" | "rule" | "down"; msg?: string; total?: string; was?: string },
+    rvAnswer: null as null | { kind: "gone" | "price" | "rule" | "down" | "unpaid"; msg?: string; total?: string; was?: string },
     rvShown: null as string | null,
     booking: null as null | { id: Id; nights: QuoteReply["nights"]; email: string; first: string; refs: string[] },
     /** Two rooms for a party no one room sleeps: reserved one after the other, the details kept. */
@@ -189,7 +189,59 @@ export function fresh(day: string) {
     sheetBusy: null as string | null,
     /** The desk's live stream is down and being opened again. */
     reconnecting: false,
+    /** Paying as the guest reserves (where the house lets them choose): now, or at the desk. */
+    payPick: "now" as "now" | "desk",
+    /** On the way to the pay page: "Taking you to the secure payment page…". */
+    paying: false,
+    /** Back from the pay page: what became of the payment, as the stay now says. */
+    payBack: null as PayBack | null,
+    /** The desk's refund of money paid online: two steps, what and why, then the one sentence that says what will happen. */
+    rf: null as null | { stayId: Id; payId: Id; cap: number; step: 1 | 2; amount: string; reason: string; touched: boolean; key: string; busy: boolean },
   };
+}
+
+/**
+ * Back from the pay page, for one stay: being checked; paid; not finished
+ * (the room still reserved, or still held while the guest may try again); or
+ * the room gone because the payment did not come in time.
+ */
+export interface PayBack {
+  /** `bank`: the bank is confirming it (some ways take days); the room is kept, and the guest is not to pay again. */
+  stage: "checking" | "paid" | "failed" | "bank";
+  id: Id;
+  /** `first`: the stay waited for the payment (its room held); `choice`: it was booked at once. */
+  how: "choice" | "first";
+  /** What is due online now, as the stay last said. */
+  due: number;
+}
+
+/** What the tab keeps while the guest is on the pay page: the stay, how it was reserved, and its confirmation. */
+interface PayingMark {
+  id: Id;
+  how: "choice" | "first";
+  at: number;
+  booking: { id: Id; nights: QuoteReply["nights"]; email: string; first: string; refs: string[] };
+}
+const PAYING_SLOT = "wh.paying";
+const PAYING_FOR = 2 * 60 * 60_000;
+
+function keptPaying(): PayingMark | null {
+  try {
+    const raw = typeof sessionStorage === "undefined" ? null : sessionStorage.getItem(PAYING_SLOT);
+    const mark = raw === null ? null : (JSON.parse(raw) as PayingMark);
+    return mark !== null && typeof mark.at === "number" && Date.now() - mark.at < PAYING_FOR ? mark : null;
+  } catch {
+    return null;
+  }
+}
+function keepPaying(mark: PayingMark | null): void {
+  try {
+    if (typeof sessionStorage === "undefined") return;
+    if (mark === null) sessionStorage.removeItem(PAYING_SLOT);
+    else sessionStorage.setItem(PAYING_SLOT, JSON.stringify(mark));
+  } catch {
+    // storage refused: the guest comes back to their reservation by its link instead
+  }
 }
 export type State = ReturnType<typeof fresh> & {
   theme: "light" | "dark";
@@ -223,6 +275,10 @@ export class HouseApp {
   /** Offers & gift cards is in use: a booking takes a code, a payment a gift card, the guest site reads a balance. */
   codesOn = false;
   cardsOn = false;
+  /** The guest site: whether the house takes payments online right now, and whether someone is rehearsing it. */
+  payOnline = { online: false, test: false };
+  /** The desk: whether the house takes payments, guests can pay online now, this person rehearses it, and may refund. */
+  payDesk = { on: false, online: false, test: false, refund: false };
   now = Date.now();
   private skew = 0;
   private version = 0;
@@ -347,11 +403,21 @@ export class HouseApp {
       this.linenOn = "linen" in config && config.linen === true;
       this.codesOn = ("codes" in config && config.codes === true) || ("offers" in config && config.offers === true);
       this.cardsOn = ("giftCards" in config && config.giftCards === true) || ("offers" in config && config.offers === true);
+      if ("payments" in config && config.payments !== undefined) this.payDesk = config.payments;
       setCurrency(config.currency);
       if (config.now) this.skew = Date.parse(config.now) - Date.now();
       this.now = Date.now() + this.skew;
       const today = this.day;
       const roles = this.persona === "desk" ? (await this.ports.desk!.me()).roles : [];
+      // Paying online: asked once, beside the house; a door that cannot, or does not answer, leaves every screen as it always was.
+      if (this.persona === "guest")
+        void this.ports.guest!.payments?.().then(
+          (said) => {
+            this.payOnline = said;
+            this.bump();
+          },
+          () => undefined,
+        );
       const view: View = this.persona === "desk" ? (onlyHousekeeping(roles) ? "rack" : "today") : "home";
       this.setState({ ...fresh(today), view, loadError: false });
     } catch {
@@ -537,7 +603,7 @@ export class HouseApp {
   closeTop(): void {
     const s = this.state as unknown as Record<string, unknown>;
     const K: [string, unknown][] = [
-      ["rowMenu", null], ["voidT", null], ["settleOpen", false], ["chargeOpen", false], ["cancelId", null], ["ddOpen", false], ["expectId", null],
+      ["rowMenu", null], ["rf", null], ["voidT", null], ["settleOpen", false], ["chargeOpen", false], ["cancelId", null], ["ddOpen", false], ["expectId", null],
       ["moveId", null], ["blockId", null], ["checkinId", null], ["checkoutId", null], ["chg", null], ["roomN", null],
       ["linenOpen", false], ["calDay", null], ["navOpen", false], ["staffMenu", false], ["listMenu", false], ["deskQuery", ""],
     ];
@@ -828,10 +894,17 @@ export class HouseApp {
     await this.reserve(false);
   }
   private clientKey = "";
+  /** What the house asks of a guest who reserves, as it stands now: nothing, unless it takes payments online right now. */
+  payMode(): "none" | "optional" | "required" {
+    const mode = this.world()?.H.payAtBooking ?? "none";
+    return this.payOnline.online && this.ports.guest?.reserveAndPay !== undefined && this.state.pair === null ? mode : "none";
+  }
   async reserve(accepted: boolean): Promise<void> {
     const s = this.state;
     const t = s.pickedType;
     if (t === null) return;
+    const mode = this.payMode();
+    const how: "choice" | "first" | null = mode === "required" ? "first" : mode === "optional" && s.payPick === "now" ? "choice" : null;
     if (!this.clientKey) this.clientKey = mintKey();
     const f = s.form;
     const shown = accepted ? s.rvAnswer?.total ?? s.rvShown : s.rvShown;
@@ -857,7 +930,7 @@ export class HouseApp {
       ...(shown ? { expect: { total: shown } } : {}),
     };
     try {
-      const reply = await this.ports.guest!.reserve(body, this.clientKey);
+      const reply = how === null ? await this.ports.guest!.reserve(body, this.clientKey) : await this.ports.guest!.reserveAndPay!(body, this.clientKey, how);
       this.clientKey = "";
       const guests = s.pair === null ? s.search.guests : s.pair.guests[s.pair.step];
       const quote = this.quote(t, s.search.arrive, s.search.depart, guests, this.pickedExtras(f), s.codes).value;
@@ -877,7 +950,19 @@ export class HouseApp {
         return;
       }
       const refs = s.pair === null ? [ref] : [...s.pair.refs, ref];
-      this.setState({ linkStay: linked ? reply.data.id : this.state.linkStay, rvBusy: false, booking: { id: reply.data.id, nights: quote?.nights ?? [], email: f.email.trim(), first: f.first.trim(), refs }, form: blankForm(), rvShown: null, pair: null });
+      const booking = { id: reply.data.id, nights: quote?.nights ?? [], email: f.email.trim(), first: f.first.trim(), refs };
+      // Paid as it is made: off to the pay page, the confirmation kept for the way back.
+      if (how !== null && (reply.payUrl ?? null) !== null && linked) {
+        this.setState({ linkStay: reply.data.id, rvBusy: false, booking, rvShown: null, pair: null });
+        this.handOff({ id: reply.data.id, how, at: Date.now(), booking }, reply.payUrl!);
+        return;
+      }
+      this.setState({ linkStay: linked ? reply.data.id : this.state.linkStay, rvBusy: false, booking, form: blankForm(), rvShown: null, pair: null });
+      // Asked to pay first and no pay page to go to just now: the stay waits for its payment, which the guest may try again.
+      if (how === "first") {
+        this.go("conf", { payBack: { stage: "failed", id: reply.data.id, how, due: Number(reply.data["pay_due"] ?? 0) } });
+        return;
+      }
       this.go("conf");
       this.toast(tr("Reserved — {ref}.", { ref: refs.join(" · ") }));
     } catch (error) {
@@ -994,9 +1079,11 @@ export class HouseApp {
    * Where a guest's page was opened from: a sign-in link (`c#<code>`) waits for Continue; a stay's own link
    * (`r#<code>`) opens that stay; otherwise a session this tab kept brings the guest back as they were.
    */
-  async arrive(place: "c" | "r" | "g" | null, token: string | null): Promise<void> {
+  async arrive(place: "c" | "r" | "g" | "p" | null, token: string | null): Promise<void> {
     const guest = this.ports.guest;
     if (guest === undefined) return;
+    // Back from the pay page: the stay this tab was paying for, by the link it opened. Nothing kept: as any arrival.
+    if (place === "p" && (await this.backFromPaying())) return;
     if (place === "g") {
       // A gift card's own link, from its email: its balance, read once by the link's code.
       this.go("giftcard");
@@ -1078,6 +1165,121 @@ export class HouseApp {
   }
   openOne(id: Id): void {
     this.go("one", { oneId: id, extraRefused: "", chg: null });
+  }
+
+  // ── the guest's side: paying online ────────────────────────────────────
+
+  /** "Taking you to the secure payment page…": the tab keeps what it needs for the way back, then goes. */
+  private handOff(mark: PayingMark, payUrl: string): void {
+    this.setState({ paying: true, payBack: null });
+    const guest = this.ports.guest!;
+    if (guest.payInDemo !== undefined) {
+      // The demo's pay page: no money moves, and the guest is back at once, paid.
+      void (async () => {
+        await new Promise((resolve) => setTimeout(resolve, 900));
+        await guest.payInDemo!(mark.id);
+        this.forget("guest:linked");
+        this.forget("guest:mine");
+        this.setState({ paying: false, form: blankForm() });
+        this.go("conf", { booking: mark.booking, linkStay: mark.id, payBack: { stage: "paid", id: mark.id, how: mark.how, due: 0 } });
+      })();
+      return;
+    }
+    keepPaying(mark);
+    window.location.assign(payUrl);
+  }
+  /** Pay again, for a stay whose payment did not finish: what is due is Adminium's. */
+  async payAgain(): Promise<void> {
+    const back = this.state.payBack;
+    const booking = this.state.booking;
+    if (back === null || booking === null || this.state.paying) return;
+    this.setState({ paying: true });
+    try {
+      const url = await this.ports.guest!.startPay!(back.id);
+      this.handOff({ id: back.id, how: back.how, at: Date.now(), booking }, url);
+    } catch (error) {
+      this.setState({ paying: false });
+      // The room went meanwhile (the hold ended), or there is nothing to pay any more: read the stay again and say so.
+      void this.checkPayment(0);
+      this.toast(this.refused(error), "warn");
+    }
+  }
+  /** Back from the pay page (`…/paid`): the stay the tab was paying for, read again until it says what happened. */
+  async backFromPaying(): Promise<boolean> {
+    const mark = keptPaying();
+    keepPaying(null);
+    if (mark === null) return false;
+    this.setState({ linkStay: mark.id, booking: mark.booking, payBack: { stage: "checking", id: mark.id, how: mark.how, due: 0 } });
+    this.go("conf");
+    await this.checkPayment(8);
+    return true;
+  }
+  /**
+   * Reads the stay being paid for: paid online, it is paid; the room gone for want of the payment, the reserve
+   * card says so; otherwise asked again, a few times, before it says the payment did not finish.
+   */
+  async checkPayment(tries: number): Promise<void> {
+    const back = this.state.payBack;
+    if (back === null) return;
+    const guest = this.ports.guest!;
+    // What Adminium says of the payment, and what the stay now says; either may not answer, and then the other speaks.
+    const [said, row] = await Promise.all([
+      guest.paymentState === undefined ? Promise.resolve(null) : guest.paymentState(back.id).catch(() => null),
+      guest.linkedStay().then((got) => got.stay, () => null),
+    ]);
+    if (this.state.payBack?.id !== back.id) return;
+    const again = async (ms: number, left: number) => {
+      await new Promise((resolve) => setTimeout(resolve, ms));
+      if (this.state.payBack?.id === back.id) return this.checkPayment(left);
+    };
+    if (said !== null && said.state !== "paid") {
+      if (row !== null && row["status"] === "cancelled" && yes(row["pay_lapsed"])) return this.roomNotKept(row);
+      // The service has not said yet: "Checking your payment…", and asked again — sooner at first, then now and then.
+      if (said.state === "open") {
+        if (back.stage !== "checking") this.setState({ payBack: { ...back, stage: "checking" } });
+        if (tries > 0) return again(2_500, tries - 1);
+        void again(15_000, 0);
+        return;
+      }
+      // The bank is confirming it: the room is kept, and the guest is told not to pay again.
+      if (said.state === "confirming") {
+        this.setState({ payBack: { ...back, stage: "bank", due: Number(row?.["pay_due"] ?? back.due) } });
+        void again(60_000, 0);
+        return;
+      }
+      // Failed, expired, or none started: it did not finish, and nothing was taken.
+      this.setState({ payBack: { ...back, stage: "failed", due: Number(row?.["pay_due"] ?? back.due) } });
+      if (back.how === "first") void again(30_000, 0);
+      return;
+    }
+    if (row !== null && Number(row["paid_online"] ?? 0) > 0.004) {
+      this.forget("guest:linked");
+      this.forget("guest:mine");
+      this.setState({ payBack: { ...back, stage: "paid", due: Number(row["pay_due"] ?? 0) } });
+      return;
+    }
+    if (row !== null && row["status"] === "cancelled" && yes(row["pay_lapsed"])) {
+      this.roomNotKept(row);
+      return;
+    }
+    // Paid, and the stay not saying so yet (its write is on its way); or a door that cannot say: the stay is read again.
+    if (tries > 0) return again(2_000, tries - 1);
+    if (said?.state === "paid") return again(5_000, 0);
+    this.setState({ payBack: { ...back, stage: "failed", due: Number(row?.["pay_due"] ?? back.due) } });
+    // A room held while its guest pays: still held for a while; looked at again, so the page says when it goes.
+    if (back.how === "first") setTimeout(() => void (this.state.payBack?.stage === "failed" && this.state.payBack.id === back.id ? this.checkPayment(0) : undefined), 30_000);
+  }
+  /** The hold ended before the payment came: the reserve card again, for the same room and dates, saying so. */
+  private roomNotKept(row: Row): void {
+    const f = this.state.form;
+    this.setState({
+      payBack: null,
+      paying: false,
+      pickedType: String(row["room_type_id"]),
+      search: { arrive: String(row["arrive"]).slice(0, 10), depart: String(row["depart"]).slice(0, 10), guests: Number(row["guests"] ?? 2) },
+      form: { ...f, first: String(row["first_name"] ?? f.first), last: String(row["last_name"] ?? f.last), email: String(row["email"] ?? f.email) },
+    });
+    this.go("reserve", { rvAnswer: { kind: "unpaid" }, rvBusy: false });
   }
 
   // ── the guest's side: one reservation ──────────────────────────────────

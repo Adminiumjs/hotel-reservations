@@ -4,9 +4,12 @@
  * house's "Email guests" switch in Settings is off.
  *
  *   stay-made                  a reservation made online: the dates, the room
- *                              type, the nights and extras, what it costs, when
- *                              it can be cancelled at no charge, and the link
- *                              that opens it;
+ *                              type, the nights and extras, what it costs (and
+ *                              what was paid online), when it can be cancelled
+ *                              at no charge, and the link that opens it. A
+ *                              stay made waiting for its payment is confirmed
+ *                              when the payment books it: its message on
+ *                              making waits a few seconds and is dropped;
  *   stay-made-desk             a reservation the desk took, when the guest
  *                              gave an email: the same without the link (a
  *                              desk booking is nobody's signed-in reservation
@@ -23,6 +26,12 @@
  *                              the old one — one email for each change;
  *   stay-new-link              a signed-in guest asked for a new link to a
  *                              reservation: the new one, the old one stopped;
+ *   stay-made-pay              the same, while the house takes payments online:
+ *                              its preheader says what it costs, never that
+ *                              nothing is taken online;
+ *   stay-folio-owing-pay       the folio so far while the house takes payments
+ *                              online: what the guest owes, and a button to
+ *                              pay it by the stay's own pay link;
  *   stay-folio(-owing)         the desk emails the folio, with Invoices &
  *                              Receipts' document attached: settled ("thank
  *                              you for staying") or so far, with what is still
@@ -55,7 +64,11 @@ export const KINDS = [
   "stay-new-link",
   "stay-folio",
   "stay-folio-owing",
+  "stay-made-pay",
+  "stay-folio-owing-pay",
 ] as const;
+/** The kinds sent only while the house takes payments online, each the payments-on twin of another. */
+export const PAY_KINDS = ["stay-made-pay", "stay-folio-owing-pay"] as const;
 export type Kind = (typeof KINDS)[number];
 
 const GATE = { gate: { setting: { table: "settings", column: "guest_emails_on" } } };
@@ -71,6 +84,19 @@ const onStay = (column: string, to: unknown, where?: Record<string, unknown>) =>
 const cancelled = (code: string) => onStay("status", "cancelled", { column: "cancel_code", eq: code });
 const cancelledLate = (code: string) => onStay("late_cancel", true, { column: "cancel_code", eq: code });
 const unlessLate = { holdSeconds: 30, dropWhen: [{ column: "late_cancel", eq: true, reason: "no-longer-needed" }] };
+
+/**
+ * A reservation made online, confirmed: on making it, and — for one made waiting for its payment — when the payment
+ * books it (its message on making waits a few seconds and is dropped). `payments` picks the twin that goes.
+ */
+function madeProducers(kind: Kind, payments: "on" | "off") {
+  const wait = { holdSeconds: 5, dropWhen: [{ column: "status", in: ["pending_payment", "cancelled"], reason: "no-longer-needed" }], payments };
+  return [
+    { kind, link: "stay_id", ...GATE, onCreate: { table: "stays", where: { column: "channel", eq: "online" } }, ...wait },
+    // One booked from the start had its confirmation already, and is not told again.
+    { kind, link: "stay_id", ...GATE, onChange: { table: "stays", column: "status", to: "booked", where: { column: "channel", eq: "online" } }, ...wait },
+  ];
+}
 
 export const OUTBOX = {
   table: "messages",
@@ -104,7 +130,8 @@ export const OUTBOX = {
   // Every email is about a guest's own reservation: none is stopped by the do-not-email list.
   classes: Object.fromEntries(KINDS.map((kind) => [kind, "service"])),
   producers: [
-    { kind: "stay-made", link: "stay_id", ...GATE, onCreate: { table: "stays", where: { column: "channel", eq: "online" } } },
+    // The confirmation: as ever while the house takes no payments online; its twin while it does.
+    ...(["off", "on"] as const).flatMap((payments) => madeProducers(payments === "off" ? "stay-made" : "stay-made-pay", payments)),
     { kind: "stay-made-desk", link: "stay_id", ...GATE, onCreate: { table: "stays", where: { column: "channel", eq: "desk" } } },
     { kind: "stay-cancelled-self", link: "stay_id", ...GATE, ...cancelled("self"), ...unlessLate },
     { kind: "stay-cancelled-self-late", link: "stay_id", ...GATE, ...cancelledLate("self") },
@@ -124,6 +151,7 @@ export const OUTBOX = {
     // "stay-new-link" is sent by Adminium when a signed-in guest makes a new link (no producer).
     // The folio, each time the desk sends it.
     { kind: "stay-folio", link: "stay_id", ...GATE, onChange: { table: "stays", columns: ["folio_sent_at"], changed: true }, repeat: true },
-    { kind: "stay-folio-owing", link: "stay_id", ...GATE, onChange: { table: "stays", columns: ["folio_so_far_at"], changed: true }, repeat: true },
+    { kind: "stay-folio-owing", link: "stay_id", ...GATE, onChange: { table: "stays", columns: ["folio_so_far_at"], changed: true }, repeat: true, payments: "off" },
+    { kind: "stay-folio-owing-pay", link: "stay_id", ...GATE, onChange: { table: "stays", columns: ["folio_so_far_at"], changed: true }, repeat: true, payments: "on" },
   ],
 };

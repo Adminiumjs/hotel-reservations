@@ -26,8 +26,12 @@ export const PUBLIC_REFS = {
   // What is open (a night pool per room type, and parking).
   nights: ["stays", "_availability"],
   parking: ["stay_extras", "_availability"],
-  // Reserving: a stay with its extras, priced by Adminium.
+  // Reserving: a stay with its extras, priced by Adminium. Paid as it is made: by the guest's choice, or before the room is theirs.
   reserve: ["stays", "_verified_3"],
+  reservePay: ["stays", "_verified_4"],
+  reservePayFirst: ["stays", "_verified_5"],
+  // Paying first is the house's rule, while it cannot take payments online: booked as always.
+  reserveRequiredOff: ["stays", "_verified_6"],
   // A signed-in guest: their account and their own stays.
   account: ["customers", "_claimed"],
   myStays: ["stays", "_verified"],

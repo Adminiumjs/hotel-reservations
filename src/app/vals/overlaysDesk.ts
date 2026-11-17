@@ -14,7 +14,7 @@ import { mintKey, type HouseApp } from "../house.ts";
 import type { RoomV, StV, WorldV } from "../world.ts";
 import { DESK } from "../sides.ts";
 import { closedOn, firstClosed, floorInLine, floorName, freeAcross, hasExtra, heldForOther, holds, inRoom, nightFig, parseMoney, roomStatus, statusWord } from "./desk.ts";
-import { cardWords, checkCard, unsure, confirmCheckin, doCheckOut, emailFolio, linen, linenCount, openFolio, openSettle, printFolio, putBackLinen, setRoomStatus } from "../desk.ts";
+import { backTo, cardWords, checkCard, copyPayLink, doRefund, onlineChip, payLinkOn, refundAmount, refundNext, unsure, confirmCheckin, doCheckOut, emailFolio, linen, linenCount, openFolio, openSettle, printFolio, putBackLinen, setRoomStatus } from "../desk.ts";
 
 type V = Record<string, unknown>;
 
@@ -120,6 +120,9 @@ export function deskOverlayVals(app: HouseApp, w: WorldV, v: V): void {
       owing,
       clear: !owing,
       blockTitle: tr("Not while there is {amount} on the account", { amount: strip(money(bal)) }),
+      // Or let them pay what is owing online, by the stay's pay link.
+      payLinkOn: owing && payLinkOn(app, os),
+      copyPayLink: () => void copyPayLink(app, os),
       blockBody: tr("Record what they pay — card, cash or a transfer, part of it if that is what they have — and the departure goes straight through."),
       goSettle,
       printOn: app.canPrint(),
@@ -271,6 +274,50 @@ export function deskOverlayVals(app: HouseApp, w: WorldV, v: V): void {
     };
   }
 
+  // ── refund money paid online: what and why, then the one sentence that says what will happen
+  const rf = s.rf;
+  const rst = rf === null ? null : app.stay(rf.stayId);
+  const rp = rf === null || rst === null ? undefined : rst.pays.find((x) => x.id === rf.payId);
+  if (DESK && rf !== null && rst !== null && rp !== undefined) {
+    const amount = refundAmount(rf);
+    const upTo = strip(money(rf.cap));
+    const paypal = backTo(rp.provider) === "paypal";
+    const amountErr = rf.touched && amount === null ? tr("Type an amount up to {amount}.", { amount: upTo }) : "";
+    const reasonErr = rf.touched && rf.reason.trim() === "" ? tr("Say why, in a few words.") : "";
+    const set = (patch: Partial<NonNullable<typeof rf>>) => app.setState({ rf: { ...app.state.rf!, ...patch } });
+    v["rf"] = {
+      open: true,
+      step1: rf.step === 1,
+      step2: rf.step === 2,
+      busy: rf.busy,
+      busyAttr: rf.busy ? "true" : "false",
+      title: paypal ? tr("Refund to the PayPal account") : tr("Refund to the card"),
+      sub: iso(`${rst.name} · ${rst.ref} · ${onlineChip(rp.provider)}`),
+      amount: rf.amount,
+      onAmount: (e: { target: { value: string } }) => set({ amount: e.target.value }),
+      help: tr("Up to {amount}.", { amount: upTo }),
+      amountErrOn: amountErr !== "",
+      amountErr,
+      amountInv: amountErr !== "" ? "true" : "false",
+      amountBorder: amountErr !== "" ? "var(--danger)" : "var(--border-strong)",
+      reason: rf.reason,
+      onReason: (e: { target: { value: string } }) => set({ reason: e.target.value }),
+      reasonErrOn: reasonErr !== "",
+      reasonErr,
+      reasonInv: reasonErr !== "" ? "true" : "false",
+      reasonBorder: reasonErr !== "" ? "var(--danger)" : "var(--border-strong)",
+      sentence: (paypal ? tr("Refund {amount} to the PayPal account {name} paid with, for {ref}. Reason: {reason}.", { amount: strip(money(amount ?? 0)), name: rst.name, ref: rst.ref, reason: rf.reason.trim().replace(/[.。]$/, "") }) : tr("Refund {amount} to the card {name} paid with, for {ref}. Reason: {reason}.", { amount: strip(money(amount ?? 0)), name: rst.name, ref: rst.ref, reason: rf.reason.trim().replace(/[.。]$/, "") })),
+      next: () => refundNext(app),
+      back: () => {
+        set({ step: 1 });
+        app.focusSoon("#rf-amount");
+      },
+      confirm: () => void doRefund(app),
+      confirmLabel: rf.busy ? tr("Refunding…") : tr("Refund"),
+      close: () => app.setState({ rf: null }),
+    };
+  }
+
   // ── record a payment, or money given back
   const sst = app.stay(s.settleId) ?? fst;
   if (DESK && s.settleOpen && sst !== null && desk) {
@@ -308,6 +355,10 @@ export function deskOverlayVals(app: HouseApp, w: WorldV, v: V): void {
       open: true,
       busy: s.sheetBusy === "se",
       back,
+      // "Or let them pay online": the stay's pay link, for what is owing, to send by email or read out.
+      payLinkOn: !back && payLinkOn(app, sst),
+      payLinkHint: tr("A pay link opens the pay page for {amount}. Send it by email, or read it out.", { amount: strip(money(Math.max(0, sst.m.balance))) }),
+      copyPayLink: () => void copyPayLink(app, sst, true),
       title: back ? tr("Record money given back") : tr("Record a payment"),
       balanceLabel: back ? tr("To give back") : tr("Balance"),
       balance: money(cap),

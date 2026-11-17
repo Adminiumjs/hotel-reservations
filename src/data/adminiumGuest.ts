@@ -33,6 +33,8 @@ export interface GuestConfig {
   publicKeys?: Readonly<Record<string, string>>;
   /** The app's tables' real names by their short ones. */
   tables?: Readonly<Record<string, string>>;
+  /** A staff member rehearsing the guest site in test mode: the token their writes carry. */
+  rehearsal?: { csrfToken: string };
 }
 
 export interface GuestOptions {
@@ -129,12 +131,12 @@ export class AdminiumGuest implements GuestPort {
     this.plainFetch = base;
     this.keys = { customer: config.publishableKey, link: linkKey };
     this.customerSession = keptSession("customer", storage, base, options.clock);
-    const reserveAt = `/api/v1/public/records/${this.refs.reserve}`;
+    const reserveAt = [this.refs.reserve, this.refs.reservePay, this.refs.reservePayFirst, this.refs.reserveRequiredOff].map((ref) => `/api/v1/public/records/${ref}`);
     // The client answers a create without the stay's own link: read it off the reply as it passes.
     const tapped: typeof fetch = async (input, init) => {
       const res = await this.customerSession.fetch(input, init);
       const url = typeof input === "string" ? input : input instanceof URL ? input.href : input.url;
-      if (res.ok && (init?.method ?? "GET").toUpperCase() === "POST" && url.split("?")[0]!.endsWith(reserveAt)) {
+      if (res.ok && (init?.method ?? "GET").toUpperCase() === "POST" && reserveAt.some((at) => url.split("?")[0]!.endsWith(at))) {
         try {
           const link = ((await res.clone().json()) as { link?: { key?: unknown; token?: unknown } }).link;
           this.lastLink = typeof link?.key === "string" && typeof link.token === "string" ? { key: link.key, token: link.token } : null;
@@ -150,11 +152,12 @@ export class AdminiumGuest implements GuestPort {
       if (kept() === this.linkSession) this.linkedId = null;
       for (const listener of this.endedListeners) listener(reason);
     };
-    const customer = createPublicClient({ baseUrl: config.baseUrl, publishableKey: config.publishableKey, fetch: tapped, onSessionEnded: ended(() => this.customerSession) });
+    const csrf = config.rehearsal === undefined ? {} : { csrfToken: config.rehearsal.csrfToken };
+    const customer = createPublicClient({ baseUrl: config.baseUrl, publishableKey: config.publishableKey, fetch: tapped, onSessionEnded: ended(() => this.customerSession), ...csrf });
     if (customer === null) throw new Error("the guest site needs Adminium's address and the house's browser key");
     this.customer = customer;
     this.linkSession = linkKey === null ? null : keptSession("link", storage, base, options.clock);
-    this.link = linkKey === null || this.linkSession === null ? null : createPublicClient({ baseUrl: config.baseUrl, publishableKey: linkKey, fetch: this.linkSession.fetch, onSessionEnded: ended(() => this.linkSession) });
+    this.link = linkKey === null || this.linkSession === null ? null : createPublicClient({ baseUrl: config.baseUrl, publishableKey: linkKey, fetch: this.linkSession.fetch, onSessionEnded: ended(() => this.linkSession), ...csrf });
   }
   private endedListeners: ((reason: "elsewhere" | "forgotten") => void)[] = [];
   onSessionEnded(listener: (reason: "elsewhere" | "forgotten") => void): void {
@@ -216,9 +219,32 @@ export class AdminiumGuest implements GuestPort {
 
   // ── reserving ──────────────────────────────────────────────────────────────
 
+  /**
+   * The booking door open now. Which one is the house's setting and whether it takes payments online right now
+   * (`requireSetting`, `requirePayments`); a shut door answers `PUBLIC_SWITCHED_OFF` and writes nothing, so the next
+   * is tried. The one that answered is tried first next time.
+   */
+  private openDoor: string | null = null;
+  private async throughOpenDoor<T>(doors: string[], run: (ref: string) => Promise<T>): Promise<T> {
+    const order = this.openDoor !== null && doors.includes(this.openDoor) ? [this.openDoor, ...doors.filter((d) => d !== this.openDoor)] : doors;
+    let last: unknown = null;
+    for (const ref of order) {
+      try {
+        const got = await run(ref);
+        this.openDoor = ref;
+        return got;
+      } catch (error) {
+        if ((error as { code?: unknown } | null)?.code !== "PUBLIC_SWITCHED_OFF") throw error;
+        last = error;
+      }
+    }
+    throw last;
+  }
+
   quote(body: StayBody): Promise<QuoteReply> {
     return answer(async () => {
-      const got = await this.customer.quote(this.refs.reserve, { values: body.values, children: body.children });
+      const r = this.refs;
+      const got = await this.throughOpenDoor([r.reserve, r.reserveRequiredOff, r.reservePayFirst], (ref) => this.customer.quote(ref, { values: body.values, children: body.children }));
       const raw = got as unknown as { nights?: unknown };
       return {
         data: got.data,
@@ -231,10 +257,40 @@ export class AdminiumGuest implements GuestPort {
     });
   }
 
+  /** Booked unpaid: as always, or while paying first is the house's rule and it cannot take payments online right now. */
   reserve(body: StayBody, clientKey: string): Promise<StayReply> {
+    return this.throughOpenDoor([this.refs.reserve, this.refs.reserveRequiredOff], (ref) => this.reserveAt(ref, body, clientKey));
+  }
+
+  /** Reserved and paid as it is made: through the door the house's setting opens (the guest's choice, or payment first). */
+  reserveAndPay(body: StayBody, clientKey: string, how: "choice" | "first"): Promise<StayReply> {
+    return this.reserveAt(how === "choice" ? this.refs.reservePay : this.refs.reservePayFirst, body, clientKey);
+  }
+
+  payments(): Promise<{ online: boolean; test: boolean }> {
+    return answer(async () => {
+      const got = await this.customer.payments.available();
+      return { online: got.online, test: got.test === true };
+    });
+  }
+
+  /** How the stay's newest online payment stands, read through the door that reads the stay. */
+  paymentState(id: Id): Promise<{ state: "none" | "open" | "confirming" | "paid" | "failed" | "expired"; test: boolean }> {
+    return answer(async () => {
+      const said = this.byLink(id) ? await this.link!.payments.state(this.refs.linkStay, String(id)) : await this.customer.payments.state(this.refs.myStays, String(id));
+      return { state: said.state, test: said.test === true };
+    });
+  }
+
+  /** Where to pay for one of the guest's stays: through the door that reads it (its own link, or the signed-in guest). */
+  startPay(id: Id): Promise<string> {
+    return answer(async () => (this.byLink(id) ? await this.link!.payments.start(this.refs.linkStay, String(id)) : await this.customer.payments.start(this.refs.myStays, String(id))).payUrl);
+  }
+
+  private reserveAt(ref: string, body: StayBody, clientKey: string): Promise<StayReply> {
     return answer(async () => {
       this.lastLink = null;
-      const got = await this.customer.createTree<Row>(this.refs.reserve, {
+      const got = await this.customer.createTree<Row>(ref, {
         values: { ...body.values, client_key: clientKey },
         children: body.children,
         ...(body.expect === undefined ? {} : { expect: body.expect }),
@@ -247,6 +303,7 @@ export class AdminiumGuest implements GuestPort {
         ...(link === null || got.replayed ? {} : { link }),
         // From the save, never from the quote before it.
         ...(appliedOf(got.applied) === undefined ? {} : { applied: appliedOf(got.applied)! }),
+        payUrl: got.payUrl,
       };
     });
   }

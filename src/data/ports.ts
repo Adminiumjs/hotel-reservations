@@ -70,6 +70,30 @@ export interface GuestPort {
   /** The stay reserved. `clientKey` makes a retry land on the same stay. */
   reserve(body: StayBody, clientKey: string): Promise<StayReply>;
 
+  /**
+   * Paying online. Absent from a door that cannot (an older Adminium): the
+   * screens then read exactly as they always have.
+   *
+   * `payments` says whether the house takes payments online right now, and
+   * whether this is someone who manages payments rehearsing it (test mode).
+   * `reserveAndPay` reserves as `reserve` does, paid as it is made — by the
+   * guest's choice (`choice`, the stay booked at once) or before the room is
+   * theirs (`first`, the stay made waiting for its payment) — and answers
+   * where to pay. `startPay` answers where to pay for one of the guest's own
+   * stays now: what it asks is Adminium's, never the page's. `payInDemo` is
+   * the demo's stand-in for the pay page (no money moves); only the demo has it.
+   */
+  payments?(): Promise<{ online: boolean; test: boolean }>;
+  /**
+   * How the newest online payment of one of the guest's stays stands, as Adminium says it to someone back from the
+   * pay page: none started, a checkout still open, the bank confirming it, paid, failed or expired. One word and
+   * nothing else. Absent from a door that cannot say (an older Adminium): the page reads the stay again instead.
+   */
+  paymentState?(id: Id): Promise<{ state: "none" | "open" | "confirming" | "paid" | "failed" | "expired"; test: boolean }>;
+  reserveAndPay?(body: StayBody, clientKey: string, how: "choice" | "first"): Promise<StayReply>;
+  startPay?(id: Id): Promise<string>;
+  payInDemo?(id: Id): Promise<void>;
+
   /** Opens the stay behind its own link (the code in the link's fragment). */
   openLink(token: string): Promise<ClaimReply>;
   /** The stay the link opened. */
@@ -141,7 +165,11 @@ export interface DeskPort {
    * `linen`: Inventory is in use, so Today counts the linen and the rack can put it back.
    * `codes`, `giftCards`: Offers & gift cards is in use, so a booking takes a code and a payment a gift card.
    */
-  config(): Promise<{ timezone: string | null; currency: string | null; now?: string; folio?: boolean; linen?: boolean; codes?: boolean; giftCards?: boolean }>;
+  /**
+   * `payments`: whether the house takes payments (switched on in Adminium's Payments), whether guests can pay online
+   * right now, whether this person is rehearsing it, and whether they may give money paid online back. Absent: none of it.
+   */
+  config(): Promise<{ timezone: string | null; currency: string | null; now?: string; folio?: boolean; linen?: boolean; codes?: boolean; giftCards?: boolean; payments?: { on: boolean; online: boolean; test: boolean; refund: boolean } }>;
   house(): Promise<DeskHouse>;
 
   /** Every stay on the book, with its extras. */
@@ -190,6 +218,13 @@ export interface DeskPort {
   recordCardPayment(stayId: Id, code: string, amount: string, key: string): Promise<Row>;
   /** Money back to the card a payment came from: the payment is named, never a code. `key` as above: never given back twice. */
   giveBackToCard(stayId: Id, paymentId: Id, amount: string, note: string, key: string): Promise<Row>;
+  /**
+   * Paying online. `payLink` copies the stay's pay link: the one the guest already holds while it works, else a new
+   * one, which works until `expiresAt`. `refundOnline` gives money paid online back, as a given-back row naming the
+   * payment: Adminium asks the refund right, sends the money back through the service and stamps the row.
+   */
+  payLink?(stayId: Id): Promise<{ url: string; expiresAt: number }>;
+  refundOnline?(stayId: Id, paymentId: Id, amount: string, note: string, key: string): Promise<Row>;
 
   /** The linen the room types send to the laundry, with what the books hold in the store and away. Empty without Inventory. */
   linen(): Promise<LinenRow[]>;

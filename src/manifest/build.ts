@@ -14,17 +14,20 @@ import { DOCUMENTS } from "./documents.ts";
 import { emailTemplates } from "./emails.ts";
 import { KINDS, OUTBOX } from "./outbox.ts";
 import { NAV_GROUPS, pages } from "./pages.ts";
+import { PAYMENTS } from "./payments.ts";
 import { PEOPLE } from "./people.ts";
 import { PUBLIC_ACCESS, PUBLIC_KEYS } from "./public.ts";
 import { ROLES } from "./roles.ts";
 import { TABLES } from "./tables.ts";
 
 /**
- * This release: a house may install the desk once per database, each install's
- * screens saying which install they are, on 0.3.0's tables (0.3.1 brought the
- * house's guests, its emails' class and the tick kept in the consent log).
+ * This release: a booking and a folio paid online, once the house takes
+ * payments in Adminium — one night or the whole stay as a guest reserves, if
+ * they want or before the room is theirs; what is left on a folio by a pay
+ * link; refunds as the house's own rows, given back by themselves after a
+ * cancellation in time. Payments off, every screen reads as it did in 0.3.2.
  */
-export const VERSION = "0.3.2";
+export const VERSION = "0.3.3";
 
 /**
  * The Adminium release that first reads everything below: rooms counted night
@@ -35,10 +38,14 @@ export const VERSION = "0.3.2";
  * type's linen and amenities posted at check-out; and (0.3.38) the house's
  * guests, each email's class, the tables the law keeps and the reservation's
  * tick kept in the consent log; and (0.3.49) the same app installed once per
- * database, each install's screens at their own address. Written from the
- * version actually released, never guessed.
+ * database, each install's screens at their own address; and (0.3.60) a
+ * booking and a folio paid online, refunds kept as the house's own rows, and a
+ * stay made waiting for its payment; and (0.3.61) how a guest's payment stands
+ * when they come back from the pay page; and (0.3.62) the booking doors and
+ * the emails that follow whether the house takes payments online right now.
+ * Written from the version actually released, never guessed.
  */
-export const MIN_ADMINIUM = "0.3.49";
+export const MIN_ADMINIUM = "0.3.62";
 
 const ENV = {
   VITE_ADMINIUM_API_BASE_URL: { required: false, example: "https://admin.example.com" },
@@ -48,7 +55,7 @@ const ENV = {
 /** The desk's screens open on one address; their tabs are its own. */
 export const STAFF_ROUTES = { desk: "/" };
 
-/** The guest site. A reservation's own link lands on `/r`, its code in the fragment. */
+/** The guest site. A reservation's own link lands on `/r`, its code in the fragment; back from paying online, on `/paid`. */
 export const CUSTOMER_ROUTES = {
   home: "/",
   rooms: "/rooms",
@@ -56,6 +63,7 @@ export const CUSTOMER_ROUTES = {
   results: "/results",
   reserve: "/reserve",
   reservation: "/r",
+  paid: "/paid",
   signIn: "/sign-in",
   reservations: "/reservations",
   // A gift card's balance: the key Offers & gift cards' own email looks for.
@@ -101,6 +109,8 @@ export function buildManifest(): Record<string, unknown> {
     outbox: OUTBOX,
     people: PEOPLE,
     emailTemplates: emailTemplates(KINDS),
+    // A stay paid online: one night or the whole stay as it is reserved, and what is left on its folio. Switched on in Adminium's Payments.
+    payments: PAYMENTS,
     // The house's own sample; and, while Inventory's sample is in, each room type linked to its "Room turnover" kit.
     sampleData: { file: "seeds/hotel.sample.json", addOns: { inventory: { file: "seeds/hotel.inventory.sample.json" } } },
   };

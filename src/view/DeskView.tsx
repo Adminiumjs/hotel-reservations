@@ -1374,6 +1374,12 @@ export function DeskView({ v }: { v: any }) {
                               <span style={st(`font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;background:${v.fo.pillBg};color:${v.fo.pillFg}`)}>
                                 {v.fo.pill}
                               </span>
+                              {v.fo.owedOn ? (
+                                <span style={st("display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:800;padding:3px 9px;border-radius:999px;background:var(--warn-soft);color:var(--warn)")}>
+                                  <span data-icon="undo-2" style={st("display:inline-flex;inline-size:12px;block-size:12px")}><Icon name={"undo-2"} /></span>
+                                  {v.fo.owedLabel}
+                                </span>
+                              ) : null}
                             </div>
                             {" "}
                             <div style={st("font-family:var(--mono);font-size:12px;color:var(--fg-subtle);margin-block-start:4px")}>
@@ -1482,14 +1488,20 @@ export function DeskView({ v }: { v: any }) {
                                 {" "}
                                 {r.hasDetail ? (
                                   <>
-                                    <span style={st("display:block;font-size:11.5px;color:var(--fg-subtle);margin-block-start:2px")}>
+                                    <span style={st(`display:block;font-size:11.5px;color:${r.detailFg ?? "var(--fg-subtle)"};margin-block-start:2px`)}>
                                       {r.detail}
                                     </span>
                                   </>
                                 ) : null}
                               </span>
                               {" "}
-                              <span style={st(`font-family:var(--mono);font-size:13px;font-weight:600;text-align:end;color:${r.amountFg};white-space:nowrap;text-decoration:${r.strike}`)}>
+                              <span style={st(`font-family:var(--mono);font-size:13px;font-weight:600;text-align:end;color:${r.amountFg};white-space:nowrap;text-decoration:${r.strike};display:flex;align-items:center;justify-content:flex-end;gap:7px;flex-wrap:wrap`)}>
+                                {r.chip ? (
+                                  <span style={st("display:inline-flex;align-items:center;gap:4px;font-family:Manrope, system-ui, sans-serif;font-size:10.5px;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--info-soft);color:var(--info);text-decoration:none")}>
+                                    <span data-icon="globe" style={st("display:inline-flex;inline-size:11px;block-size:11px")}><Icon name={"globe"} /></span>
+                                    {r.chip}
+                                  </span>
+                                ) : null}
                                 {r.amount}
                               </span>
                               {" "}
@@ -1502,6 +1514,12 @@ export function DeskView({ v }: { v: any }) {
                               ) : null}
                               {" "}
                               <span style={st("display:flex;justify-content:flex-end")}>
+                                {r.refundOn ? (
+                                  <button onClick={r.refund} aria-label={`${r.refundLabel} ${r.amount}`} title={r.refundLabel} style={st("block-size:26px;display:inline-flex;align-items:center;gap:5px;padding:0 8px;border:1px solid var(--border-strong);border-radius:7px;background:var(--surface);color:var(--fg);font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap")} className={fx("background:var(--surface-3)", null)}>
+                                    <span data-icon="undo-2" style={st("display:inline-flex;inline-size:12px;block-size:12px")}><Icon name={"undo-2"} /></span>
+                                    {r.refundLabel}
+                                  </button>
+                                ) : null}
                                 {r.menu ? (
                                   <>
                                     <button onClick={r.toggleMenu} aria-haspopup="menu" aria-label={tr("More for this line")} title={tr("More")} style={st("inline-size:26px;block-size:26px;display:grid;place-items:center;border:0;border-radius:7px;background:transparent;color:var(--fg-subtle);cursor:pointer")} className={fx("background:var(--surface-3)", null)}>

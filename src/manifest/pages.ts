@@ -264,6 +264,9 @@ const SPECS: PageSpec[] = [
         f("ref_start", { control: "number" }),
       ],
       [toggle("guest_emails_on")],
+      // Paying online: what a guest pays as they reserve, how long their room is held while they pay, and whether a
+      // cancellation in time gives the money back by itself. None of it does anything until the house takes payments.
+      [f("pay_at_booking"), f("pay_how_much", { control: "segmented" }), f("pay_hold_minutes", { control: "stepper" }), toggle("auto_refund")],
     ),
   },
   {

@@ -207,6 +207,7 @@ export class AdminiumDesk implements DeskPort {
       linen: this.cfg.addOns["inventory"] !== undefined,
       codes: this.cfg.addOns["offers"] !== undefined,
       giftCards: this.cfg.addOns["offers"] !== undefined,
+      payments: this.cfg.payments,
     };
   }
 
@@ -601,6 +602,30 @@ export class AdminiumDesk implements DeskPort {
 
   giveBackToCard(stayId: Id, paymentId: Id, amount: string, note: string, key: string): Promise<Row> {
     return answer(() => this.payOnce({ stay_id: stayId, kind: "given_back", method: "gift_card", against_id: paymentId, amount: amount.trim(), note: note.trim() }, key));
+  }
+
+  // ── paying online ─────────────────────────────────────────────────────────
+
+  /*
+   * A stay's pay link, as Adminium's payment panel makes it: the one the guest
+   * already holds while it works (`POST /payments/links/current`), else a new
+   * one (`POST /payments/links`). Each asks the stay's update grant.
+   */
+  payLink(stayId: Id): Promise<{ url: string; expiresAt: number }> {
+    return answer(async () => {
+      const payable = { kind: "profile", connectionId: this.cfg.connectionId ?? (await this.t.connection()), tableName: await this.t.tableId(this.real("stays")), rowKey: String(stayId) };
+      const current = await this.mutate<{ data?: { url?: string; expiresAt?: number } | null }>("/api/v1/payments/links/current", "POST", payable);
+      if (typeof current.data?.url === "string" && typeof current.data.expiresAt === "number") return { url: current.data.url, expiresAt: current.data.expiresAt };
+      const made = await this.mutate<{ data?: { link?: { url?: string; expiresAt?: number } } }>("/api/v1/payments/links", "POST", payable);
+      const link = made.data?.link;
+      if (typeof link?.url !== "string" || typeof link.expiresAt !== "number") throw new ApiError(500, "PAY_LINK_EMPTY", "The pay link came back empty.");
+      return { url: link.url, expiresAt: link.expiresAt };
+    });
+  }
+
+  /** Money paid online given back: the house's own row, naming the payment; Adminium sends it back for that row. */
+  refundOnline(stayId: Id, paymentId: Id, amount: string, note: string, key: string): Promise<Row> {
+    return answer(() => this.payOnce({ stay_id: stayId, kind: "given_back", method: "online", refund_of: paymentId, amount: amount.trim(), note: note.trim() }, key));
   }
 
   // ── linen ─────────────────────────────────────────────────────────────────

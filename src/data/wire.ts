@@ -162,6 +162,8 @@ export interface StayReply {
   /** What was taken off, from the save itself. */
   applied?: Applied[];
   told?: Told[];
+  /** Where the guest pays for it, on a reservation paid as it is made; null when the house cannot take the payment just now. */
+  payUrl?: string | null;
 }
 
 /** One night of a price by the night. */

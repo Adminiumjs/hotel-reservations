@@ -114,6 +114,14 @@ export interface PayV {
   last4: string;
   /** Money given back to a card: the card payment it went back to. */
   against: Id | null;
+  /** Paid online: the service it went through (`payments-stripe`), empty for money taken at the desk. Adminium's alone. */
+  provider: string;
+  /** Taken online: Adminium wrote it, with its own reference. */
+  online: boolean;
+  /** Money given back online: the online payment it went back to, where that stands, and whether it went back by itself. */
+  refundOf: Id | null;
+  refundState: "asked" | "pending" | "done" | "not-sent" | null;
+  automatic: boolean;
 }
 export interface Moment {
   date: string;
@@ -149,6 +157,8 @@ export interface StV {
   cancelled: Moment | null;
   noShow: Moment | null;
   cancelBy: number | null;
+  /** When it was cancelled, to compare with `cancelBy`: a guest is never told the late flag, but the page knows the moments. */
+  cancelledAt: number | null;
   customerId: Id | null;
   extras: string[];
   lines: LineV[];
@@ -158,6 +168,11 @@ export interface StV {
   m: { room: number; extras: number; charges: number; credits: number; discount: number; sub: number; tax: number; total: number; paid: number; balance: number; taxRate: number; taxLabel: string };
   /** What codes and vouchers took off, by name, as Adminium answered it; empty when nothing was, or it does not say. */
   applied: Applied[];
+  /**
+   * Paying online: the guest chose to pay as they booked; what that was; what is due online now; what was paid
+   * online and given back of it; and whether the room went because the payment did not come in time.
+   */
+  pay: { now: boolean; deposit: number; due: number; online: number; back: number; lapsed: boolean };
 }
 
 /** The house's settings, as the screens read them. */
@@ -186,6 +201,11 @@ export interface HouseV {
   taxRate: number;
   taxLabel: string;
   emailsOn: boolean;
+  /** What the house asks of a guest who reserves, once it takes payments online: nothing, if they want, or first. */
+  payAtBooking: "none" | "optional" | "required";
+  payHowMuch: "one_night" | "whole_stay";
+  /** A cancellation in time gives the money paid online back by itself. */
+  autoRefund: boolean;
 }
 
 export interface WorldV {
@@ -239,6 +259,9 @@ export function houseOf(settings: Row): HouseV {
     taxRate: n(settings["tax_rate"]),
     taxLabel: str(settings["tax_label"]),
     emailsOn: settings["guest_emails_on"] !== false,
+    payAtBooking: settings["pay_at_booking"] === "optional" || settings["pay_at_booking"] === "required" ? settings["pay_at_booking"] : "none",
+    payHowMuch: settings["pay_how_much"] === "whole_stay" ? "whole_stay" : "one_night",
+    autoRefund: settings["auto_refund"] !== false,
   };
 }
 
@@ -296,7 +319,8 @@ export function worldOf(house: House | DeskHouse, stays: StayWithLines[], zone: 
     .filter((i) => i["active"] !== false)
     .map((i): ItemV => ({ id: String(i.id), label: str(i["label"]), detail: str(i["detail"]), amount: n(i["amount"]), icon: str(i["icon"]) || "tag", extra: i["extra_id"] === null || i["extra_id"] === undefined ? null : String(i["extra_id"]) }));
   const roomNumber = (id: unknown) => rooms.find((r) => r.id === id)?.n ?? null;
-  const staysV = stays.map((w): StV => {
+  // A stay still waiting for its payment is nobody's yet: the desk does not see it, and the guest reads it only while paying.
+  const staysV = stays.filter((w) => w.stay["status"] !== "pending_payment").map((w): StV => {
     const s = w.stay;
     const state = STATE[str(s["status"])] ?? "booked";
     const lines = w.extras.map((l): LineV => ({
@@ -343,6 +367,7 @@ export function worldOf(house: House | DeskHouse, stays: StayWithLines[], zone: 
       cancelled: momentOf(s["cancelled_at"], zone),
       noShow: momentOf(s["no_show_marked_at"], zone),
       cancelBy: s["cancel_by"] === null || s["cancel_by"] === undefined ? null : Date.parse(str(s["cancel_by"])),
+      cancelledAt: s["cancelled_at"] === null || s["cancelled_at"] === undefined ? null : Date.parse(str(s["cancelled_at"])),
       customerId: s["customer_id"] === null || s["customer_id"] === undefined ? null : (s["customer_id"] as Id),
       extras: lines.filter((l) => l.on).map((l) => l.extra),
       lines,
@@ -380,8 +405,14 @@ export function worldOf(house: House | DeskHouse, stays: StayWithLines[], zone: 
         note: str(p["note"]),
         last4: str(p["card_last4"]),
         against: p["against_id"] === null || p["against_id"] === undefined ? null : Number(p["against_id"]),
+        provider: str(p["provider"]),
+        online: str(p["method"]) === "online" && str(p["kind"]) !== "given_back",
+        refundOf: p["refund_of"] === null || p["refund_of"] === undefined ? null : Number(p["refund_of"]),
+        refundState: ["asked", "pending", "done", "not-sent"].includes(str(p["refund_state"])) ? (str(p["refund_state"]) as PayV["refundState"]) : null,
+        automatic: yes(p["automatic"]),
       })),
       applied: w.applied ?? [],
+      pay: { now: yes(s["pay_now"]), deposit: n(s["deposit"]), due: n(s["pay_due"]), online: n(s["paid_online"]), back: n(s["refunded_online"]), lapsed: yes(s["pay_lapsed"]) },
       m: {
         room: n(s["room_total"]),
         extras: n(s["extras_total"]),

@@ -1246,6 +1246,12 @@ export function GuestView({ v }: { v: any }) {
                     </div>
                     {" "}
                     <div style={st(`background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;box-shadow:var(--shadow);padding:18px;position:${v.rv.sticky};inset-block-start:84px`)}>
+                      {v.rv.payBand ? (
+                        <div role="note" style={st("display:flex;gap:10px;align-items:flex-start;margin:-18px -18px 16px;padding:12px 16px;border-start-start-radius:16px;border-start-end-radius:16px;background:var(--warn-soft);color:var(--warn);border-block-end:1px solid var(--border)")}>
+                          <span data-icon="flask-conical" style={st("display:inline-flex;inline-size:16px;block-size:16px;flex:0 0 auto;margin-block-start:2px")}><Icon name={"flask-conical"} /></span>
+                          <span style={st("font-size:13px;font-weight:700;line-height:1.55;text-wrap:pretty")}>{tr("Test mode — only you see this. No money moves. This order is sample data and goes when you remove sample data.")}</span>
+                        </div>
+                      ) : null}
                       <div style={st("display:flex;align-items:center;gap:11px")}>
                         <span style={st(`inline-size:44px;block-size:44px;border-radius:11px;background:${v.rv.tint};flex:0 0 auto;position:relative;display:grid;place-items:center`)}>
                           <span data-icon={v.rv.icon} style={st("display:inline-flex;inline-size:22px;block-size:22px;color:rgba(255,255,255,.82)")}><Icon name={v.rv.icon} /></span>
@@ -1314,10 +1320,53 @@ export function GuestView({ v }: { v: any }) {
                         </p>
                       ) : null}
                       {" "}
-                      <p style={st("margin:8px 0 0;font-size:12.5px;font-weight:600;line-height:1.5;color:var(--fg-muted)")}>
-                        {v.rv.payNote}
-                      </p>
+                      {v.rv.todayOn ? (
+                        <p style={st("margin:8px 0 0;font-size:12.5px;font-weight:600;line-height:1.5;color:var(--fg-muted)")}>
+                          {v.rv.payNote}
+                        </p>
+                      ) : null}
                       <CodeField v={v.rv.code} />
+                      {v.rv.chooseOn ? (
+                        <div style={st("margin-block-start:16px;display:flex;flex-direction:column;gap:8px")}>
+                          <span id="rv-pay-how" style={st("font-size:12px;font-weight:700;color:var(--fg-muted)")}>
+                            {tr("How would you like to pay?")}
+                          </span>
+                          <div role="radiogroup" aria-labelledby="rv-pay-how" style={st("display:flex;flex-direction:column;gap:8px")}>
+                            {(v.rv.payOpts ?? []).map((o: any) => (
+                              <button key={o.id} id={o.domId} role="radio" aria-checked={o.checked} tabIndex={o.tab} onClick={o.go} onKeyDown={o.key} disabled={v.rv.busy} style={st(`display:flex;align-items:flex-start;gap:12px;padding:12px 13px;border:1px solid ${o.border};border-radius:12px;background:${o.bg};cursor:pointer;text-align:start;color:var(--fg)`)}>
+                                <span style={st(`inline-size:18px;block-size:18px;margin-block-start:1px;border-radius:999px;border:2px solid ${o.ring};display:grid;place-items:center;flex:0 0 auto`)}>
+                                  <span style={st(`inline-size:8px;block-size:8px;border-radius:999px;background:${o.dot}`)}></span>
+                                </span>
+                                <span style={st("min-inline-size:0;display:flex;flex-direction:column;gap:3px")}>
+                                  <span style={st("font-size:13.5px;font-weight:800")}>{o.title}</span>
+                                  <span style={st("font-size:12px;line-height:1.5;color:var(--fg-muted)")}>{o.sub}</span>
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                      {v.rv.askOn ? (
+                        <div style={st("margin-block-start:16px;padding:12px 14px;border-radius:12px;background:var(--accent-soft);display:flex;align-items:flex-start;gap:10px")}>
+                          <span data-icon="hourglass" style={st("display:inline-flex;inline-size:16px;block-size:16px;flex:0 0 auto;margin-block-start:2px;color:var(--accent)")}><Icon name={"hourglass"} /></span>
+                          <span style={st("display:flex;flex-direction:column;gap:3px")}>
+                            <span style={st("font-size:13.5px;font-weight:800")}>{v.rv.askTitle}</span>
+                            <span style={st("font-size:12.5px;line-height:1.5;color:var(--fg-muted)")}>{tr("We’ll keep your room for a few minutes while you pay.")}</span>
+                          </span>
+                        </div>
+                      ) : null}
+                      {v.rv.unpaidOn ? (
+                        <div role="alert" style={st("margin-block-start:16px;padding:13px;border-radius:12px;background:var(--warn-soft);color:var(--warn)")}>
+                          <div style={st("display:flex;align-items:flex-start;gap:8px;font-size:13px;font-weight:700;line-height:1.5")}>
+                            <span data-icon="timer-off" style={st("display:inline-flex;inline-size:15px;block-size:15px;flex:0 0 auto;margin-block-start:2px")}><Icon name={"timer-off"} /></span>
+                            {tr("We couldn’t keep the room because the payment didn’t finish. Nothing was taken.")}
+                          </div>
+                          <button onClick={v.rv.retryUnpaid} style={st("margin-block-start:10px;display:flex;align-items:center;gap:7px;padding:8px 13px;border:1px solid var(--warn);border-radius:9px;background:transparent;color:var(--warn);font-size:12.5px;font-weight:700;cursor:pointer")} className={fx("background:var(--surface)", null)}>
+                            <span data-icon="refresh-cw" style={st("display:inline-flex;inline-size:13px;block-size:13px")}><Icon name={"refresh-cw"} /></span>
+                            {tr("Try again")}
+                          </button>
+                        </div>
+                      ) : null}
                       {" "}
                       {v.rv.goneOn ? (
                         <>
@@ -1423,9 +1472,14 @@ export function GuestView({ v }: { v: any }) {
                           <>
                             <span aria-hidden="true" style={st("inline-size:14px;block-size:14px;border-radius:999px;border:2px solid currentColor;border-inline-end-color:transparent;animation:wh-spin .7s linear infinite")}></span>
                           </>
+                        ) : v.rv.payOn ? (
+                          <span data-icon="lock" style={st("display:inline-flex;inline-size:15px;block-size:15px")}><Icon name={"lock"} /></span>
                         ) : null}
                         {v.rv.btnLabel}
                       </button>
+                      {v.rv.whereOn ? (
+                        <p style={st("margin:9px 0 0;font-size:12px;line-height:1.5;color:var(--fg-subtle);text-align:center")}>{tr("You’ll pay on the Stripe or PayPal page.")}</p>
+                      ) : null}
                       {" "}
                       <div style={st("margin-block-start:11px;display:flex;align-items:flex-start;gap:8px;padding:8px 11px;border-radius:9px;background:var(--surface-2);border:1px solid var(--border)")}>
                         <span data-icon="clock" style={st("display:inline-flex;inline-size:13px;block-size:13px;color:var(--fg-subtle);flex:0 0 auto;margin-block-start:2px")}><Icon name={"clock"} /></span>
@@ -1443,6 +1497,33 @@ export function GuestView({ v }: { v: any }) {
             {v.showConf ? (
               <>
                 <section style={st("animation:wh-fade .22s ease-out;max-inline-size:720px;margin-inline:auto")}>
+                  {v.cf.checkingOn ? (
+                    <div role="status" style={st("display:flex;flex-direction:column;align-items:center;text-align:center;padding-block:60px")}>
+                      <span style={st("inline-size:76px;block-size:76px;border-radius:999px;background:var(--surface-3);display:grid;place-items:center")}>
+                        <span aria-hidden="true" style={st("inline-size:30px;block-size:30px;border-radius:999px;border:3px solid var(--accent);border-inline-end-color:transparent;animation:wh-spin .8s linear infinite")}></span>
+                      </span>
+                      <h1 style={st(`margin:20px 0 0;font-size:${v.h1Size};font-weight:800;letter-spacing:-.02em`)}>{tr("Checking your payment…")}</h1>
+                    </div>
+                  ) : null}
+                  {v.cf.holdOn ? (
+                    <div style={st("padding-block:30px")}>
+                      <h1 style={st(`margin:0 0 16px;font-size:${v.h1Size};font-weight:800;letter-spacing:-.02em;text-align:center`)}>{tr("The payment didn’t finish. Nothing was taken.")}</h1>
+                      <div role="alert" style={st("padding:14px 15px;border-radius:12px;background:var(--warn-soft);color:var(--warn);display:flex;flex-direction:column;align-items:center;gap:12px")}>
+                        <span style={st("display:flex;align-items:flex-start;gap:10px;font-size:14px;font-weight:800")}>
+                          <span data-icon="circle-alert" style={st("display:inline-flex;inline-size:17px;block-size:17px;flex:0 0 auto;margin-block-start:2px")}><Icon name={"circle-alert"} /></span>
+                          {tr("We’ll keep your room for a few minutes while you pay.")}
+                        </span>
+                        <PayAgain v={v.cf} />
+                      </div>
+                    </div>
+                  ) : null}
+                  {v.cf.bankCardOn ? (
+                    <div style={st("padding-block:30px")}>
+                      <BankConfirming />
+                    </div>
+                  ) : null}
+                  {v.cf.okOn !== false && !v.cf.checkingOn && !v.cf.holdOn && !v.cf.bankCardOn ? (
+                  <>
                   <div style={st("display:flex;flex-direction:column;align-items:center;text-align:center;padding-block:14px 6px")}>
                     <span style={st("inline-size:76px;block-size:76px;border-radius:999px;background:var(--pos-soft);color:var(--pos);display:grid;place-items:center;animation:wh-check .3s ease-out")}>
                       <span data-icon="check" style={st("display:inline-flex;inline-size:40px;block-size:40px")}><Icon name={"check"} /></span>
@@ -1460,6 +1541,23 @@ export function GuestView({ v }: { v: any }) {
                       {v.cf.ref}
                     </div>
                   </div>
+                  {v.cf.bankOn ? (
+                    <div style={st("margin-block-start:22px")}>
+                      <BankConfirming />
+                    </div>
+                  ) : null}
+                  {v.cf.failOn ? (
+                    <div role="alert" style={st("margin-block-start:22px;padding:14px 15px;border-radius:12px;background:var(--warn-soft);color:var(--warn)")}>
+                      <div style={st("display:flex;align-items:flex-start;gap:10px")}>
+                        <span data-icon="circle-alert" style={st("display:inline-flex;inline-size:17px;block-size:17px;flex:0 0 auto;margin-block-start:2px")}><Icon name={"circle-alert"} /></span>
+                        <span style={st("display:flex;flex-direction:column;gap:4px")}>
+                          <span style={st("font-size:14px;font-weight:800")}>{tr("The payment didn’t finish. Nothing was taken.")}</span>
+                          <span style={st("font-size:13px;line-height:1.55;color:var(--fg)")}>{tr("Your room is still reserved. You can try again, or pay at the desk.")}</span>
+                        </span>
+                      </div>
+                      <div style={st("margin-block-start:12px;margin-inline-start:27px")}><PayAgain v={v.cf} /></div>
+                    </div>
+                  ) : null}
                   {" "}
                   <div style={st("margin-block-start:26px;background:var(--surface);border:1px solid var(--border-strong);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)")}>
                     <div style={st(`display:grid;grid-template-columns:${v.cf.twoCols}`)}>
@@ -1573,9 +1671,19 @@ export function GuestView({ v }: { v: any }) {
                         </span>
                       </div>
                       {" "}
-                      <p style={st("margin:0 0 16px;font-size:12.5px;font-weight:600;color:var(--fg-muted)")}>
-                        {v.cf.payNote}
-                      </p>
+                      {v.cf.paidOn ? (
+                        <div style={st("display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 16px")}>
+                          <span style={st("display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:var(--pos-soft);color:var(--pos);font-size:12px;font-weight:800")}>
+                            <span data-icon="badge-check" style={st("display:inline-flex;inline-size:14px;block-size:14px")}><Icon name={"badge-check"} /></span>
+                            {v.cf.paidChip}
+                          </span>
+                          {v.cf.paidNote ? <span style={st("font-size:12.5px;font-weight:600;color:var(--fg-muted)")}>{v.cf.paidNote}</span> : null}
+                        </div>
+                      ) : (
+                        <p style={st("margin:0 0 16px;font-size:12.5px;font-weight:600;color:var(--fg-muted)")}>
+                          {v.cf.payNote}
+                        </p>
+                      )}
                     </div>
                   </div>
                   {" "}
@@ -1632,6 +1740,8 @@ export function GuestView({ v }: { v: any }) {
                       {tr("Back to the front page")}
                     </button>
                   </div>
+                  </>
+                  ) : null}
                 </section>
               </>
             ) : null}
@@ -2104,8 +2214,14 @@ export function GuestView({ v }: { v: any }) {
                     {" "}
                     {v.on.dead ? (
                       <>
-                        <div style={st("padding:18px 20px;border-block-start:1px solid var(--border);background:var(--surface-2);font-size:13.5px;color:var(--fg-muted);line-height:1.6")}>
-                          {v.on.deadPhone ? trx(v.on.deadNote, { phone: <a href={v.telHref} style={st("font-family:var(--mono)")}>{v.phone}</a>, day: v.on.deadDay }) : v.on.deadNote}
+                        <div style={st("padding:18px 20px;border-block-start:1px solid var(--border);background:var(--surface-2);font-size:13.5px;color:var(--fg-muted);line-height:1.6;display:flex;flex-direction:column;gap:12px")}>
+                          {v.on.cxOn ? (
+                            <div role="status" style={st(`display:flex;align-items:flex-start;gap:9px;padding:13px 14px;border-radius:12px;background:${v.on.cxBg};color:${v.on.cxFg};font-size:13.5px;font-weight:700;line-height:1.55`)}>
+                              <span data-icon={v.on.cxIcon} style={st("display:inline-flex;inline-size:16px;block-size:16px;flex:0 0 auto;margin-block-start:2px")}><Icon name={v.on.cxIcon} /></span>
+                              <span>{v.on.cx}</span>
+                            </div>
+                          ) : null}
+                          {v.on.deadNote ? <span>{v.on.deadPhone ? trx(v.on.deadNote, { phone: <a href={v.telHref} style={st("font-family:var(--mono)")}>{v.phone}</a>, day: v.on.deadDay }) : v.on.deadNote}</span> : null}
                         </div>
                       </>
                     ) : null}
@@ -2235,5 +2351,28 @@ export function GuestView({ v }: { v: any }) {
       </>
     ) : null}
     </>
+  );
+}
+
+/** The bank is confirming the payment: some ways take days; the room is kept, and the guest is not to pay again. */
+function BankConfirming() {
+  return (
+    <div role="status" style={st("display:flex;align-items:flex-start;gap:10px;padding:14px 15px;border-radius:12px;background:var(--info-soft);color:var(--info)")}>
+      <span data-icon="hourglass" style={st("display:inline-flex;inline-size:17px;block-size:17px;flex:0 0 auto;margin-block-start:2px")}><Icon name={"hourglass"} /></span>
+      <span style={st("display:flex;flex-direction:column;gap:4px")}>
+        <span style={st("font-size:14px;font-weight:800")}>{tr("Your bank is confirming the payment")}</span>
+        <span style={st("font-size:13px;line-height:1.55;color:var(--fg)")}>{tr("Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.")}</span>
+      </span>
+    </div>
+  );
+}
+
+/** "Pay $185.30 now" again, for a payment that did not finish: off to the pay page once more. */
+function PayAgain({ v }: { v: any }) {
+  return (
+    <button onClick={v.retry} aria-busy={v.retryBusy} disabled={v.paying} style={st("display:flex;align-items:center;gap:8px;padding:9px 14px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-fg);font-size:13px;font-weight:700;cursor:pointer")} className={fx("filter:brightness(1.08)", null)}>
+      {v.paying ? <span aria-hidden="true" style={st("inline-size:13px;block-size:13px;border-radius:999px;border:2px solid currentColor;border-inline-end-color:transparent;animation:wh-spin .7s linear infinite")}></span> : <span data-icon="lock" style={st("display:inline-flex;inline-size:14px;block-size:14px")}><Icon name={"lock"} /></span>}
+      {v.retryLabel}
+    </button>
   );
 }

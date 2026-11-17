@@ -39,6 +39,28 @@ const POINTER = new RegExp(
   "gi",
 );
 
+/**
+ * A bare id in brackets, the way the plans tagged a decision, question, ruling,
+ * fact or task onto the end of a sentence: one capital (or one of the few
+ * two-letter prefixes) and up to three digits, with an optional letter or a
+ * dashed number after it, several joined by a comma, a slash, a dash, "and" or a
+ * space. The bracket must hold ONLY ids, so an id followed by a colon and a
+ * reason, or a hex byte such as 0xC4, is not read; and it must not follow a word
+ * character, a `$`, a dot or a closing bracket, so a call such as `split(T1)` is
+ * not read either. Other two-letter prefixes are left alone: an MP3's ID3 tag is
+ * real.
+ * Matched with its case: a lower-case `(d1)` is an ordinary name in code.
+ */
+const TAG_ID = String.raw`(?:CR|BN|AC|DP|YR|[A-Z])\d{1,3}[a-z]?(?:-\d{1,3})?`;
+const TAG = new RegExp(
+  String.raw`(?<![\w$.\])])\(` + TAG_ID + String.raw`(?:\s*(?:,|\/|\u2013|-|\+|&|and|\s)\s*` + TAG_ID + String.raw`)*\)`,
+  "g",
+);
+
+function hits(text: string): number {
+  return [...text.matchAll(POINTER)].length + [...text.matchAll(TAG)].length;
+}
+
 function tracked(): string[] {
   return execFileSync("git", ["ls-files", "-z"], { cwd: root, maxBuffer: 1 << 26 })
     .toString()
@@ -54,8 +76,47 @@ function count(file: string): number {
     return 0;
   }
   if (text.includes("\0")) return 0;
-  return [...text.matchAll(POINTER)].length;
+  return hits(text);
 }
+
+/** Joined at run time, so this file holds none of the forms it checks. */
+const j = (...parts: string[]) => parts.join("");
+
+describe("the bracketed id form", () => {
+  /** Built, not written, so this file holds no bracketed id itself. */
+  const tag = (...ids: string[]) => `(${ids.join(", ")})`;
+
+  it("reads a bare id in brackets, alone or several together", () => {
+    const cited = [
+      `// refunded in its app ${tag("CR4")}: it says what.`,
+      `describe('the sidebar section ${tag(j("D", "7"))}', () => {`,
+      `// campaign runs ${tag(j("D", "11"), j("D", "12"))}: save first`,
+      `* the row this server is too old for ${tag(j("G8-", "D", "2"))}`,
+      `* a file hung on a record ${tag("F1\u2013F3")}`,
+      `// kept on the phone ${tag("F17")}`,
+      `// the question ${tag(j("Q", "10"))}`,
+      `// the task ${tag("T01-48")}`,
+      `// the comp row ${tag("C9-F2")}`,
+      `// the step ${tag("M1d-1")}`,
+      `// both ${tag(j("D", "6")).replace(")", j(" ", "Q", "6)"))}`,
+    ];
+    expect(cited.filter((text) => hits(text) === 0)).toEqual([]);
+  });
+
+  it("leaves calls, hex bytes, tag names and spelled-out reasons alone", () => {
+    const plain = [
+      "const [before, after] = sentence.split(T1);",
+      "{ name: 'MP3 (ID3)', bytes }",
+      "return fn(T1) + g.(T2);",
+      "// every SOFn but DHT (0xC4), JPG (0xC8) and DAC (0xCC).",
+      `// a task spelled out ${tag("T13").replace(")", ": the reason)")} is a sentence`,
+      "expect(text).toMatch(/center \\(T7\\)/);",
+      "STUDENT10",
+      "2026-05-02T10:00:00Z",
+    ];
+    expect(plain.filter((text) => [...text.matchAll(TAG)].length > 0)).toEqual([]);
+  });
+});
 
 describe("private citations", () => {
   const counts = new Map<string, number>();

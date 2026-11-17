@@ -13,7 +13,7 @@ import { codeVals } from "../codes.ts";
 import { okEmail, type HouseApp, type View } from "../house.ts";
 import type { RoomV, StV, WorldV } from "../world.ts";
 import { creditLabel, extraDetail, pillOf, timeOptions } from "./guest.ts";
-import { blankNb, cameAfterAll, counts, deskCodeAsk, emailFolio, folio as folioOf, linen, markNoShow, nbChanged, openCheckin, openEdit, openFolio, openGiveBackToCard, openLinen, openRoom, openSettle, printFolio, saveNb, setRoomStatus, signOutStaff } from "../desk.ts";
+import { backTo, blankNb, cameAfterAll, copyPayLink, counts, deskCodeAsk, emailFolio, folio as folioOf, linen, markNoShow, nbChanged, onlineChip, openCheckin, openEdit, openFolio, openGiveBackToCard, openLinen, openRefund, openRoom, openSettle, payLinkOn, printFolio, refundable, saveNb, setRoomStatus, signOutStaff } from "../desk.ts";
 
 type V = Record<string, unknown>;
 export type RoomState = "ready" | "occupied" | "cleaning" | "oos";
@@ -1050,9 +1050,49 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
       row({ id: "cx", label, detail: "", amount: iso(`− ${strip(money(off))}`), balance: money(run), weight: "800", rowBg: "var(--surface-2)" });
     }
   }
+  // Money paid online, on a stay that will not happen: a late cancellation or a no-show keeps it unless the desk gives
+  // it back (no "Refund owed", nothing "to give back"); any other cancellation owes it back to the guest.
+  const onlineKept = dead ? Math.max(0, fst.pay.online) : 0;
+  const keptLate = onlineKept > 0.004 && (fst.state === "noshow" || (fst.late && fst.cancelCode !== "house"));
+  const mayRefund = app.payDesk.refund && app.ports.desk?.refundOnline !== undefined;
+  // The first payment taken online on a stay paid as it was booked is the booking's; any other came by a pay link.
+  const firstOnline = fst.pay.now ? fst.pays.find((x) => x.online && !x.voided)?.id ?? null : null;
   fst.pays.forEach((p) => {
     const back = p.kind === "given_back";
-    if (!p.voided) run = r2(back ? run + p.amount : run - p.amount);
+    // Money given back online that the service could not send gives nothing back: the row says so, and counts nothing.
+    const notSent = back && p.method === "online" && p.refundState === "not-sent";
+    if (!p.voided && !notSent) run = r2(back ? run + p.amount : run - p.amount);
+    if (p.method === "online") {
+      const left = p.online ? refundable(fst, p.id) : 0;
+      const refundKey = `refund:${String(p.id)}`;
+      const toPaypal = backTo(p.provider) === "paypal";
+      const how = p.automatic ? tr("given back by itself") : tr("by {name}", { name: p.by }) + (p.note ? ` · ${p.note}` : "");
+      const where = p.refundState === "not-sent" ? tr("Refund not sent") : p.refundState === "asked" || p.refundState === "pending" ? tr("on its way") : "";
+      row({
+        id: `p${String(p.id)}`,
+        label: p.online ? tr("Online") : toPaypal ? tr("Refund · to the PayPal account") : tr("Refund · to the card"),
+        chip: onlineChip(p.provider),
+        amount: back ? iso(`+ ${strip(money(p.amount))}`) : iso(`− ${strip(money(p.amount))}`),
+        balance: runMoney(run),
+        detail: p.online
+          ? `${strip(fDW(p.date))} · ${firstOnline === p.id ? tr("paid when booking") : tr("paid by pay link")}`
+          : [strip(fDW(p.date)), how, where].filter((x) => x !== "").join(" · "),
+        detailFg: notSent ? "var(--danger)" : undefined,
+        amountFg: notSent ? "var(--fg-subtle)" : back ? "var(--warn)" : "var(--pos)",
+        strike: notSent ? "line-through" : "none",
+        rowBg: "var(--surface-2)",
+        // No void: money taken online is the service's record, and goes back only by a refund.
+        canVoid: false,
+        refundOn: p.online && mayRefund && left > 0.004,
+        refund: () => {
+          const st = app.stay(fst.id);
+          if (st !== null) openRefund(app, st, p.id);
+        },
+        refundLabel: tr("Refund"),
+        menuKey: refundKey,
+      });
+      return;
+    }
     const card = p.method === "gift_card";
     const how = p.method === "cash" ? tr("Cash") : p.method === "transfer" ? tr("Transfer") : card ? strip(tr("Gift card ···· {last4}", { last4: p.last4 })) : tr("Card");
     // What a gift card's payment can still give back: what it took, less what already went back to it.
@@ -1080,13 +1120,20 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
       ...(card && !back && returned > 0.004 && boss ? { askVoid: () => { app.setState({ rowMenu: null }); app.toast(tr("First void what was given back to this card, then this payment."), "warn"); } } : {}),
     });
   });
+  if (keptLate) {
+    run = r2(run + onlineKept);
+    row({ id: "kp", label: fst.state === "noshow" ? tr("No-show — payment kept") : tr("Late cancellation — payment kept"), detail: "", amount: iso(`+ ${strip(money(onlineKept))}`), balance: money(run), weight: "800", rowBg: "var(--surface-2)" });
+  }
   const bal = fst.m.balance;
   const p = deskPill(app, fst);
   const rm = fst.roomId === null ? null : w.rooms.find((r) => r.id === fst.roomId) ?? null;
   const A: V[] = [];
   const act = (id: string, label: string, icon: string, fn: () => void, primary = false) => A.push({ id, label, icon, go: fn, primary, secondary: !primary });
   const charge = () => app.setState({ chargeOpen: true, chargePick: null, chargeNote: "", chargeAmt: "", chargeTouched: false });
-  const giveBack = dead ? paid : Math.max(0, -bal);
+  // What the guest is owed back: everything paid, less what a late cancellation or a no-show keeps; of it, what the
+  // desk gives back by hand (anything not paid online — online money goes back by Refund, on its own row).
+  const owedBack = dead ? Math.max(0, r2(paid - (keptLate ? onlineKept : 0))) : 0;
+  const giveBack = dead ? Math.max(0, r2(paid - onlineKept)) : Math.max(0, -bal);
   if (fst.state === "booked") {
     if (fst.arrive <= today) act("ci", tr("Check in"), "log-in", () => openCheckin(app, fst.id), true);
     act("ch", tr("Change"), "pencil", () => openEdit(app, fst));
@@ -1095,9 +1142,11 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
     if (fst.arrive <= today && noShowFrom(app, w, fst)) act("ns", tr("Mark as a no-show"), "user-x", () => void markNoShow(app, fst));
     act("ac", tr("Add a charge"), "plus", charge);
     act("rp", tr("Record a payment"), "wallet", () => openSettle(app, fst.id));
+    if (payLinkOn(app, fst)) act("pl", tr("Copy pay link"), "link", () => void copyPayLink(app, fst));
   } else if (fst.state === "in") {
     act("ac", tr("Add a charge"), "plus", charge);
     act("rp", tr("Record a payment"), "wallet", () => openSettle(app, fst.id));
+    if (payLinkOn(app, fst)) act("pl", tr("Copy pay link"), "link", () => void copyPayLink(app, fst));
     act("mv", tr("Move to another room"), "arrow-left-right", () => app.setState({ moveId: fst.id, movePick: null, moveUp: null }));
     act("ch", tr("Change"), "pencil", () => openEdit(app, fst));
     act("co", tr("Check out"), "log-out", () => app.setState({ checkoutId: fst.id, coMode: "booked" }), true);
@@ -1154,10 +1203,14 @@ export function folioVals(app: HouseApp, w: WorldV, fst: StV): V {
                 : fst.expectBy !== null && fst.expectBy >= today
                   ? tr("Expected {day} — the room is kept.", { day: strip(fDW(fst.expectBy)) })
                   : tr("Arrives {day}, from {time}.", { day: strip(fDW(fst.arrive)), time: strip(fT(w.H.arriveFrom)) }),
-    dueLabel: dead ? (paid > 0.004 ? tr("To give back") : tr("Nothing owing")) : bal > 0.004 ? tr("Balance to settle") : bal < -0.004 ? tr("To give back") : tr("Nothing owing"),
-    balance: dead ? (paid > 0.004 ? fsi(tr("{amount} to give back", { amount: strip(money(paid)) })) : money(0)) : bal < -0.004 ? fsi(tr("{amount} to give back", { amount: strip(money(-bal)) })) : money(Math.max(0, bal)),
-    dueAmount: dead ? money(paid) : money(Math.abs(bal)),
-    balFg: dead ? (paid > 0.004 ? "var(--warn)" : "var(--pos)") : bal > 0.004 ? (fst.depart === today ? "var(--danger)" : "var(--fg)") : bal < -0.004 ? "var(--warn)" : "var(--pos)",
+    dueLabel: dead ? (owedBack > 0.004 ? tr("To give back") : tr("Nothing owing")) : bal > 0.004 ? tr("Balance to settle") : bal < -0.004 ? tr("To give back") : tr("Nothing owing"),
+    balance: dead ? (owedBack > 0.004 ? fsi(tr("{amount} to give back", { amount: strip(money(owedBack)) })) : money(0)) : bal < -0.004 ? fsi(tr("{amount} to give back", { amount: strip(money(-bal)) })) : money(Math.max(0, bal)),
+    dueAmount: dead ? money(owedBack) : money(Math.abs(bal)),
+    balFg: dead ? (owedBack > 0.004 ? "var(--warn)" : "var(--pos)") : bal > 0.004 ? (fst.depart === today ? "var(--danger)" : "var(--fg)") : bal < -0.004 ? "var(--warn)" : "var(--pos)",
+    // Online money a cancellation owes the guest back, and nobody gave back yet (the house's switch was off, or the
+    // cancel was made by someone who may not refund): said beside the name, for someone who may refund.
+    owedOn: dead && onlineKept > 0.004 && !keptLate,
+    owedLabel: tr("Refund owed"),
     giveBackOn: giveBack > 0.004 && fst.state !== "in" && fst.state !== "booked",
     giveBack: tr("{amount} was recorded — record it as given back when it goes back to them.", { amount: strip(money(giveBack)) }),
     actions: A,

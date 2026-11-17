@@ -104,7 +104,8 @@ describe("reserving", () => {
     expect(reply.data["cancel_by"]).toBe(new Date(EDT("2026-08-01", "15:00")).toISOString());
     expect(reply.data).not.toHaveProperty("late_cancel");
     const made = h.a.world.all("messages").filter((m) => m["stay_id"] === reply.data.id).map((m) => [m["kind"], m["status"]]);
-    expect(made).toEqual([["stay-made", "sent"]]);
+    // The demo's house takes payments online: its confirmation is the one that says so.
+    expect(made).toEqual([["stay-made-pay", "sent"]]);
   });
 
   it("lands a retry on the same stay, without its link", async () => {

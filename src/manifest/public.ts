@@ -22,6 +22,13 @@
  * hand: it is set by a tick, and cleared by an unsubscribe or by deleting
  * their details.
  *
+ * Once the house takes payments online, reserving may be paid as it is made
+ * (`pay`, behind the house's own setting): the guest's choice, or before the
+ * room is theirs, when the stay is made waiting for its payment. Each of
+ * these answers with the link to pay. What a guest reads of their stay says
+ * what was paid online and given back; never a card, never the service's
+ * own reference.
+ *
  * What never leaves: who at the desk did what, the late flag (a guest sees
  * "cancelled"), who cancelled and why, whether the stay was made online, the
  * guest account behind it, the link code and the retry key, anyone else's
@@ -68,6 +75,14 @@ export const STAY_SELECT = [
   "checked_out_at",
   "cancelled_at",
   "no_show_marked_at",
+  // Paying online: whether they paid as they booked, what that was, what is due online now, what was paid online and
+  // given back, and whether the room went because the payment did not come in time.
+  "pay_now",
+  "deposit",
+  "pay_due",
+  "paid_online",
+  "refunded_online",
+  "pay_lapsed",
 ];
 
 /** The columns Adminium takes for personal data: a guest's name, email and mobile. */
@@ -104,7 +119,14 @@ export const SETTINGS_SELECT = [
   "max_nights",
   "ahead_days",
   "guest_emails_on",
+  // What the house asks of a guest who reserves, once it takes payments online; and whether a cancellation in time gives the money back by itself.
+  "pay_at_booking",
+  "pay_how_much",
+  "pay_hold_minutes",
+  "auto_refund",
 ];
+
+const PAY_SETTING = { table: "settings", column: "pay_at_booking" };
 
 const ARRIVE_FROM = { table: "settings", column: "arrive_from" };
 
@@ -157,6 +179,56 @@ function linesOf(key?: string) {
     { table: "payments", ...keyed, methods: ["GET"], ...withStay, select: PAYMENT_SELECT },
   ];
 }
+
+/**
+ * Reserving a room: a stay with its extras in one write, priced by Adminium
+ * and checked against the price the guest saw.
+ */
+const RESERVE = {
+  table: "stays",
+  methods: ["POST"],
+  humanCheck: true,
+  level: "verified",
+  // What the confirmation shows: never the guest's own details back — an endpoint anyone can call selects nothing personal.
+  select: STAY_SELECT.filter((c) => !PERSONAL.includes(c)),
+  writable: [
+    "room_type_id",
+    "arrive",
+    "depart",
+    "guests",
+    "first_name",
+    "last_name",
+    "email",
+    "mobile",
+    "arrival_time",
+    "note",
+    "language",
+    "client_key",
+    "opt_in",
+  ],
+  requires: ["first_name", "last_name", "email"],
+  claimedBy: { table: "customers", column: "customer_id", optional: true },
+  // A guest met for the first time is made with the names and the language of this reservation.
+  identity: { table: "customers", email: "email", link: "customer_id", fill: { first_name: "first_name", last_name: "last_name", language: "language" } },
+  consent: NEWS_TICK,
+  shareLink: "link_token",
+  // No more guests than the room type sleeps — and, at the desk, than a room given ahead sleeps.
+  agrees: [
+    { column: "guests", lte: { via: "room_type_id", column: "sleeps" } },
+    { column: "guests", lte: { via: "room_id", column: "sleeps" } },
+  ],
+  // Plain text (no digits, no web address) holds only the names, which the emails print. The mobile is judged as a phone,
+  // and the note — read by the desk alone, never mailed — carries the times and numbers guests write ("after 9pm").
+  anonymous: { perValue: { columns: ["email"], n: 10 }, perKeyHour: 300, perIpHour: 10, plainText: ["first_name", "last_name"] },
+  children: {
+    stay_extras: { via: "stay_id", writable: ["extra_id"], select: EXTRA_LINE_SELECT.filter((c) => c !== "stay_id"), max: 8 },
+    // A code is typed when the stay is reserved; Adminium finds what it is, and the page never reads one back.
+    stay_codes: { via: "stay_id", writable: ["typed"], select: ["id"], max: 12 },
+  },
+  dryRun: true,
+  expect: "total",
+  clientKey: "client_key",
+};
 
 export const PUBLIC_KEYS = { link: {} };
 
@@ -221,55 +293,22 @@ export const PUBLIC_ACCESS = [
   { table: "stay_extras", kind: "availability", methods: ["GET"], showLeft: { below: 3 } },
 
   // ── reserving a room ─────────────────────────────────────────────────────────
-  {
-    table: "stays",
-    methods: ["POST"],
-    humanCheck: true,
-    level: "verified",
-    // What the confirmation shows: never the guest's own details back — an endpoint anyone can call selects nothing personal.
-    select: STAY_SELECT.filter((c) => !PERSONAL.includes(c)),
-    writable: [
-      "room_type_id",
-      "arrive",
-      "depart",
-      "guests",
-      "first_name",
-      "last_name",
-      "email",
-      "mobile",
-      "arrival_time",
-      "note",
-      "language",
-      "client_key",
-      "opt_in",
-    ],
-    requires: ["first_name", "last_name", "email"],
-    claimedBy: { table: "customers", column: "customer_id", optional: true },
-    // A guest met for the first time is made with the names and the language of this reservation.
-    identity: { table: "customers", email: "email", link: "customer_id", fill: { first_name: "first_name", last_name: "last_name", language: "language" } },
-    consent: NEWS_TICK,
-    shareLink: "link_token",
-    // No more guests than the room type sleeps — and, at the desk, than a room given ahead sleeps.
-    agrees: [
-      { column: "guests", lte: { via: "room_type_id", column: "sleeps" } },
-      { column: "guests", lte: { via: "room_id", column: "sleeps" } },
-    ],
-    // Plain text (no digits, no web address) holds only the names, which the emails print. The mobile is judged as a phone,
-    // and the note — read by the desk alone, never mailed — carries the times and numbers guests write ("after 9pm").
-    anonymous: { perValue: { columns: ["email"], n: 10 }, perKeyHour: 300, perIpHour: 10, plainText: ["first_name", "last_name"] },
-    children: {
-      stay_extras: { via: "stay_id", writable: ["extra_id"], select: EXTRA_LINE_SELECT.filter((c) => c !== "stay_id"), max: 8 },
-      // A code is typed when the stay is reserved; Adminium finds what it is, and the page never reads one back.
-      stay_codes: { via: "stay_id", writable: ["typed"], select: ["id"], max: 12 },
-    },
-    dryRun: true,
-    expect: "total",
-    clientKey: "client_key",
-  },
+  // Unpaid, as always: while the house asks nothing of a guest who books, or leaves paying to them.
+  { ...RESERVE, requireSetting: [{ ...PAY_SETTING, in: ["none", "optional"] }] },
 
   // ── one reservation, by its own link ─────────────────────────────────────────
   { table: "stays", key: "link", methods: ["GET", "PATCH"], select: STAY_SELECT, ...OWN_LINK, ...OWN_CHANGES },
   ...linesOf("link"),
   // What an extra added through the link is: the create reads the extra on this key.
   { ...EXTRAS_READ, key: "link" },
+
+  // ── paying as they reserve (after every older entry, so each one keeps its name) ──
+  // The guest chose to pay now: the stay is booked as ever, and the reply carries the link to pay one night or the whole stay.
+  { ...RESERVE, defaults: { pay_now: true }, pay: true, requireSetting: [{ ...PAY_SETTING, in: ["optional"] }], requirePayments: "on" },
+  // The house asks for the payment first: the stay is made waiting for it, its room held for a few minutes, and the
+  // payment books it. The guest site uses this one only while the house takes payments online.
+  { ...RESERVE, defaults: { status: "pending_payment", pay_now: true }, pay: true, requireSetting: [{ ...PAY_SETTING, in: ["required"] }], requirePayments: "on" },
+  // Paying first is the house's rule, but it cannot take payments online right now: the guest books as they always did.
+  // While paying first is required and possible, this door is shut, and the one above is the only booking there is.
+  { ...RESERVE, requireSetting: [{ ...PAY_SETTING, in: ["required"] }], requirePayments: "off" },
 ];

@@ -6,8 +6,9 @@ look after their stay online; the desk checks them in and out, gives each a
 room, keeps the folio and records what they pay. Adminium decides every price,
 total, reference, room and status — the pages only ask.
 
-**One hotel, one building, nothing taken online.** Nobody pays on the site and
-nothing is sent by text message: the folio is settled at the desk. Stays run
+**One hotel, one building, settled at the desk.** Unless the house takes
+payments online (below), nobody pays on the site, and nothing is sent by text
+message: the folio is settled at the desk. Stays run
 one night to fourteen, and housekeeping is a room's status (ready, being
 cleaned, out of service), never a list of jobs.
 
@@ -20,7 +21,7 @@ because $1,099.03 is still on the folio.
 
 ## What it needs
 
-- Adminium **0.3.49** or later, on SQLite, Postgres or MySQL.
+- Adminium **0.3.62** or later, on SQLite, Postgres or MySQL.
 - Nothing else. Three add-ons are offered at install, and the house is whole
   with none of them:
 
@@ -78,6 +79,50 @@ the emails sent; and the room types, rooms, closures, rate rules, extras,
 charge items, house notes and settings — the hotel's name and words, its tax,
 its arrival and leaving times, its cancellation notice and the longest stay.
 
+## Paying online
+
+Nothing is taken online until the house says so. Installing or updating the
+app asks for no payments right: its payments arrive switched off, and someone
+who manages payments switches Hotel Reservations on in Adminium's **Payments**,
+once a payment service (Stripe or PayPal) is connected there. Until then — and
+on a server where guests cannot reach the pay page — every screen, email and
+folio reads exactly as it does without it.
+
+Once it is on:
+
+- *When guests book* (Settings): **nothing online** (the default — guests
+  settle at the desk), **let them pay now if they want**, or **ask them to pay
+  now**. *How much*: one night of the room with its tax, or the whole stay.
+  Asked to pay first, the stay is made waiting for its payment and its room
+  is held for a few minutes (*Room held while a guest pays*); the payment
+  books it, and a room left unpaid at the end of the hold goes back, with
+  nothing taken — never while a payment for it is still on its way. Such a
+  stay is paid only by a way that settles at once (a card, a wallet). While
+  paying first is the rule and the house can take payments online, the only
+  booking the guest site — or anyone calling it — can make is one that waits
+  for its payment; with payments off, it books as it always did.
+- *The folio*: what a stay still owes can be paid by its **pay link** — the
+  desk's **Copy pay link** (on the folio, in Record a payment and at check-out),
+  a button in the folio-so-far email, and the code printed on the folio by
+  Invoices & Receipts 1.0.13 or later. Pay links work in live mode only.
+- *Money given back*: a payment taken online goes back only through
+  **Refund** on its line of the folio — a manager's, in two steps (how much
+  and why, then the one sentence that says what will happen). It is kept as a
+  given-back payment of the stay, naming the payment it returns, and
+  Adminium sends it back through the service and says where it stands.
+- *Cancelling*: a cancellation before the free-cancellation time — by the
+  guest, or by someone at the desk who may refund — gives the money back by
+  itself, unless the manager turns **Refund cancellations in time
+  automatically** off in Settings (then the folio says **Refund owed**, and a
+  manager refunds it). A late cancellation or a no-show keeps the money
+  unless the desk gives it back, and the guest is told so before they
+  cancel.
+
+The guest is never shown a card number: their page says what was paid
+online, and the receipt comes from Adminium in its own email. A manager
+rehearsing it in test mode sees a band saying so, and their stays are sample
+data.
+
 ## Installing it
 
 Install Hotel Reservations from Adminium's app catalog and pick the database it
@@ -89,6 +134,21 @@ Tuesday, or add it later from the app's settings.
 Once installed, the desk is served at `/apps/hotel/staff/` and the guest site
 at `/apps/hotel/customer/`. A hotel can also give the guest site a domain of
 its own.
+
+**Moving from 0.3.2.** 0.3.3 updates a 0.3.2 install in place — update
+Adminium to 0.3.62 first, then the app. The update adds empty columns for
+paying online — on the settings (what is asked of a guest who books, nothing
+by default; refunds in time automatic), on the stays (what is paid and given
+back online, all of it nothing on a stay that was there) and on the payments
+(Adminium's own reference, the service, a refund's link and state) — one
+more state for a stay waiting for its payment, one more way to pay
+("Online") and one more reason a stay was cancelled ("Not paid in time").
+Nothing is dropped, renamed or rewritten: every stay's total, paid and
+balance are the cents they were. The update asks you to allow the guest site
+to read what was paid online on their own stays, and two more ways to
+reserve (paying as they book); and it gives the manager role "may refund
+online payments", which the review shows. Payments stay off until someone
+switches them on.
 
 **Moving from 0.3.1.** 0.3.2 changes no table: it updates a 0.3.1 install in
 place — update Adminium to 0.3.49 first, then the app. A house may then

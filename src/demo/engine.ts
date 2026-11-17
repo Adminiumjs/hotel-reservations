@@ -70,7 +70,7 @@ const SHOW_LEFT = Object.fromEntries(
     .map((e) => [String(e["table"]), Number((e["showLeft"] as Json | undefined)?.["below"] ?? 0)]),
 ) as Record<string, number>;
 
-const COUNTED = ["booked", "in_house"];
+const COUNTED = ["pending_payment", "booked", "in_house"];
 const iso = (ms: number) => new Date(ms).toISOString();
 const empty = (value: unknown) => value === null || value === undefined || (typeof value === "string" && value.trim() === "");
 const cents = (value: unknown) => Math.round(Number(value ?? 0) * 100);
@@ -101,6 +101,8 @@ type Producer = {
   repeat?: true;
   was?: readonly string[];
   dropWhen?: readonly Json[];
+  /** Queued only while the house takes payments online (`on`), or only while it does not (`off`). */
+  payments?: "on" | "off";
 };
 const PRODUCERS = MANIFEST_RULES.producers as unknown as readonly Producer[];
 
@@ -421,6 +423,8 @@ export class Engine {
       link_stopped: false,
       tax_rate: this.setting("tax_rate"),
       tax_label: this.setting("tax_label"),
+      // What the house asks a guest to pay as they reserve, kept with the stay as it was made.
+      pay_part: this.setting("pay_how_much") ?? "one_night",
       ...values,
       ...this.nextRef(),
       link_token: randomCode(16),
@@ -702,6 +706,9 @@ export class Engine {
   // ── the emails ─────────────────────────────────────────────────────────────
 
   /** The emails a write queues, as the outbox's producers say. */
+  /** Whether the demo's house takes payments online (it does: no money moves). */
+  takesPayments = true;
+
   produce(table: Table, before: Row | null, after: Row): void {
     for (const producer of PRODUCERS) {
       const on = producer.onCreate ?? producer.onChange;
@@ -721,6 +728,8 @@ export class Engine {
         }
       }
       if (on.where !== undefined && !holds(after, on.where)) continue;
+      // The demo's house takes payments online: the mails that follow payments are the ones it sends.
+      if (producer.payments !== undefined && producer.payments !== (this.takesPayments ? "on" : "off")) continue;
       // A message that waits a few seconds is dropped by the sender when its row already says it is not needed.
       if ((producer.dropWhen ?? []).some((c) => holds(after, c))) continue;
       // One of a kind per stay — or, with `repeat`, one for each change.

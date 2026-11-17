@@ -1,6 +1,7 @@
 {
  "de-DE": {
   "Good morning — the clock is at {time}.": "Guten Morgen — die Uhr steht auf {time}.",
+  "No money moves here. The room is kept a few minutes while the guest pays.": "Hier fließt kein Geld. Das Zimmer wird ein paar Minuten gehalten, während der Gast bezahlt.",
   "Signed in as {name}.": "Angemeldet als {name}.",
   "The clock is at {time}.": "Die Uhr steht auf {time}.",
   "The clock is at {time}. Departures are due.": "Die Uhr steht auf {time}. Abreisen sind fällig.",
@@ -10,6 +11,7 @@
  },
  "fr-FR": {
   "Good morning — the clock is at {time}.": "Bonjour — il est {time}.",
+  "No money moves here. The room is kept a few minutes while the guest pays.": "Ici, aucun argent ne circule. La chambre est gardée quelques minutes pendant que le client paie.",
   "Signed in as {name}.": "Connecté en tant que {name}.",
   "The clock is at {time}.": "Il est {time}.",
   "The clock is at {time}. Departures are due.": "Il est {time}. Des départs sont attendus.",
@@ -19,6 +21,7 @@
  },
  "cs-CZ": {
   "Good morning — the clock is at {time}.": "Dobré ráno — je {time}.",
+  "No money moves here. The room is kept a few minutes while the guest pays.": "Tady se žádné peníze nepřevádějí. Pokoj se podrží několik minut, než host zaplatí.",
   "Signed in as {name}.": "Přihlášen(a) jako {name}.",
   "The clock is at {time}.": "Je {time}.",
   "The clock is at {time}. Departures are due.": "Je {time}. Čekají odjezdy.",
@@ -28,6 +31,7 @@
  },
  "da-DK": {
   "Good morning — the clock is at {time}.": "Godmorgen — klokken er {time}.",
+  "No money moves here. The room is kept a few minutes while the guest pays.": "Her flyttes ingen penge. Værelset holdes et par minutter, mens gæsten betaler.",
   "Signed in as {name}.": "Logget ind som {name}.",
   "The clock is at {time}.": "Klokken er {time}.",
   "The clock is at {time}. Departures are due.": "Klokken er {time}. Afrejser venter.",
@@ -37,6 +41,7 @@
  },
  "zh-CN": {
   "Good morning — the clock is at {time}.": "早上好 — 现在是 {time}。",
+  "No money moves here. The room is kept a few minutes while the guest pays.": "这里不会有资金流动。客人付款期间，房间会保留几分钟。",
   "Signed in as {name}.": "已以 {name} 身份登录。",
   "The clock is at {time}.": "现在是 {time}。",
   "The clock is at {time}. Departures are due.": "现在是 {time}。有客人该退房了。",
@@ -46,6 +51,7 @@
  },
  "zh-TW": {
   "Good morning — the clock is at {time}.": "早安 — 現在時間 {time}。",
+  "No money moves here. The room is kept a few minutes while the guest pays.": "這裡不會有資金流動。客人付款期間，房間會保留幾分鐘。",
   "Signed in as {name}.": "已登入：{name}。",
   "The clock is at {time}.": "現在時間 {time}。",
   "The clock is at {time}. Departures are due.": "現在時間 {time}。有客人該退房了。",
@@ -55,6 +61,7 @@
  },
  "ar-EG": {
   "Good morning — the clock is at {time}.": "صباح الخير — الساعة الآن {time}.",
+  "No money moves here. The room is kept a few minutes while the guest pays.": "لا تُنقل أي أموال هنا. تُحجز الغرفة بضع دقائق أثناء دفع الضيف.",
   "Signed in as {name}.": "مسجّل الدخول باسم {name}.",
   "The clock is at {time}.": "الساعة الآن {time}.",
   "The clock is at {time}. Departures are due.": "الساعة الآن {time}. حان موعد المغادرات.",

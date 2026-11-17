@@ -50,6 +50,9 @@ const LINK = /(https?:\/\/|www\.|<a\s)/i;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE = /^[0-9+()\-.\s]{6,32}$/;
 
+/** Where the demo sends a guest to pay: nowhere — its pay page is the guest site's own stand-in (`payInDemo`). */
+const DEMO_PAY_PAGE = "about:blank#demo-pay";
+
 /** A pause before an answer, so a page's "Checking…" is seen as it would be. */
 export interface Latency {
   read: number;
@@ -181,6 +184,45 @@ export class DemoGuest implements GuestPort {
         applied,
         told: [],
       });
+    });
+  }
+
+  /** The demo's house takes payments online, and nobody rehearses it: no money moves, ever. */
+  async payments(): Promise<{ online: boolean; test: boolean }> {
+    return { online: true, test: false };
+  }
+
+  /** Reserved and paid as it is made: as `reserve`, the stay marked as being paid (waiting for it, when asked first). */
+  async reserveAndPay(body: StayBody, clientKey: string, how: "choice" | "first"): Promise<StayReply> {
+    const reply = await this.reserve(body, clientKey);
+    if (reply.replayed === true) return { ...reply, payUrl: null };
+    const id = reply.data.id;
+    this.engine.write(() => {
+      this.world.update("stays", id, { pay_now: true, ...(how === "first" ? { status: "pending_payment" } : {}) });
+      this.world.settle();
+    });
+    return { ...reply, data: project(this.world.get("stays", id)!, selectOf(entry("stays", "POST"))), payUrl: DEMO_PAY_PAGE };
+  }
+
+  async startPay(id: Id): Promise<string> {
+    if (this.world.get("stays", id) === undefined) throw notFound("public");
+    return DEMO_PAY_PAGE;
+  }
+
+  /** The demo's pay page, paid at once: what is due online, written as Adminium writes a payment taken online. */
+  async payInDemo(id: Id): Promise<void> {
+    await this.wait(this.latency.write);
+    this.engine.write(() => {
+      const stay = this.world.get("stays", id);
+      if (stay === undefined) throw notFound("public");
+      const due = Number(stay["pay_due"] ?? 0);
+      if (!(due > 0)) return;
+      const row = this.world.insert("payments", { stay_id: id, kind: "taken", amount: due, method: "online", provider: "payments-demo", payment_ref: `demo-${randomCode(12)}`, voided: false, void_reason: null, voided_at: null, voided_by: null });
+      Object.assign(row, this.engine.stampsFor("payments", null, row, GUEST));
+      this.world.settle();
+      // The payment books a stay that waited for it.
+      if (this.world.get("stays", id)!["status"] === "pending_payment") this.world.update("stays", id, { status: "booked" });
+      this.world.settle();
     });
   }
 

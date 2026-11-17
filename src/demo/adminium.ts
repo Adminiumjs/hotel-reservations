@@ -18,6 +18,9 @@ export class DemoAdminium {
 
   constructor(opts: { now?: number; latency?: Latency } = {}) {
     this.world = new World(opts.now ?? DEMO_START);
+    // The demo's house takes payments online: a guest may pay the whole stay as they reserve, and no money moves.
+    const settings = this.world.settings();
+    this.world.update("settings", settings.id, { pay_at_booking: "optional", pay_how_much: "whole_stay", pay_hold_minutes: 15, auto_refund: true });
     this.engine = new Engine(this.world);
     this.guest = new DemoGuest(this.engine, opts.latency ?? NO_LATENCY);
     this.desk = new DemoDesk(this.engine);
