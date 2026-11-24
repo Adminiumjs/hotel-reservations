@@ -215,7 +215,7 @@ const RESERVE = {
   requires: ["first_name", "last_name", "email"],
   claimedBy: { table: "customers", column: "customer_id", optional: true },
   // A guest met for the first time is made with the names and the language of this reservation.
-  identity: { table: "customers", email: "email", link: "customer_id", fill: { first_name: "first_name", last_name: "last_name", language: "language" } },
+  identity: { table: "customers", email: "email", link: "customer_id", fill: { first_name: "first_name", last_name: "last_name", language: "language", mobile: "mobile" } },
   consent: NEWS_TICK,
   // "Text me about my stay", and "Text me offers from …": two boxes of their own beside the email tick, each unticked,
   // neither needed to book, each kept under its own class.

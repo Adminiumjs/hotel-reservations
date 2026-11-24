@@ -250,7 +250,6 @@ export const RULES: Rules = {
     { table: "payments", column: "online_back", scale: "currency", expr: {"if":[{"and":[{"eq":["kind","given_back"]},{"eq":["method","online"]}]},{"if":[{"eq":["refund_state","not-sent"]},0,"amount"]},0]} },
   ],
   rollups: [
-    { table: "customers", column: "mobile", child: "stays", via: "customer_id", sum: "undefined", scale: 2, where: {"column":"offers_ok","eq":true} },
     { table: "stays", column: "extras_total", child: "stay_extras", via: "stay_id", sum: "amount", scale: "currency", where: {"column":"state","eq":"on"} },
     { table: "stays", column: "extras_nightly", child: "stay_extras", via: "stay_id", sum: "nightly", scale: "currency", where: {"column":"state","eq":"on"} },
     { table: "stays", column: "charges_total", child: "charges", via: "stay_id", sum: "amount", scale: "currency", where: {"column":"voided","eq":false} },

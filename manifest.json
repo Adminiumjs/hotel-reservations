@@ -2571,30 +2571,18 @@
             "type": "text",
             "maxLength": 32,
             "label": {
-              "en-US": "Mobile for offers by text",
-              "de-DE": "Mobilnummer für Angebote per SMS",
-              "fr-FR": "Portable pour les offres par SMS",
-              "da-DK": "Mobil til tilbud på sms",
-              "cs-CZ": "Mobil pro nabídky v SMS",
-              "ar-EG": "الهاتف المحمول لعروض الرسائل النصية",
-              "zh-CN": "接收优惠短信的手机",
-              "zh-TW": "接收優惠簡訊的手機"
+              "en-US": "Mobile",
+              "de-DE": "Mobil",
+              "fr-FR": "Portable",
+              "da-DK": "Mobil",
+              "cs-CZ": "Mobil",
+              "ar-EG": "الهاتف المحمول",
+              "zh-CN": "手机",
+              "zh-TW": "手機"
             },
             "nullable": true,
             "rules": {
-              "personal": true,
-              "rollup": {
-                "from": "stays",
-                "via": "customer_id",
-                "latest": {
-                  "of": "mobile",
-                  "by": "created_at"
-                },
-                "where": {
-                  "column": "offers_ok",
-                  "eq": true
-                }
-              }
+              "personal": true
             }
           },
           {
@@ -12173,7 +12161,8 @@
         "fill": {
           "first_name": "first_name",
           "last_name": "last_name",
-          "language": "language"
+          "language": "language",
+          "mobile": "mobile"
         }
       },
       "consent": {
@@ -12658,7 +12647,8 @@
         "fill": {
           "first_name": "first_name",
           "last_name": "last_name",
-          "language": "language"
+          "language": "language",
+          "mobile": "mobile"
         }
       },
       "consent": {
@@ -12875,7 +12865,8 @@
         "fill": {
           "first_name": "first_name",
           "last_name": "last_name",
-          "language": "language"
+          "language": "language",
+          "mobile": "mobile"
         }
       },
       "consent": {
@@ -13093,7 +13084,8 @@
         "fill": {
           "first_name": "first_name",
           "last_name": "last_name",
-          "language": "language"
+          "language": "language",
+          "mobile": "mobile"
         }
       },
       "consent": {

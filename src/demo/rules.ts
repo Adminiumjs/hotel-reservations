@@ -1405,7 +1405,8 @@ export const MANIFEST_RULES = {
         "fill": {
           "first_name": "first_name",
           "last_name": "last_name",
-          "language": "language"
+          "language": "language",
+          "mobile": "mobile"
         }
       },
       "consent": {
@@ -1890,7 +1891,8 @@ export const MANIFEST_RULES = {
         "fill": {
           "first_name": "first_name",
           "last_name": "last_name",
-          "language": "language"
+          "language": "language",
+          "mobile": "mobile"
         }
       },
       "consent": {
@@ -2107,7 +2109,8 @@ export const MANIFEST_RULES = {
         "fill": {
           "first_name": "first_name",
           "last_name": "last_name",
-          "language": "language"
+          "language": "language",
+          "mobile": "mobile"
         }
       },
       "consent": {
@@ -2325,7 +2328,8 @@ export const MANIFEST_RULES = {
         "fill": {
           "first_name": "first_name",
           "last_name": "last_name",
-          "language": "language"
+          "language": "language",
+          "mobile": "mobile"
         }
       },
       "consent": {

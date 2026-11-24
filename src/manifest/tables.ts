@@ -594,12 +594,11 @@ export const TABLES: Table[] = [
       language("language"),
       // The newsletter's yes, kept in step with Adminium's consent log: set by the tick on a reservation, never by hand on the site.
       bool("opt_in", "News from us", false),
-      // The number they last said yes to offers by text for: the mobile of their newest reservation with that box ticked.
-      // What a run of offers from Adminium's Texts reads; a text about a stay goes to the mobile on the stay itself.
-      text("mobile", 32, "Mobile for offers by text", {
-        ...opt,
-        rules: { personal: true, rollup: { from: "stays", via: "customer_id", latest: { of: "mobile", by: "created_at" }, where: { column: "offers_ok", eq: true } } },
-      }),
+      // Their mobile, as their first reservation gave it: what a run of offers from Adminium's Texts reads (and only
+      // for a number they said yes to offers for). A text about a stay goes to the mobile on the stay itself. No rule
+      // works it out: a total over the stays' boxes cannot be kept on an install that is updated, where a column the
+      // update adds may be empty.
+      text("mobile", 32, "Mobile", { ...opt, rules: { personal: true } }),
       at("forgotten_at", "Details deleted", opt),
       at("created_at", "First stay", { ...opt, rules: stamp("now", onCreate) }),
     ],

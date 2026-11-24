@@ -16,8 +16,8 @@
  * texts about the guest's stays, for the mobile typed beside it, kept in
  * Adminium's text consent log. `customers.mobile` is the number they last
  * ticked it for. A second box, "Text me offers from …" (`OFFERS_BOX`), is a
- * yes to offers by text; `customers.mobile` is the number they last ticked
- * that one for, which a run of offers reads.
+ * yes to offers by text; `customers.mobile` is the mobile their first
+ * reservation gave, which a run of offers reads.
  *
  * A guest is also copied onto every reservation of theirs: its first name,
  * surname, the two joined, the address and the mobile. Each copy is declared,

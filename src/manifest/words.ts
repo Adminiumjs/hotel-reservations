@@ -146,7 +146,6 @@ export const WORDS: Record<string, Translation> = {
   Message: w("Nachricht", "Message", "Besked", "Zpráva", "رسالة", "消息", "訊息"),
   Messages: w("Nachrichten", "Messages", "Beskeder", "Zprávy", "الرسائل", "消息", "訊息"),
   Mobile: w("Mobil", "Portable", "Mobil", "Mobil", "الهاتف المحمول", "手机", "手機"),
-  "Mobile for offers by text": w("Mobilnummer für Angebote per SMS", "Portable pour les offres par SMS", "Mobil til tilbud på sms", "Mobil pro nabídky v SMS", "الهاتف المحمول لعروض الرسائل النصية", "接收优惠短信的手机", "接收優惠簡訊的手機"),
   "Money recorded this month": w("Diesen Monat erfasste Zahlungen", "Encaissements du mois", "Betalinger registreret denne måned", "Platby zaznamenané tento měsíc", "المبالغ المسجلة هذا الشهر", "本月记录款项", "本月記錄款項"),
   Name: w("Name", "Nom", "Navn", "Název", "الاسم", "名称", "名稱"),
   "News from us": w("Neuigkeiten von uns", "Nos nouvelles", "Nyheder fra os", "Novinky od nás", "أخبار منا", "我们的消息", "我們的消息"),

@@ -80,7 +80,7 @@ describe("the house's guests", () => {
 
   it("keep a language with the same eight choices as a stay's, filled by the reservation that makes them", () => {
     expect(column("customers", "language")).toEqual(column("stays", "language"));
-    expect(booking().identity!["fill"]).toEqual({ first_name: "first_name", last_name: "last_name", language: "language" });
+    expect(booking().identity!["fill"]).toEqual({ first_name: "first_name", last_name: "last_name", language: "language", mobile: "mobile" });
   });
 
   it("are copied onto columns that hold what the copy says, and what a guest writes about themselves is personal", () => {
@@ -242,13 +242,11 @@ describe("the reservation's boxes for texts", () => {
     }
   });
 
-  it("send a text about a stay to the mobile on the stay; a run of offers reads the number last ticked for offers", () => {
+  it("send a text about a stay to the mobile on the stay; a run of offers reads the guest's own mobile", () => {
     expect((manifest.outbox.recipient["textPhone"] as Json)).toEqual({ via: "stay_id", column: "mobile" });
-    expect(column("customers", "mobile")).toMatchObject({
-      type: "text",
-      nullable: true,
-      rules: { personal: true, rollup: { from: "stays", via: "customer_id", latest: { of: "mobile", by: "created_at" }, where: { column: "offers_ok", eq: true } } },
-    });
+    // A plain column, filled with a guest's first reservation: no rule over the stays' boxes, which an update could not keep.
+    expect(column("customers", "mobile")).toMatchObject({ type: "text", nullable: true, rules: { personal: true } });
+    expect((booking().identity as Json)["fill"]).toMatchObject({ mobile: "mobile" });
     expect(manifest.outbox.recipient["phone"]).toBe("mobile");
     expect(manifest.people[0]!["phone"]).toBe("mobile");
   });

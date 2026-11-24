@@ -801,9 +801,10 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
       it("keeps the box for texts as the guest left it, and texts the number they last ticked it for", async (ctx) => {
         needsWrites(() => ctx.skip());
         const email = `wren.${engine}@wrenhouse.dev`;
-        // Numbers with their country, as the house has no country of its own set here. Left empty: the reservation goes as ever, nothing is asked of the log, and the guest has no number for offers.
+        // Numbers with their country, as the house has no country of its own set here. Left empty: the reservation goes as ever,
+        // and nothing is asked of the log; the guest's own mobile is the one this first reservation gave.
         const plain = await reserveWithBox(email, "Ada", "2026-09-14", "2026-09-15", "+1 207 555 0101", false);
-        expect([ticked(plain.stay["texts_ok"]), ticked(plain.stay["offers_ok"]), plain.customer["mobile"] ?? null]).toEqual([false, false, null]);
+        expect([ticked(plain.stay["texts_ok"]), ticked(plain.stay["offers_ok"]), String(plain.customer["mobile"]).replace(/\D/g, "")]).toEqual([false, false, "12075550101"]);
         const none = await standingOf(plain.stay.id);
         expect([none.app, none.ready, textSaid(none.service), textSaid(none.marketing)]).toEqual(["hotel", false, ["not-asked", null, null], ["not-asked", null, null]]);
         // Both boxes ticked on a later one, with another mobile: each yes in the log, from the form, in its own words.
@@ -811,8 +812,8 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         expect([ticked(boxed.stay["texts_ok"]), ticked(boxed.stay["offers_ok"]), boxed.customer.id]).toEqual([true, true, plain.customer.id]);
         const both = await standingOf(boxed.stay.id);
         expect([textSaid(both.service), textSaid(both.marketing)]).toEqual([["yes", "form", "v1 en-US"], ["yes", "form", "v1 en-US"]]);
-        // The number a run of offers reads: the one last ticked for offers.
-        expect(String(boxed.customer["mobile"]).replace(/\D/g, "")).toBe("12075550102");
+        // A later reservation's number is the stay's own: the guest's stays as it was.
+        expect(String(boxed.customer["mobile"]).replace(/\D/g, "")).toBe("12075550101");
         // The room is ready from the house's arrival time on the arrival day, on the house's clock.
         expect(new Date(String(boxed.stay["arrive_at"])).toISOString()).toBe(new Date(Date.parse("2026-09-21T15:00:00-04:00")).toISOString());
         // Its dates move at the desk: the email, as ever, and the text, which goes nowhere while no text service is connected.

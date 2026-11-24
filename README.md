@@ -152,7 +152,8 @@ skipped, saying texts are not set up, and every email goes as it always did.
   and optional, is a yes to offers by text, kept on its own. It is not shown
   for a number in mainland China, the UAE, Egypt, Saudi Arabia or Taiwan.
   The house sends no offers itself: they go from Adminium's Texts, once its
-  marketing texts are open, to the number last ticked for them.
+  marketing texts are open, to the guest's own mobile (the one their first
+  reservation gave), and only while it holds their yes to offers.
 - **The texts.** Before the arrival (the day before at 10:00 by default: the
   house's *Arrival message, hours before*, or a room type's own), the same
   moment as the new email; and when a stay's dates change. Each opens with
@@ -185,8 +186,8 @@ Adminium to 0.3.76 first, then the app. The update adds empty columns: the
 box for texts on the stays (unticked on every stay already there), when the
 room is ready on the arrival day (worked out when a stay's dates are next
 moved, so a stay made before the update has no arrival message unless its
-arrival moves), the box for offers by text (unticked), the guest's number
-for offers, a text's result code on the messages, the house's *Text guests*
+arrival moves), the box for offers by text (unticked), a guest's mobile
+(empty for a guest already there), a text's result code on the messages, the house's *Text guests*
 switch (on) and *Arrival message, hours before* (24), and a room type's own
 lead (empty). The arrival email starts going to new stays at once, under
 *Email guests*. Nothing is dropped, renamed or rewritten, and nothing is
