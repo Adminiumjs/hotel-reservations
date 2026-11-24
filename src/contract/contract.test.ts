@@ -767,6 +767,82 @@ describe.skipIf(why !== null)(`the contract with a built Adminium${why === null 
         ok(await staff.patch(`${data("settings")}/${String(settings.id)}`, { values: { pay_at_booking: "none" } }));
       }, 180_000);
 
+      // ── texts: the box, the number they go to, and what Adminium does with none connected ──
+
+      /** A guest's reservation through the app's own door, with a mobile and the box for texts as given: the first room type open those nights. */
+      const reserveWithBox = async (email: string, first: string, arrive: string, depart: string, mobile: string, box: boolean) => {
+        const types = await rows("room_types");
+        let reason = "";
+        for (const type of types) {
+          try {
+            const made = await (await guestOf()).reserve(
+              { values: { room_type_id: type.id, arrive, depart, guests: 1, first_name: first, last_name: "Wren", email, mobile, arrival_time: "16:00", language: "en-US", texts_ok: box }, children: { stay_extras: [] } },
+              `${email}-${arrive}`.replace(/[^A-Za-z0-9]/g, "").padEnd(43, "t").slice(0, 64),
+            );
+            const stay = (await rows("stays")).find((st) => st.id === made.data.id)!;
+            return { stay, customer: (await rows("customers")).find((c) => c.id === stay["customer_id"])! };
+          } catch (error) {
+            reason = String((error as { code?: string }).code ?? error);
+          }
+        }
+        throw new Error(`no room type was open ${arrive} → ${depart}: ${reason}`);
+      };
+      const messagesOf = async (stayId: unknown, kind: string) => (await rows("messages")).filter((m) => m["stay_id"] === stayId && m["kind"] === kind);
+
+      it("keeps the box for texts as the guest left it, and texts the number they last ticked it for", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        const email = `wren.${engine}@wrenhouse.dev`;
+        // Left empty: the reservation goes as ever, and the guest has no number for texts.
+        const plain = await reserveWithBox(email, "Ada", "2026-09-14", "2026-09-15", "(207) 555-0101", false);
+        expect([ticked(plain.stay["texts_ok"]), plain.customer["mobile"] ?? null]).toEqual([false, null]);
+        // Ticked on a later one, with another mobile: that number is the one a text goes to.
+        const boxed = await reserveWithBox(email, "Ada", "2026-09-21", "2026-09-22", "(207) 555-0102", true);
+        expect([ticked(boxed.stay["texts_ok"]), boxed.customer.id]).toEqual([true, plain.customer.id]);
+        expect(String(boxed.customer["mobile"]).replace(/\D/g, "")).toBe("2075550102");
+        // The room is ready from the house's arrival time on the arrival day, on the house's clock.
+        expect(new Date(String(boxed.stay["arrive_at"])).toISOString()).toBe(new Date(Date.parse("2026-09-21T15:00:00-04:00")).toISOString());
+        // Its dates move at the desk: the email, as ever, and the text, which goes nowhere while no text service is connected.
+        const { desk } = await deskOf(staff);
+        await desk.edit(boxed.stay.id, { depart: "2026-09-23" });
+        const text = await until(async () => {
+          const found = (await messagesOf(boxed.stay.id, "stay-dates-changed-text"))[0];
+          return found !== undefined && found["status"] !== "queued" ? found : undefined;
+        }, "the dates-changed text to be settled", 150_000);
+        expect([text["status"], text["error"]]).toEqual(["skipped", "No text provider is connected"]);
+        expect((await messagesOf(boxed.stay.id, "stay-dates-changed")).length).toBe(1);
+      }, 300_000);
+
+      it("sends the arrival message the day before at 10:00: the email, and the text written down", async (ctx) => {
+        needsWrites(() => ctx.skip());
+        const email = `arrival.${engine}@wrenhouse.dev`;
+        const before = await sinkCount();
+        // Taken at the desk on the telephone, for tomorrow: the guest's own details on the stay, nobody signed in.
+        const { desk } = await deskOf(staff);
+        const h = await desk.house();
+        let made: { stay: Row } | null = null;
+        for (const type of h.types) {
+          const body = { values: { room_type_id: type.id, arrive: "2026-07-29", depart: "2026-07-30", guests: 1, first_name: "Bea", last_name: "Wren", email, mobile: "(207) 555-0103", language: "en-US", texts_ok: true }, children: { stay_extras: [] } };
+          const booked = await desk.book(body).catch(() => null);
+          if (booked !== null) made = { stay: (await rows("stays")).find((st) => st.id === booked.data.id)! };
+          if (made !== null) break;
+        }
+        if (made === null) throw new Error("no room type was open 2026-07-29 → 2026-07-30 at the desk");
+        expect(ticked(made.stay["texts_ok"])).toBe(true);
+        expect(await messagesOf(made.stay.id, "stay-arriving")).toEqual([]);
+        // 10:01 on the day before: the minute's look-over finds it.
+        await server.setClock(Date.parse("2026-07-28T10:01:00-04:00"));
+        const mail = await mailTo(email, before, /See you on/);
+        expect(mail.subject).toContain(String(made.stay["ref"]));
+        const text = await until(async () => {
+          const found = (await messagesOf(made.stay.id, "stay-arriving-text"))[0];
+          return found !== undefined && found["status"] !== "queued" ? found : undefined;
+        }, "the arrival text to be settled", 150_000);
+        expect([text["status"], text["error"]]).toEqual(["skipped", "No text provider is connected"]);
+        // Once each; the text found the number typed on the stay (no "No mobile number on file").
+        expect((await messagesOf(made.stay.id, "stay-arriving")).length).toBe(1);
+        expect((await messagesOf(made.stay.id, "stay-arriving-text")).length).toBe(1);
+      }, 300_000);
+
       it("removes the sample", async (ctx) => {
         needsWrites(() => ctx.skip());
         const plan = ok(await staff.post<{ total: number }>("/api/v1/apps/hotel/sample-data/remove-plan"));

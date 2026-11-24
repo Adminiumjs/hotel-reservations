@@ -71,7 +71,7 @@ const PORT_BASE = Number(process.env["CONTRACT_UPDATE_PORT_BASE"] ?? Number(proc
 const ADMIN = { email: process.env["E2E_ADMIN_EMAIL"] ?? "e2e@adminium.local", password: process.env["E2E_ADMIN_PASSWORD"] ?? "adminium-e2e-password" };
 const PREFIX = "hotel_";
 
-/** What 0.3.1 and 0.3.3 add to 0.3.0's tables, from the manifest: the update's plan must be exactly this. */
+/** What 0.3.1, 0.3.3 and 0.3.4 add to 0.3.0's tables, from the manifest: the update's plan must be exactly this. */
 const NEW_TABLES: string[] = [];
 /** Paying online (0.3.3): the settings that ask it, what a stay paid and gave back online, and what a payment taken online carries. */
 const PAY_COLUMNS: Record<string, string[]> = {
@@ -79,17 +79,25 @@ const PAY_COLUMNS: Record<string, string[]> = {
   stays: ["deposit", "online_back", "online_full", "online_kept", "online_part", "paid_online", "pay_due", "pay_lapsed", "pay_now", "pay_part", "pay_pending", "refunded_online", "settle_desk", "taken_online"],
   payments: ["automatic", "online_back", "online_taken", "payment_last4", "payment_ref", "provider", "refund_of", "refund_ref", "refund_state", "refunded_elsewhere"],
 };
+/** Texts (0.3.4): the house's switch and lead, a room type's own lead, a stay's box and its room-ready moment, a guest's number. */
+const TEXT_COLUMNS: Record<string, string[]> = {
+  settings: ["arrival_hours", "guest_texts_on"],
+  room_types: ["arrival_hours"],
+  stays: ["arrive_at", "texts_ok"],
+  customers: ["mobile"],
+};
 const NEW_COLUMNS: Record<string, string[]> = {
-  customers: ["full_name", "language", "opt_in"],
-  stays: ["opt_in", ...PAY_COLUMNS["stays"]!].sort(),
-  settings: PAY_COLUMNS["settings"]!,
+  customers: ["full_name", "language", "opt_in", ...TEXT_COLUMNS["customers"]!].sort(),
+  stays: ["opt_in", ...PAY_COLUMNS["stays"]!, ...TEXT_COLUMNS["stays"]!].sort(),
+  settings: [...PAY_COLUMNS["settings"]!, ...TEXT_COLUMNS["settings"]!].sort(),
   payments: PAY_COLUMNS["payments"]!,
+  room_types: TEXT_COLUMNS["room_types"]!,
 };
 const NEW_ENUM_VALUES: Record<string, Record<string, string[]>> = {
   stays: { status: ["pending_payment"], cancel_code: ["unpaid"] },
   payments: { method: ["online"] },
-  // The two emails sent only while the house takes payments online.
-  messages: { kind: ["stay-made-pay", "stay-folio-owing-pay"] },
+  // The two emails sent only while the house takes payments online; the arrival message, and the two texts.
+  messages: { kind: ["stay-made-pay", "stay-folio-owing-pay", "stay-arriving", "stay-arriving-text", "stay-dates-changed-text"] },
 };
 /**
  * What a paying column holds on a row that was there: a setting's own default (nothing asked of a guest who books;
@@ -97,7 +105,17 @@ const NEW_ENUM_VALUES: Record<string, Record<string, string[]>> = {
  * row (a stay's figures, a payment's share of them), which is checked over HTTP below.
  */
 const PAY_DEFAULTS: Record<string, Record<string, unknown[]>> = {
-  settings: { pay_at_booking: ["none"], pay_how_much: ["one_night"], pay_hold_minutes: [15, "15"], auto_refund: [true, 1, "1", "true", "t"], auto_refund_stop_hours: [0, "0"] },
+  settings: {
+    pay_at_booking: ["none"],
+    pay_how_much: ["one_night"],
+    pay_hold_minutes: [15, "15"],
+    auto_refund: [true, 1, "1", "true", "t"],
+    auto_refund_stop_hours: [0, "0"],
+    // Texts (0.3.4): the house's switch on, and the arrival message a day ahead. A stay's box is a no; its room-ready
+    // moment, a room type's lead and a guest's number for texts are empty on a row that was there.
+    guest_texts_on: [true, 1, "1", "true", "t"],
+    arrival_hours: [24, "24"],
+  },
 };
 const WORKED_OUT: Record<string, string[]> = {
   stays: ["deposit", "online_back", "online_full", "online_kept", "online_part", "paid_online", "pay_due", "pay_pending", "refunded_online", "settle_desk", "taken_online"],
