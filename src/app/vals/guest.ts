@@ -10,7 +10,7 @@ import { key, locale, tr } from "../../i18n/tr.ts";
 import { days, dow, fD, fDW, fT, guestsW, fsi, iso, money, money0, nights, nightsOf, people, plus, strip, taxWords } from "../fmt.ts";
 import { codeVals } from "../codes.ts";
 import { okEmail, type HouseApp } from "../house.ts";
-import { textBoxVals } from "../textBox.ts";
+import { offersBoxVals, textBoxVals } from "../textBox.ts";
 import type { ExtraV, StV, TypeV, WorldV } from "../world.ts";
 
 type V = Record<string, unknown>;
@@ -718,7 +718,9 @@ function reserveVals(app: HouseApp, w: WorldV, pt: TypeV, n: number, guests: num
   // What the guest saw is what the save expects: the price shown when they pressed Reserve.
   if (total !== null && s.rvShown !== total && !s.rvBusy && s.rvAnswer === null) queueMicrotask(() => app.setState({ rvShown: total }));
   const pay = payVals(app, w, q);
-  const text = textBoxVals(f.textsOk, f.mobile, () => app.setState({ form: { ...app.state.form, textsOk: !app.state.form.textsOk } }));
+  const ready = app.textsReady("guest");
+  const text = textBoxVals(f.textsOk, f.mobile, () => app.setState({ form: { ...app.state.form, textsOk: !app.state.form.textsOk } }), ready);
+  const offers = offersBoxVals(f.offersOk, f.mobile, () => app.setState({ form: { ...app.state.form, offersOk: !app.state.form.offersOk } }), w.H.name, ready);
   return {
     ...pay,
     cols: narrow ? "1fr" : "1fr 336px",
@@ -745,6 +747,7 @@ function reserveVals(app: HouseApp, w: WorldV, pt: TypeV, n: number, guests: num
     optNote: tr("Every email has a link to stop them."),
     // The box for texts, beside the email tick and never the same one: ticking one never ticks the other.
     ...text,
+    ...offers,
     // What the mobile is for, as the box stands.
     mobileHint: text.textOn ? tr("So the desk can ring you on the day, and text you about your stay.") : tr("Only so the desk can ring you on the day."),
     firstErrOn: !!firstErr,

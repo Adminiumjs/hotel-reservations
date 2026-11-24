@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { numberState, textBoxVals, textsOkFor } from "./textBox.ts";
+import { numberState, offersBoxVals, offersOffered, offersOkFor, textBoxVals, textsOkFor } from "./textBox.ts";
 
 describe("a typed number", () => {
   it("is read in the house's country when it carries none, and with its own when it does", () => {
@@ -57,5 +57,27 @@ describe("what the reservation writes", () => {
     expect(textsOkFor(false, "(207) 555-0123")).toBe(false);
     expect(textsOkFor(true, "+86 138 0013 8000")).toBe(false);
     expect(textsOkFor(true, "")).toBe(false);
+  });
+});
+
+describe("the box for offers", () => {
+  it("is never shown for mainland China, the UAE, Egypt, Saudi Arabia or Taiwan; Hong Kong and the rest are offered", () => {
+    expect(["+86 138 0013 8000", "+971 50 123 4567", "+20 10 1234 5678", "+966 50 123 4567", "+886 912 345 678", "00886 912 345 678"].map(offersOffered)).toEqual([false, false, false, false, false, false]);
+    expect(["+852 6123 4567", "+44 20 7946 0958", "(207) 555-0123", ""].map(offersOffered)).toEqual([true, true, true, true]);
+  });
+
+  it("starts unticked, names the house, and writes a yes only for a number offers can go to", () => {
+    const v = offersBoxVals(false, "(207) 555-0123", () => undefined, "Wren House", true);
+    expect([v.offersShown, v.offersOn, v.offersLabel]).toEqual([true, false, "Text me offers from Wren House"]);
+    expect(offersBoxVals(true, "+886 912 345 678", () => undefined, "Wren House", true)).toMatchObject({ offersShown: false, offersOn: false });
+    expect([offersOkFor(true, "(207) 555-0123"), offersOkFor(true, "+971 50 123 4567"), offersOkFor(true, ""), offersOkFor(false, "(207) 555-0123")]).toEqual([true, false, false, false]);
+  });
+});
+
+describe("with texts not set up in Adminium", () => {
+  it("draws neither box, and writes no yes", () => {
+    expect(textBoxVals(true, "(207) 555-0123", () => undefined, false)).toMatchObject({ textShown: false, textOn: false, textCheckOn: false });
+    expect(offersBoxVals(true, "(207) 555-0123", () => undefined, "Wren House", false)).toMatchObject({ offersShown: false, offersOn: false });
+    expect([textsOkFor(true, "(207) 555-0123", false), offersOkFor(true, "(207) 555-0123", false)]).toEqual([false, false]);
   });
 });

@@ -425,6 +425,7 @@ export class Engine {
       link_stopped: false,
       // The box for texts: unticked unless the guest (or the desk, having asked) ticked it.
       texts_ok: false,
+      offers_ok: false,
       tax_rate: this.setting("tax_rate"),
       tax_label: this.setting("tax_label"),
       // What the house asks a guest to pay as they reserve, kept with the stay as it was made.
@@ -739,7 +740,8 @@ export class Engine {
       // One of a kind per stay — or, with `repeat`, one for each change.
       if (producer.repeat !== true && this.world.where("messages", (m) => m["kind"] === producer.kind && m["stay_id"] === after.id).length > 0) continue;
       const was = producer.was === undefined || before === null ? null : JSON.stringify(Object.fromEntries(producer.was.map((column) => [column, before[column] ?? null])));
-      // The demo has no text service: a text is written down and skipped, saying why, as Adminium does with none connected.
+      // The demo's house plays one whose texts are set up, but no text ever leaves the demo: each is written down and
+      // skipped, as Adminium skips a sample row's, with its reason code beside the sentence.
       if (TEXT_CHANNELS[producer.kind] === "sms") {
         if (producer.gate !== undefined && this.setting(producer.gate.setting.column) !== true) continue;
         this.world.insert("messages", {
@@ -752,7 +754,8 @@ export class Engine {
           due: iso(this.now),
           created_at: iso(this.now),
           sent_at: null,
-          error: "No text provider is connected",
+          error: "Sample data (never sent)",
+          text_reason: "sample",
           skip_reason: null,
           was,
         });

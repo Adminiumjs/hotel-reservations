@@ -83,8 +83,9 @@ const PAY_COLUMNS: Record<string, string[]> = {
 const TEXT_COLUMNS: Record<string, string[]> = {
   settings: ["arrival_hours", "guest_texts_on"],
   room_types: ["arrival_hours"],
-  stays: ["arrive_at", "texts_ok"],
+  stays: ["arrive_at", "offers_ok", "texts_ok"],
   customers: ["mobile"],
+  messages: ["text_reason"],
 };
 const NEW_COLUMNS: Record<string, string[]> = {
   customers: ["full_name", "language", "opt_in", ...TEXT_COLUMNS["customers"]!].sort(),
@@ -92,6 +93,7 @@ const NEW_COLUMNS: Record<string, string[]> = {
   settings: [...PAY_COLUMNS["settings"]!, ...TEXT_COLUMNS["settings"]!].sort(),
   payments: PAY_COLUMNS["payments"]!,
   room_types: TEXT_COLUMNS["room_types"]!,
+  messages: TEXT_COLUMNS["messages"]!,
 };
 const NEW_ENUM_VALUES: Record<string, Record<string, string[]>> = {
   stays: { status: ["pending_payment"], cancel_code: ["unpaid"] },

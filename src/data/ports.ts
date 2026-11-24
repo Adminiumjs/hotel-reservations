@@ -59,6 +59,8 @@ export interface GuestPort {
   readonly offers?: GuestOffers;
   config(): Promise<PublicConfig>;
   house(): Promise<House>;
+  /** Whether the house's texts are set up in Adminium: the boxes for texts are drawn only while they are. */
+  textsReady(): Promise<boolean>;
 
   /** Each room type that sleeps the party, over the nights asked. */
   availability(question: NightQuestion): Promise<NightAnswer>;
@@ -171,6 +173,8 @@ export interface DeskPort {
    */
   config(): Promise<{ timezone: string | null; currency: string | null; now?: string; folio?: boolean; linen?: boolean; codes?: boolean; giftCards?: boolean; payments?: { on: boolean; online: boolean; test: boolean; refund: boolean } }>;
   house(): Promise<DeskHouse>;
+  /** Whether the house's texts are set up in Adminium: the desk's box for texts is drawn only while they are. */
+  textsReady(): Promise<boolean>;
 
   /** Every stay on the book, with its extras. */
   stays(): Promise<StayWithLines[]>;

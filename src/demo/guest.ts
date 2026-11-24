@@ -101,6 +101,11 @@ export class DemoGuest implements GuestPort {
     return "code" in by ? this.engine.addOns.balance(by.code) : null;
   }
 
+  /** The demo's house plays one whose texts are set up, so its boxes show; no text ever leaves the demo. */
+  async textsReady(): Promise<boolean> {
+    return true;
+  }
+
   async house(): Promise<House> {
     await this.wait(this.latency.read);
     const list = (table: "room_types" | "room_type_features" | "rooms" | "extras" | "house_notes") => {

@@ -38,7 +38,7 @@
  * guest account behind it, the link code and the retry key, anyone else's
  * stay, the rooms' status, the rate rules.
  */
-import { NEWS_TICK, TEXT_BOX } from "./people.ts";
+import { NEWS_TICK, OFFERS_BOX, TEXT_BOX } from "./people.ts";
 import { ARRIVAL_TIMES } from "./tables.ts";
 
 /** What a guest sees of their reservation: the stay, their details, what it costs. */
@@ -210,14 +210,16 @@ const RESERVE = {
     "client_key",
     "opt_in",
     "texts_ok",
+    "offers_ok",
   ],
   requires: ["first_name", "last_name", "email"],
   claimedBy: { table: "customers", column: "customer_id", optional: true },
   // A guest met for the first time is made with the names and the language of this reservation.
   identity: { table: "customers", email: "email", link: "customer_id", fill: { first_name: "first_name", last_name: "last_name", language: "language" } },
   consent: NEWS_TICK,
-  // "Text me about my stay": a box of its own beside the email tick, unticked, never needed to book.
-  textConsent: TEXT_BOX,
+  // "Text me about my stay", and "Text me offers from …": two boxes of their own beside the email tick, each unticked,
+  // neither needed to book, each kept under its own class.
+  textConsent: [TEXT_BOX, OFFERS_BOX],
   shareLink: "link_token",
   // No more guests than the room type sleeps — and, at the desk, than a room given ahead sleeps.
   agrees: [

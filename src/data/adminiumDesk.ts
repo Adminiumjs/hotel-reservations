@@ -211,6 +211,11 @@ export class AdminiumDesk implements DeskPort {
     };
   }
 
+  /** Whether the house's texts are set up (`GET /texts/ready`): the desk's box for texts is drawn only while they are. */
+  async textsReady(): Promise<boolean> {
+    return (await this.t.get<{ data: { ready: boolean } }>("/api/v1/texts/ready")).data.ready === true;
+  }
+
   house(): Promise<DeskHouse> {
     return answer(async () => {
       const read = (table: Table) => (this.may(table) ? this.list(table) : Promise.resolve([] as Row[]));

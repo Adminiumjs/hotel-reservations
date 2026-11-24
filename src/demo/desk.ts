@@ -114,6 +114,11 @@ export class DemoDesk implements DeskPort {
     return reply;
   }
 
+  /** The demo's house plays one whose texts are set up, so the desk's box shows; no text ever leaves the demo. */
+  async textsReady(): Promise<boolean> {
+    return true;
+  }
+
   async house(): Promise<DeskHouse> {
     const all = (table: "room_types" | "room_type_features" | "rooms" | "extras" | "house_notes" | "room_closures" | "rate_rules" | "charge_items") =>
       this.reads(table) ? this.world.all(table).map((row) => ({ ...row })).sort(byPosition) : [];

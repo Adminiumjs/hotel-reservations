@@ -1385,7 +1385,8 @@ export const MANIFEST_RULES = {
         "language",
         "client_key",
         "opt_in",
-        "texts_ok"
+        "texts_ok",
+        "offers_ok"
       ],
       "requires": [
         "first_name",
@@ -1424,24 +1425,44 @@ export const MANIFEST_RULES = {
           }
         }
       },
-      "textConsent": {
-        "column": "texts_ok",
-        "phone": "mobile",
-        "class": "service",
-        "wording": {
-          "version": 1,
-          "text": {
-            "en-US": "Text me about my stay\nYour arrival details, and if your dates change.\nOptional. You can stop at any time; each text tells you how.",
-            "de-DE": "SMS zu meinem Aufenthalt\nIhre Anreisedetails und Änderungen Ihrer Daten.\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
-            "fr-FR": "M'envoyer des SMS au sujet de mon séjour\nLes détails de votre arrivée, et tout changement de vos dates.\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
-            "da-DK": "Send mig sms'er om mit ophold\nDetaljer om din ankomst, og hvis dine datoer ændres.\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
-            "cs-CZ": "Posílejte mi SMS o mém pobytu\nPodrobnosti o příjezdu a změny termínu.\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
-            "ar-EG": "أرسلوا لي رسائل نصية عن إقامتي\nتفاصيل وصولك، وأي تغيير في مواعيدك.\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
-            "zh-CN": "通过短信告知我住宿信息\n您的入住信息，以及日期变更通知。\n可选。您可随时退订，每条短信都会说明退订方式。",
-            "zh-TW": "以簡訊通知我住宿資訊\n您的入住資訊，以及日期異動通知。\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
+      "textConsent": [
+        {
+          "column": "texts_ok",
+          "phone": "mobile",
+          "class": "service",
+          "wording": {
+            "version": 1,
+            "text": {
+              "en-US": "Text me about my stay\nYour arrival details, and if your dates change.\nOptional. You can stop at any time; each text tells you how.",
+              "de-DE": "SMS zu meinem Aufenthalt\nIhre Anreisedetails und Änderungen Ihrer Daten.\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+              "fr-FR": "M'envoyer des SMS au sujet de mon séjour\nLes détails de votre arrivée, et tout changement de vos dates.\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
+              "da-DK": "Send mig sms'er om mit ophold\nDetaljer om din ankomst, og hvis dine datoer ændres.\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+              "cs-CZ": "Posílejte mi SMS o mém pobytu\nPodrobnosti o příjezdu a změny termínu.\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+              "ar-EG": "أرسلوا لي رسائل نصية عن إقامتي\nتفاصيل وصولك، وأي تغيير في مواعيدك.\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+              "zh-CN": "通过短信告知我住宿信息\n您的入住信息，以及日期变更通知。\n可选。您可随时退订，每条短信都会说明退订方式。",
+              "zh-TW": "以簡訊通知我住宿資訊\n您的入住資訊，以及日期異動通知。\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
+            }
+          }
+        },
+        {
+          "column": "offers_ok",
+          "phone": "mobile",
+          "class": "marketing",
+          "wording": {
+            "version": 1,
+            "text": {
+              "en-US": "Text me offers from {hotel}\nOptional. You can stop at any time; each text tells you how.",
+              "de-DE": "Angebote von {hotel} per SMS\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+              "fr-FR": "M'envoyer par SMS les offres de {hotel}\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
+              "da-DK": "Send mig tilbud fra {hotel} på sms\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+              "cs-CZ": "Posílejte mi SMS s nabídkami od {hotel}\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+              "ar-EG": "أرسلوا لي عروض {hotel} برسائل نصية\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+              "zh-CN": "通过短信向我发送{hotel}的优惠\n可选。您可随时退订，每条短信都会说明退订方式。",
+              "zh-TW": "以簡訊傳送{hotel}的優惠給我\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
+            }
           }
         }
-      },
+      ],
       "shareLink": "link_token",
       "agrees": [
         {
@@ -1849,7 +1870,8 @@ export const MANIFEST_RULES = {
         "language",
         "client_key",
         "opt_in",
-        "texts_ok"
+        "texts_ok",
+        "offers_ok"
       ],
       "requires": [
         "first_name",
@@ -1888,24 +1910,44 @@ export const MANIFEST_RULES = {
           }
         }
       },
-      "textConsent": {
-        "column": "texts_ok",
-        "phone": "mobile",
-        "class": "service",
-        "wording": {
-          "version": 1,
-          "text": {
-            "en-US": "Text me about my stay\nYour arrival details, and if your dates change.\nOptional. You can stop at any time; each text tells you how.",
-            "de-DE": "SMS zu meinem Aufenthalt\nIhre Anreisedetails und Änderungen Ihrer Daten.\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
-            "fr-FR": "M'envoyer des SMS au sujet de mon séjour\nLes détails de votre arrivée, et tout changement de vos dates.\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
-            "da-DK": "Send mig sms'er om mit ophold\nDetaljer om din ankomst, og hvis dine datoer ændres.\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
-            "cs-CZ": "Posílejte mi SMS o mém pobytu\nPodrobnosti o příjezdu a změny termínu.\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
-            "ar-EG": "أرسلوا لي رسائل نصية عن إقامتي\nتفاصيل وصولك، وأي تغيير في مواعيدك.\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
-            "zh-CN": "通过短信告知我住宿信息\n您的入住信息，以及日期变更通知。\n可选。您可随时退订，每条短信都会说明退订方式。",
-            "zh-TW": "以簡訊通知我住宿資訊\n您的入住資訊，以及日期異動通知。\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
+      "textConsent": [
+        {
+          "column": "texts_ok",
+          "phone": "mobile",
+          "class": "service",
+          "wording": {
+            "version": 1,
+            "text": {
+              "en-US": "Text me about my stay\nYour arrival details, and if your dates change.\nOptional. You can stop at any time; each text tells you how.",
+              "de-DE": "SMS zu meinem Aufenthalt\nIhre Anreisedetails und Änderungen Ihrer Daten.\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+              "fr-FR": "M'envoyer des SMS au sujet de mon séjour\nLes détails de votre arrivée, et tout changement de vos dates.\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
+              "da-DK": "Send mig sms'er om mit ophold\nDetaljer om din ankomst, og hvis dine datoer ændres.\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+              "cs-CZ": "Posílejte mi SMS o mém pobytu\nPodrobnosti o příjezdu a změny termínu.\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+              "ar-EG": "أرسلوا لي رسائل نصية عن إقامتي\nتفاصيل وصولك، وأي تغيير في مواعيدك.\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+              "zh-CN": "通过短信告知我住宿信息\n您的入住信息，以及日期变更通知。\n可选。您可随时退订，每条短信都会说明退订方式。",
+              "zh-TW": "以簡訊通知我住宿資訊\n您的入住資訊，以及日期異動通知。\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
+            }
+          }
+        },
+        {
+          "column": "offers_ok",
+          "phone": "mobile",
+          "class": "marketing",
+          "wording": {
+            "version": 1,
+            "text": {
+              "en-US": "Text me offers from {hotel}\nOptional. You can stop at any time; each text tells you how.",
+              "de-DE": "Angebote von {hotel} per SMS\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+              "fr-FR": "M'envoyer par SMS les offres de {hotel}\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
+              "da-DK": "Send mig tilbud fra {hotel} på sms\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+              "cs-CZ": "Posílejte mi SMS s nabídkami od {hotel}\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+              "ar-EG": "أرسلوا لي عروض {hotel} برسائل نصية\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+              "zh-CN": "通过短信向我发送{hotel}的优惠\n可选。您可随时退订，每条短信都会说明退订方式。",
+              "zh-TW": "以簡訊傳送{hotel}的優惠給我\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
+            }
           }
         }
-      },
+      ],
       "shareLink": "link_token",
       "agrees": [
         {
@@ -2045,7 +2087,8 @@ export const MANIFEST_RULES = {
         "language",
         "client_key",
         "opt_in",
-        "texts_ok"
+        "texts_ok",
+        "offers_ok"
       ],
       "requires": [
         "first_name",
@@ -2084,24 +2127,44 @@ export const MANIFEST_RULES = {
           }
         }
       },
-      "textConsent": {
-        "column": "texts_ok",
-        "phone": "mobile",
-        "class": "service",
-        "wording": {
-          "version": 1,
-          "text": {
-            "en-US": "Text me about my stay\nYour arrival details, and if your dates change.\nOptional. You can stop at any time; each text tells you how.",
-            "de-DE": "SMS zu meinem Aufenthalt\nIhre Anreisedetails und Änderungen Ihrer Daten.\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
-            "fr-FR": "M'envoyer des SMS au sujet de mon séjour\nLes détails de votre arrivée, et tout changement de vos dates.\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
-            "da-DK": "Send mig sms'er om mit ophold\nDetaljer om din ankomst, og hvis dine datoer ændres.\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
-            "cs-CZ": "Posílejte mi SMS o mém pobytu\nPodrobnosti o příjezdu a změny termínu.\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
-            "ar-EG": "أرسلوا لي رسائل نصية عن إقامتي\nتفاصيل وصولك، وأي تغيير في مواعيدك.\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
-            "zh-CN": "通过短信告知我住宿信息\n您的入住信息，以及日期变更通知。\n可选。您可随时退订，每条短信都会说明退订方式。",
-            "zh-TW": "以簡訊通知我住宿資訊\n您的入住資訊，以及日期異動通知。\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
+      "textConsent": [
+        {
+          "column": "texts_ok",
+          "phone": "mobile",
+          "class": "service",
+          "wording": {
+            "version": 1,
+            "text": {
+              "en-US": "Text me about my stay\nYour arrival details, and if your dates change.\nOptional. You can stop at any time; each text tells you how.",
+              "de-DE": "SMS zu meinem Aufenthalt\nIhre Anreisedetails und Änderungen Ihrer Daten.\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+              "fr-FR": "M'envoyer des SMS au sujet de mon séjour\nLes détails de votre arrivée, et tout changement de vos dates.\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
+              "da-DK": "Send mig sms'er om mit ophold\nDetaljer om din ankomst, og hvis dine datoer ændres.\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+              "cs-CZ": "Posílejte mi SMS o mém pobytu\nPodrobnosti o příjezdu a změny termínu.\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+              "ar-EG": "أرسلوا لي رسائل نصية عن إقامتي\nتفاصيل وصولك، وأي تغيير في مواعيدك.\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+              "zh-CN": "通过短信告知我住宿信息\n您的入住信息，以及日期变更通知。\n可选。您可随时退订，每条短信都会说明退订方式。",
+              "zh-TW": "以簡訊通知我住宿資訊\n您的入住資訊，以及日期異動通知。\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
+            }
+          }
+        },
+        {
+          "column": "offers_ok",
+          "phone": "mobile",
+          "class": "marketing",
+          "wording": {
+            "version": 1,
+            "text": {
+              "en-US": "Text me offers from {hotel}\nOptional. You can stop at any time; each text tells you how.",
+              "de-DE": "Angebote von {hotel} per SMS\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+              "fr-FR": "M'envoyer par SMS les offres de {hotel}\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
+              "da-DK": "Send mig tilbud fra {hotel} på sms\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+              "cs-CZ": "Posílejte mi SMS s nabídkami od {hotel}\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+              "ar-EG": "أرسلوا لي عروض {hotel} برسائل نصية\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+              "zh-CN": "通过短信向我发送{hotel}的优惠\n可选。您可随时退订，每条短信都会说明退订方式。",
+              "zh-TW": "以簡訊傳送{hotel}的優惠給我\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
+            }
           }
         }
-      },
+      ],
       "shareLink": "link_token",
       "agrees": [
         {
@@ -2242,7 +2305,8 @@ export const MANIFEST_RULES = {
         "language",
         "client_key",
         "opt_in",
-        "texts_ok"
+        "texts_ok",
+        "offers_ok"
       ],
       "requires": [
         "first_name",
@@ -2281,24 +2345,44 @@ export const MANIFEST_RULES = {
           }
         }
       },
-      "textConsent": {
-        "column": "texts_ok",
-        "phone": "mobile",
-        "class": "service",
-        "wording": {
-          "version": 1,
-          "text": {
-            "en-US": "Text me about my stay\nYour arrival details, and if your dates change.\nOptional. You can stop at any time; each text tells you how.",
-            "de-DE": "SMS zu meinem Aufenthalt\nIhre Anreisedetails und Änderungen Ihrer Daten.\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
-            "fr-FR": "M'envoyer des SMS au sujet de mon séjour\nLes détails de votre arrivée, et tout changement de vos dates.\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
-            "da-DK": "Send mig sms'er om mit ophold\nDetaljer om din ankomst, og hvis dine datoer ændres.\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
-            "cs-CZ": "Posílejte mi SMS o mém pobytu\nPodrobnosti o příjezdu a změny termínu.\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
-            "ar-EG": "أرسلوا لي رسائل نصية عن إقامتي\nتفاصيل وصولك، وأي تغيير في مواعيدك.\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
-            "zh-CN": "通过短信告知我住宿信息\n您的入住信息，以及日期变更通知。\n可选。您可随时退订，每条短信都会说明退订方式。",
-            "zh-TW": "以簡訊通知我住宿資訊\n您的入住資訊，以及日期異動通知。\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
+      "textConsent": [
+        {
+          "column": "texts_ok",
+          "phone": "mobile",
+          "class": "service",
+          "wording": {
+            "version": 1,
+            "text": {
+              "en-US": "Text me about my stay\nYour arrival details, and if your dates change.\nOptional. You can stop at any time; each text tells you how.",
+              "de-DE": "SMS zu meinem Aufenthalt\nIhre Anreisedetails und Änderungen Ihrer Daten.\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+              "fr-FR": "M'envoyer des SMS au sujet de mon séjour\nLes détails de votre arrivée, et tout changement de vos dates.\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
+              "da-DK": "Send mig sms'er om mit ophold\nDetaljer om din ankomst, og hvis dine datoer ændres.\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+              "cs-CZ": "Posílejte mi SMS o mém pobytu\nPodrobnosti o příjezdu a změny termínu.\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+              "ar-EG": "أرسلوا لي رسائل نصية عن إقامتي\nتفاصيل وصولك، وأي تغيير في مواعيدك.\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+              "zh-CN": "通过短信告知我住宿信息\n您的入住信息，以及日期变更通知。\n可选。您可随时退订，每条短信都会说明退订方式。",
+              "zh-TW": "以簡訊通知我住宿資訊\n您的入住資訊，以及日期異動通知。\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
+            }
+          }
+        },
+        {
+          "column": "offers_ok",
+          "phone": "mobile",
+          "class": "marketing",
+          "wording": {
+            "version": 1,
+            "text": {
+              "en-US": "Text me offers from {hotel}\nOptional. You can stop at any time; each text tells you how.",
+              "de-DE": "Angebote von {hotel} per SMS\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+              "fr-FR": "M'envoyer par SMS les offres de {hotel}\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
+              "da-DK": "Send mig tilbud fra {hotel} på sms\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+              "cs-CZ": "Posílejte mi SMS s nabídkami od {hotel}\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+              "ar-EG": "أرسلوا لي عروض {hotel} برسائل نصية\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+              "zh-CN": "通过短信向我发送{hotel}的优惠\n可选。您可随时退订，每条短信都会说明退订方式。",
+              "zh-TW": "以簡訊傳送{hotel}的優惠給我\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
+            }
           }
         }
-      },
+      ],
       "shareLink": "link_token",
       "agrees": [
         {

@@ -114,8 +114,8 @@ export const DECIDED: Readonly<Record<string, readonly string[]>> = {
   stay_extras: ["discount"],
   payments: ["card_id", "card_last4", "card_balance_after", "payment_ref", "provider", "payment_last4", "refunded_elsewhere", "refund_ref", "refund_state", "automatic"],
 };
-/** What only the guest gives, on their own reservation: the tick for the house's news. No role writes it on their behalf. */
-export const GUESTS_OWN: Readonly<Record<string, readonly string[]>> = { stays: ["opt_in"] };
+/** What only the guest gives, on their own reservation: the tick for the house's news, and the box for offers by text. No role writes them on their behalf. */
+export const GUESTS_OWN: Readonly<Record<string, readonly string[]>> = { stays: ["opt_in", "offers_ok"] };
 /** The columns of a table a person may type: not its key, not one a rule works out, not one an add-on decides, not the guest's own tick. */
 const typed = (table: string): string[] =>
   TABLES.find((t) => t.ref === table)!

@@ -852,7 +852,7 @@ function nbVals(app: HouseApp, w: WorldV): V {
     onMobile: setN("mobile"),
     onNote: setN("note"),
     // The guest's box for texts: the desk ticks it only after asking them.
-    ...textBoxVals(nb.textsOk, nb.mobile, () => app.setState({ nb: { ...app.state.nb!, textsOk: !app.state.nb!.textsOk } })),
+    ...textBoxVals(nb.textsOk, nb.mobile, () => app.setState({ nb: { ...app.state.nb!, textsOk: !app.state.nb!.textsOk } }), app.textsReady("desk")),
     textDesk: tr("Ask the guest first. Tick only if they said yes."),
     onTime: setN("arrivalTime"),
     // the language their emails are written in.

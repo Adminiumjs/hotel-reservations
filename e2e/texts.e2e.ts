@@ -44,16 +44,30 @@ for (const variant of VARIANTS) {
     await expect(news).not.toBeChecked();
     if (variant !== "arabic") await expect(page.locator("#rv-mobile-hint")).toHaveText("So the desk can ring you on the day, and text you about your stay.");
     await check(page, "texts", "w02-box-ticked", variant);
+    // W13: the second box, for offers: its own, unticked, never ticked by the first.
+    const offers = page.locator("#rv-offers");
+    await expect(offers).not.toBeChecked();
+    if (variant !== "arabic") await expect(page.getByText("Text me offers from Wren House")).toBeVisible();
+    await offers.check();
+    await expect(box).toBeChecked();
+    await check(page, "texts", "w13-offers-ticked", variant);
+    await offers.uncheck();
     // W04: a +86 number turns the box off and says why; the number stays for a call.
     await page.locator("#rv-mobile").fill("+86 138 0013 8000");
     await expect(box).toBeDisabled();
     await expect(box).not.toBeChecked();
+    // No offers to mainland China: the box is not there at all.
+    await expect(page.locator("#rv-offers")).toHaveCount(0);
     if (variant !== "arabic") await expect(page.locator("#rv-texts-hint")).toHaveText("We can't send texts to numbers in mainland China. Everything else works as usual.");
     await check(page, "texts", "w04-china", variant);
     // Hong Kong and Taiwan are not mainland China.
     await page.locator("#rv-mobile").fill("+886 912 345 678");
     await expect(box).toBeEnabled();
     await expect(box).toBeChecked();
+    // Taiwan takes texts about a stay, but no offers: that box is not offered, and nothing says why.
+    await expect(page.locator("#rv-offers")).toHaveCount(0);
+    await page.locator("#rv-mobile").fill("+852 6123 4567");
+    await expect(page.locator("#rv-offers")).toHaveCount(1);
     // W05: ticked, with a number that cannot be read: said beside the field.
     await page.locator("#rv-mobile").fill("555-CALL");
     await expect(page.locator("#rv-mobile-check")).toBeVisible();

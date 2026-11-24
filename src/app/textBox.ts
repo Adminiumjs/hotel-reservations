@@ -15,6 +15,14 @@
  *     are other numbers;
  *   - a number that cannot be read, with the box ticked: "Check this number
  *     so we can text you", beside the field. It stops nothing.
+ *
+ * The guest's form has a second box, "Text me offers from …", for offers by
+ * text: its own column, its own words, recorded under offers. It is not shown
+ * for a number in mainland China, the UAE, Egypt, Saudi Arabia or Taiwan,
+ * where offers by text cannot go, and says nothing about why.
+ *
+ * Neither box is drawn while the house has no text service set up in
+ * Adminium (`ready`): a box no text would ever follow is not asked.
  */
 import { tr } from "../i18n/tr.ts";
 
@@ -37,18 +45,47 @@ export function numberState(typed: string): NumberState {
   return /^\d{6,15}$/.test(compact) ? "readable" : "unreadable";
 }
 
-/** What the reservation writes: the guest's tick, only for a number a text can go to. */
-export function textsOkFor(ticked: boolean, mobile: string): boolean {
+/** What the reservation writes: the guest's tick, only for a number a text can go to, and only while texts are set up. */
+export function textsOkFor(ticked: boolean, mobile: string, ready = true): boolean {
   const state = numberState(mobile);
-  return ticked && state !== "china" && state !== "empty";
+  return ready && ticked && state !== "china" && state !== "empty";
+}
+
+/** The countries offers by text never go to (they take no reply, or no texts at all): their calling codes. */
+const NO_OFFERS = ["86", "971", "20", "966", "886"];
+
+/** Whether the box for offers is shown for this number: not for a number of a country offers cannot go to. */
+export function offersOffered(typed: string): boolean {
+  const compact = typed.trim().replace(SEPARATORS, "");
+  const international = compact.startsWith("+") ? compact.slice(1) : compact.startsWith("00") ? compact.slice(2) : null;
+  return international === null || !NO_OFFERS.some((code) => international.startsWith(code));
+}
+
+/** What the reservation writes for offers: the guest's tick, for a number offers can go to, while texts are set up. */
+export function offersOkFor(ticked: boolean, mobile: string, ready = true): boolean {
+  return ready && ticked && offersOffered(mobile) && numberState(mobile) !== "empty";
+}
+
+/** The second box, on the guest's form: shown or not, and its words. */
+export function offersBoxVals(ticked: boolean, mobile: string, toggle: () => void, hotel: string, ready: boolean) {
+  const shown = ready && offersOffered(mobile);
+  return {
+    offersShown: shown,
+    offersOn: shown && ticked,
+    onOffers: toggle,
+    offersLabel: tr("Text me offers from {hotel}", { hotel }),
+    offersOptional: tr("Optional. You can stop at any time; each text tells you how."),
+  };
 }
 
 /** The box's words and state, for one form; each side adds its own line (the guest's hint, the desk's "ask first"). */
-export function textBoxVals(ticked: boolean, mobile: string, toggle: () => void) {
+export function textBoxVals(ticked: boolean, mobile: string, toggle: () => void, ready = true) {
   const state = numberState(mobile);
   const china = state === "china";
-  const on = ticked && !china;
+  const on = ready && ticked && !china;
   return {
+    // Drawn only while the house's texts are set up.
+    textShown: ready,
     textOn: on,
     textDisabled: china,
     onText: () => {

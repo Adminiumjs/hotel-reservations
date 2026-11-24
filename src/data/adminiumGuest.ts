@@ -175,6 +175,17 @@ export class AdminiumGuest implements GuestPort {
     });
   }
 
+  /**
+   * Whether the house's texts are set up: what the public client's `texts.ready()` asks (`GET /public/texts`), sent
+   * here with the site's key because the client this app ships with predates it. An Adminium that cannot say: no.
+   */
+  async textsReady(): Promise<boolean> {
+    const res = await this.plainFetch(`${this.baseUrl}/api/v1/public/texts`, { headers: { authorization: `Bearer ${this.keys.customer}` } });
+    if (!res.ok) return false;
+    const body = (await res.json()) as { data?: { ready?: unknown } };
+    return body.data?.ready === true;
+  }
+
   house(): Promise<House> {
     return answer(async () => {
       const r = this.refs;

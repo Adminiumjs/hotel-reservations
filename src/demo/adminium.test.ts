@@ -112,13 +112,13 @@ describe("reserving", () => {
     const h = house();
     const plain = await h.a.guest.reserve({ ...garden(h), values: { ...garden(h).values, mobile: "(207) 555-0123" } }, "t".repeat(43));
     expect(h.a.world.get("stays", plain.data.id)!["texts_ok"]).toBe(false);
-    const ticked = await h.a.guest.reserve({ ...garden(h), values: { ...garden(h).values, mobile: "(207) 555-0123", texts_ok: true } }, "u".repeat(43));
-    expect(h.a.world.get("stays", ticked.data.id)!["texts_ok"]).toBe(true);
+    const ticked = await h.a.guest.reserve({ ...garden(h), values: { ...garden(h).values, mobile: "(207) 555-0123", texts_ok: true, offers_ok: true } }, "u".repeat(43));
+    expect([h.a.world.get("stays", ticked.data.id)!["texts_ok"], h.a.world.get("stays", ticked.data.id)!["offers_ok"]]).toEqual([true, true]);
     // The room is ready from 15:00 on the arrival day, on the house's clock: what the arrival message goes ahead of.
     expect(h.a.world.get("stays", ticked.data.id)!["arrive_at"]).toBe(new Date(EDT("2026-08-03", "15:00")).toISOString());
   });
 
-  it("writes a text down and skips it, saying why: the demo has no text service", async () => {
+  it("writes a text down and skips it, saying why: no text ever leaves the demo", async () => {
     const h = house();
     const nadia = h.stay("WH-S3305");
     await h.a.guest.requestSignIn("nadia.brightwell@example.com");
@@ -126,7 +126,7 @@ describe("reserving", () => {
     const quote = await h.a.guest.quoteDates(nadia.id, "2026-07-30", "2026-08-02");
     await h.a.guest.moveDates(nadia.id, "2026-07-30", "2026-08-02", money(quote.data["total"]));
     const texts = h.a.world.where("messages", (m) => m["kind"] === "stay-dates-changed-text" && m["stay_id"] === nadia.id);
-    expect(texts.map((m) => [m["status"], m["error"], m["to_address"]])).toEqual([["skipped", "No text provider is connected", null]]);
+    expect(texts.map((m) => [m["status"], m["text_reason"], m["to_address"]])).toEqual([["skipped", "sample", null]]);
     // The email goes as it always did.
     expect(h.a.world.where("messages", (m) => m["kind"] === "stay-dates-changed" && m["stay_id"] === nadia.id).length).toBe(1);
   });

@@ -300,7 +300,8 @@ export function walkIn(app: HouseApp): void {
   app.go("newbooking", { editId: null, nbErr: "", nbTouched: false, nb: { ...blankNb(app), arrive: d, depart: plus(d, 1) } });
 }
 
-export function nbValues(nb: Nb): Record<string, unknown> {
+/** The booking as the desk saves it. `ready`: the house's texts are set up, so the box for texts was there to tick. */
+export function nbValues(nb: Nb, ready = true): Record<string, unknown> {
   return {
     room_type_id: nb.type === null ? null : Number(nb.type),
     arrive: nb.arrive,
@@ -314,7 +315,7 @@ export function nbValues(nb: Nb): Record<string, unknown> {
     note: nb.note.trim() === "" ? null : nb.note.trim(),
     language: nb.language,
     // Ticked only once the guest said yes on the telephone or at the desk; never for a number no text can go to.
-    texts_ok: textsOkFor(nb.textsOk, nb.mobile),
+    texts_ok: textsOkFor(nb.textsOk, nb.mobile, ready),
   };
 }
 
@@ -378,7 +379,7 @@ export async function saveNb(app: HouseApp, andCheckIn: boolean, known: { custom
   }
   app.setState({ nbBusy: true, nbErr: "", nbTouched: false });
   const desk = app.ports.desk!;
-  const values = nbValues(nb);
+  const values = nbValues(nb, app.textsReady("desk"));
   if (s.editId !== null) {
     const old = app.stay(s.editId)!;
     const changed = nbChanged(old, nb);

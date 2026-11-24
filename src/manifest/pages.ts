@@ -70,7 +70,7 @@ const SPECS: PageSpec[] = [
     config: form(
       [title("ref"), f("status", { control: "segmented" }), day("arrive"), day("depart"), f("nights"), f("guests", { control: "stepper" })],
       [ref("room_type_id"), ref("room_id"), f("arrival_time"), day("expect_by"), f("channel", { control: "segmented" }), f("language")],
-      [f("first_name"), f("last_name"), f("email", { control: "email" }), f("mobile", { control: "phone" }), toggle("texts_ok"), wide("note"), ref("customer_id")],
+      [f("first_name"), f("last_name"), f("email", { control: "email" }), f("mobile", { control: "phone" }), toggle("texts_ok"), toggle("offers_ok"), wide("note"), ref("customer_id")],
       [
         rows("stay_extras", [
           { column: "extra_id", control: "reference", width: "2fr" },
@@ -165,6 +165,7 @@ const SPECS: PageSpec[] = [
       when("due"),
       when("sent_at"),
       f("skip_reason", { control: "select" }),
+      f("text_reason"),
       wide("error", "text"),
     ]),
   },

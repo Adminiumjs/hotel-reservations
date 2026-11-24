@@ -870,5 +870,6 @@
   "So the desk can ring you on the day, and text you about your stay.": "Aby vám recepce mohla v den příjezdu zavolat a posílat vám SMS o vašem pobytu.",
   "We can't send texts to numbers in mainland China. Everything else works as usual.": "Na čísla z pevninské Číny nemůžeme posílat SMS. Vše ostatní funguje jako obvykle.",
   "Check this number so we can text you": "Zkontrolujte toto číslo, abychom vám mohli posílat SMS",
-  "Ask the guest first. Tick only if they said yes.": "Nejdřív se zeptejte hosta. Zaškrtněte, jen pokud souhlasil."
+  "Ask the guest first. Tick only if they said yes.": "Nejdřív se zeptejte hosta. Zaškrtněte, jen pokud souhlasil.",
+  "Text me offers from {hotel}": "Posílejte mi SMS s nabídkami od {hotel}"
 }

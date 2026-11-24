@@ -870,5 +870,6 @@
   "So the desk can ring you on the day, and text you about your stay.": "ليتمكن الاستقبال من الاتصال بك يوم الوصول، ومراسلتك نصيًا بشأن إقامتك.",
   "We can't send texts to numbers in mainland China. Everything else works as usual.": "لا يمكننا إرسال رسائل نصية إلى أرقام في البر الرئيسي للصين. كل شيء آخر يعمل كالمعتاد.",
   "Check this number so we can text you": "تحقق من هذا الرقم لنتمكن من مراسلتك نصيًا",
-  "Ask the guest first. Tick only if they said yes.": "اسأل الضيف أولًا. ضع العلامة فقط إذا وافق."
+  "Ask the guest first. Tick only if they said yes.": "اسأل الضيف أولًا. ضع العلامة فقط إذا وافق.",
+  "Text me offers from {hotel}": "أرسلوا لي عروض {hotel} برسائل نصية"
 }

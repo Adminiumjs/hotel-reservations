@@ -21,7 +21,7 @@ import { mailClassOf } from "../testing/manifest/mail-class.ts";
 import { buildManifest } from "./build.ts";
 import { LOCALES } from "./labels.ts";
 import { KINDS, TEXT_KINDS } from "./outbox.ts";
-import { TEXT_SENTENCES, TICK_SENTENCES } from "./people.ts";
+import { OFFERS_SENTENCES, TEXT_SENTENCES, TICK_SENTENCES } from "./people.ts";
 
 type Json = Record<string, unknown>;
 type Entry = Json & { table: string; key?: string; methods: string[]; writable?: string[]; consent?: Json; identity?: Json; claim?: Json; claimedBy?: Json };
@@ -175,58 +175,81 @@ describe("the reservation's tick", () => {
   });
 });
 
-describe("the reservation's box for texts", () => {
-  const box = () => booking()["textConsent"] as { column: string; phone: string; class: string; wording: { version: number; text: Record<string, string> } };
+describe("the reservation's boxes for texts", () => {
+  type Box = { column: string; phone: string; class: string; wording: { version: number; text: Record<string, string> } };
+  const boxes = () => booking()["textConsent"] as Box[];
+  const service = () => boxes()[0]!;
+  const offers = () => boxes()[1]!;
 
-  it("is declared with the sentences both forms show, in every language, as version 1", () => {
-    const { wording } = box();
-    expect(wording.version).toBe(1);
-    expect(Object.keys(wording.text).sort()).toEqual([...LOCALES].sort());
-    for (const tag of LOCALES) {
-      const shown = TEXT_SENTENCES.map((sentence) => (tag === "en-US" ? sentence : SCREENS[tag]![sentence]));
-      expect(shown.every((s) => typeof s === "string" && s !== "" && !s.includes("\n"))).toBe(true);
-      expect([tag, wording.text[tag]]).toEqual([tag, shown.join("\n")]);
+  it("are two, each declared with the sentences the forms show, in every language, as version 1", () => {
+    expect(boxes().map((b) => [b.column, b.class])).toEqual([
+      ["texts_ok", "service"],
+      ["offers_ok", "marketing"],
+    ]);
+    for (const [box, sentences, file] of [
+      [service(), TEXT_SENTENCES, "textBox.ts"],
+      [offers(), OFFERS_SENTENCES, "textBox.ts"],
+    ] as const) {
+      expect(box.wording.version).toBe(1);
+      expect(Object.keys(box.wording.text).sort()).toEqual([...LOCALES].sort());
+      for (const tag of LOCALES) {
+        const shown = sentences.map((sentence) => (tag === "en-US" ? sentence : SCREENS[tag]![sentence]));
+        expect(shown.every((s) => typeof s === "string" && s !== "" && !s.includes("\n"))).toBe(true);
+        expect([tag, box.wording.text[tag]]).toEqual([tag, shown.join("\n")]);
+      }
+      // The boxes the screens draw say exactly these, by these English keys.
+      const screen = readFileSync(join(__dirname, "..", "app", file), "utf8");
+      for (const sentence of sentences) expect(screen).toContain(`tr(${JSON.stringify(sentence)}`);
     }
-    // The box the screens draw says exactly these, by these English keys.
-    const screen = readFileSync(join(__dirname, "..", "app", "textBox.ts"), "utf8");
-    for (const sentence of TEXT_SENTENCES) expect(screen).toContain(`tr(${JSON.stringify(sentence)}`);
+    // The offers box names the house, as the prompt words it: "Text me offers from Wren House".
+    expect(offers().wording.text["en-US"]!.split("\n")[0]).toBe("Text me offers from {hotel}");
   });
 
-  it("is its own box: the stay's texts_ok for the stay's mobile, a yes to service texts, never the email tick", () => {
-    expect(box()).toMatchObject({ column: "texts_ok", phone: "mobile", class: "service" });
-    expect(box().column).not.toBe((booking().consent as Json)["column"]);
-    // Every reservation door carries it, and no other door of the site.
+  it("are their own boxes for the stay's mobile, never the email tick, on every reservation door and no other", () => {
+    for (const box of boxes()) {
+      expect(box.phone).toBe("mobile");
+      expect(box.column).not.toBe((booking().consent as Json)["column"]);
+    }
     const doors = manifest.publicAccess.filter((e) => (e.writable ?? []).includes("texts_ok"));
     expect(doors.length).toBe(4);
-    for (const e of doors) expect(e["textConsent"]).toEqual(box());
+    for (const e of doors) {
+      expect(e["textConsent"]).toEqual(boxes());
+      expect(e.writable).toContain("offers_ok");
+    }
     expect(manifest.publicAccess.filter((e) => e["textConsent"] !== undefined)).toEqual(doors);
   });
 
-  it("starts unticked and is never needed to book", () => {
-    expect(column("stays", "texts_ok")).toMatchObject({ type: "bool", default: false });
-    for (const e of manifest.publicAccess.filter((x) => x["textConsent"] !== undefined)) {
-      expect((e["requires"] as string[] | undefined) ?? []).not.toContain("texts_ok");
-      expect((e["defaults"] as Json | undefined)?.["texts_ok"]).toBeUndefined();
+  it("start unticked and are never needed to book", () => {
+    for (const ref of ["texts_ok", "offers_ok"]) {
+      expect(column("stays", ref)).toMatchObject({ type: "bool", default: false });
+      expect(column("stays", ref)!.rules).toBeUndefined();
+      for (const e of manifest.publicAccess.filter((x) => x["textConsent"] !== undefined)) {
+        expect((e["requires"] as string[] | undefined) ?? []).not.toContain(ref);
+        expect((e["defaults"] as Json | undefined)?.[ref]).toBeUndefined();
+      }
     }
-    // No rule sets it: no default from elsewhere, no formula, no stamp, no copy.
-    expect(column("stays", "texts_ok")!.rules).toBeUndefined();
   });
 
-  it("is ticked at the desk only by someone who may take a booking, and never by housekeeping", () => {
+  it("let the desk tick the one for texts about a stay once the guest said yes; the one for offers is the guest's alone", () => {
     const writes = (key: string) => manifest.roles.find((r) => r.key === key)!.limits?.["stays"];
     expect(writes("front-desk")!.writable).toContain("texts_ok");
     expect(writes("front-desk")!.creatable).toContain("texts_ok");
     expect(writes("housekeeping")?.writable ?? []).not.toContain("texts_ok");
+    for (const r of manifest.roles) {
+      const stays = r.limits?.["stays"];
+      if (stays === undefined) continue;
+      expect([r.key, (stays.writable ?? []).includes("offers_ok"), (stays.creatable ?? []).includes("offers_ok")]).toEqual([r.key, false, false]);
+    }
   });
 
-  it("names the number a text goes to: the mobile the guest last ticked it for", () => {
+  it("send a text about a stay to the mobile on the stay; a run of offers reads the number last ticked for offers", () => {
+    expect((manifest.outbox.recipient["textPhone"] as Json)).toEqual({ via: "stay_id", column: "mobile" });
     expect(column("customers", "mobile")).toMatchObject({
       type: "text",
       nullable: true,
-      rules: { personal: true, rollup: { from: "stays", via: "customer_id", latest: { of: "mobile", by: "created_at" }, where: { column: "texts_ok", eq: true } } },
+      rules: { personal: true, rollup: { from: "stays", via: "customer_id", latest: { of: "mobile", by: "created_at" }, where: { column: "offers_ok", eq: true } } },
     });
     expect(manifest.outbox.recipient["phone"]).toBe("mobile");
-    expect((manifest.outbox.recipient["fallback"] as Json)["phone"]).toBe("mobile");
     expect(manifest.people[0]!["phone"]).toBe("mobile");
   });
 });

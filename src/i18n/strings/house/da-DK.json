@@ -870,5 +870,6 @@
   "So the desk can ring you on the day, and text you about your stay.": "Så receptionen kan ringe til dig på dagen og sende dig sms'er om dit ophold.",
   "We can't send texts to numbers in mainland China. Everything else works as usual.": "Vi kan ikke sende sms'er til numre i Fastlandskina. Alt andet virker som normalt.",
   "Check this number so we can text you": "Tjek nummeret, så vi kan sende dig sms'er",
-  "Ask the guest first. Tick only if they said yes.": "Spørg gæsten først. Sæt kun flueben, hvis gæsten har sagt ja."
+  "Ask the guest first. Tick only if they said yes.": "Spørg gæsten først. Sæt kun flueben, hvis gæsten har sagt ja.",
+  "Text me offers from {hotel}": "Send mig tilbud fra {hotel} på sms"
 }

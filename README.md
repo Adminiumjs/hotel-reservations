@@ -133,9 +133,9 @@ data.
 
 Nothing goes by text until someone who sets up text messages connects a
 Twilio or Telnyx account in Adminium (**Studio → Texts**): the house's own
-account, which Adminium only uses. Until then every text is written in the
-Messages list as skipped, saying no text service is connected, and every
-email goes as it always did.
+account, which Adminium only uses. Until then no box for texts is drawn on
+the guest site or at the desk, every text is written in the Messages list as
+skipped, saying texts are not set up, and every email goes as it always did.
 
 - **The box.** The guest's reservation asks "Text me about my stay — your
   arrival details, and if your dates change", beside "Email me news and
@@ -145,7 +145,14 @@ email goes as it always did.
   version; ticking the email box never ticks it. A mainland China number
   (+86) cannot be texted, so the box is off for one and says so; the number
   still lets the desk ring them. The desk's booking has the same box, with
-  "Ask the guest first. Tick only if they said yes."
+  "Ask the guest first. Tick only if they said yes."; the desk's tick is
+  kept in the same log as the staff member's yes, in the box's words, and
+  unticking it as their no.
+- **Offers.** A second box, "Text me offers from Wren House", also unticked
+  and optional, is a yes to offers by text, kept on its own. It is not shown
+  for a number in mainland China, the UAE, Egypt, Saudi Arabia or Taiwan.
+  The house sends no offers itself: they go from Adminium's Texts, once its
+  marketing texts are open, to the number last ticked for them.
 - **The texts.** Before the arrival (the day before at 10:00 by default: the
   house's *Arrival message, hours before*, or a room type's own), the same
   moment as the new email; and when a stay's dates change. Each opens with
@@ -156,11 +163,8 @@ email goes as it always did.
 - **Replies.** A guest's answer ("running late") reaches the manager in
   Adminium's Texts page; a STOP stops every text from the house.
 
-The texts go to the number a guest last ticked the box for. **The desk's
-tick is kept on the stay, but Adminium 0.3.76 records only a guest's own
-tick in its text consent log**, so a desk booking is texted only once the
-guest has ticked the box themselves; the desk's tick counts when Adminium
-can record a staff member's yes.
+A text about a stay goes to the mobile on that stay, and only while
+Adminium's text consent log holds a yes for that number.
 
 ## Installing it
 
@@ -179,7 +183,8 @@ Adminium to 0.3.76 first, then the app. The update adds empty columns: the
 box for texts on the stays (unticked on every stay already there), when the
 room is ready on the arrival day (worked out when a stay's dates are next
 moved, so a stay made before the update has no arrival message unless its
-arrival moves), the guest's number for texts, the house's *Text guests*
+arrival moves), the box for offers by text (unticked), the guest's number
+for offers, a text's result code on the messages, the house's *Text guests*
 switch (on) and *Arrival message, hours before* (24), and a room type's own
 lead (empty). The arrival email starts going to new stays at once, under
 *Email guests*. Nothing is dropped, renamed or rewritten, and nothing is

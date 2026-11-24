@@ -15,7 +15,9 @@
  * The box "Text me about my stay" is the texts' own (`TEXT_BOX`): a yes to
  * texts about the guest's stays, for the mobile typed beside it, kept in
  * Adminium's text consent log. `customers.mobile` is the number they last
- * ticked it for, and the one a text goes to.
+ * ticked it for. A second box, "Text me offers from …" (`OFFERS_BOX`), is a
+ * yes to offers by text; `customers.mobile` is the number they last ticked
+ * that one for, which a run of offers reads.
  *
  * A guest is also copied onto every reservation of theirs: its first name,
  * surname, the two joined, the address and the mobile. Each copy is declared,
@@ -40,6 +42,8 @@ export const TEXT_SENTENCES = [
   "Your arrival details, and if your dates change.",
   "Optional. You can stop at any time; each text tells you how.",
 ] as const;
+/** The second box, for offers by text, and the line under it. `{hotel}` is the house's name, as the box shows it. */
+export const OFFERS_SENTENCES = ["Text me offers from {hotel}", "Optional. You can stop at any time; each text tells you how."] as const;
 
 const SCREENS: Record<Exclude<Tag, "en-US">, Record<string, string>> = {
   "de-DE": de,
@@ -83,6 +87,17 @@ export const TEXT_BOX = {
   phone: "mobile",
   class: "service",
   wording: { version: 1, text: Object.fromEntries(LOCALES.map((tag) => [tag, shown(tag, TEXT_SENTENCES)])) },
+};
+
+/**
+ * The second box, a yes to offers by text (`marketing`), for the same mobile: its own column, its own words. Adminium
+ * keeps the yes; offers go only from its Texts, once its marketing texts are open, and never to a country they cannot.
+ */
+export const OFFERS_BOX = {
+  column: "offers_ok",
+  phone: "mobile",
+  class: "marketing",
+  wording: { version: 1, text: Object.fromEntries(LOCALES.map((tag) => [tag, shown(tag, OFFERS_SENTENCES)])) },
 };
 
 export const PEOPLE = [

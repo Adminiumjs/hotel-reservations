@@ -594,11 +594,11 @@ export const TABLES: Table[] = [
       language("language"),
       // The newsletter's yes, kept in step with Adminium's consent log: set by the tick on a reservation, never by hand on the site.
       bool("opt_in", "News from us", false),
-      // The number they last said the house may text about a stay: the mobile of their newest reservation with the box
-      // ticked. The texts go to it, and only while Adminium's text consent log holds their yes for that exact number.
-      text("mobile", 32, "Mobile for texts", {
+      // The number they last said yes to offers by text for: the mobile of their newest reservation with that box ticked.
+      // What a run of offers from Adminium's Texts reads; a text about a stay goes to the mobile on the stay itself.
+      text("mobile", 32, "Mobile for offers by text", {
         ...opt,
-        rules: { personal: true, rollup: { from: "stays", via: "customer_id", latest: { of: "mobile", by: "created_at" }, where: { column: "texts_ok", eq: true } } },
+        rules: { personal: true, rollup: { from: "stays", via: "customer_id", latest: { of: "mobile", by: "created_at" }, where: { column: "offers_ok", eq: true } } },
       }),
       at("forgotten_at", "Details deleted", opt),
       at("created_at", "First stay", { ...opt, rules: stamp("now", onCreate) }),
@@ -794,6 +794,8 @@ export const TABLES: Table[] = [
       // The box "Text me about my stay": its own, never the email tick, never ticked for the guest and never needed to book.
       // A guest's tick is kept in Adminium's text consent log, for the mobile on this reservation.
       bool("texts_ok", "Texts about the stay", false),
+      // "Text me offers from …": a second box of its own, for offers, the guest's alone; never ticked for them, never needed.
+      bool("offers_ok", "Offers by text", false),
       // ── paying online ──
       // The guest chose to pay as they reserved (or was asked to): what they pay then is the deposit below.
       bool("pay_now", "Paying when booking", false),
@@ -1109,6 +1111,8 @@ export const TABLES: Table[] = [
       text("was", 1000, "Before the change", opt),
       // Which new link an email was for: each is sent once.
       text("repeat_key", 64, "Sent for", opt),
+      // A text's state in a word Adminium writes (queued, sent, no-consent, not-set-up …), beside the sentence.
+      text("text_reason", 40, "Text result code", opt),
       choice("skip_reason", "Why it was skipped", {
         overtaken: "A later email took its place",
         paid: "Paid",

@@ -870,5 +870,6 @@
   "So the desk can ring you on the day, and text you about your stay.": "Pour que la réception puisse vous appeler le jour même et vous envoyer des SMS au sujet de votre séjour.",
   "We can't send texts to numbers in mainland China. Everything else works as usual.": "Nous ne pouvons pas envoyer de SMS aux numéros de Chine continentale. Tout le reste fonctionne normalement.",
   "Check this number so we can text you": "Vérifiez ce numéro pour que nous puissions vous envoyer des SMS",
-  "Ask the guest first. Tick only if they said yes.": "Demandez d'abord au client. Cochez seulement s'il a accepté."
+  "Ask the guest first. Tick only if they said yes.": "Demandez d'abord au client. Cochez seulement s'il a accepté.",
+  "Text me offers from {hotel}": "M'envoyer par SMS les offres de {hotel}"
 }

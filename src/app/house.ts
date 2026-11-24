@@ -13,7 +13,7 @@ import { isApiError, yes, type CardCheck, type Id, type LiveFrame, type NightAns
 import { tr, setLocale } from "../i18n/tr.ts";
 import { venueDay, venueMinutes } from "../lib/venueTime.ts";
 import { fDW, money, nightsOf, plus, setCurrency, strip } from "./fmt.ts";
-import { textsOkFor } from "./textBox.ts";
+import { offersOkFor, textsOkFor } from "./textBox.ts";
 import { worldOf, type StV, type WorldV } from "./world.ts";
 
 import type { View } from "./views.ts";
@@ -35,6 +35,8 @@ export interface Details {
 export interface Form extends Details {
   /** "Email me news and offers": the guest's own tick on their reservation, off until they tick it. The desk asks no such thing. */
   optIn: boolean;
+  /** "Text me offers from …": the guest's own second box for texts, off until they tick it. The desk asks no such thing. */
+  offersOk: boolean;
 }
 /** A retry key a form mints once: 48 random characters. */
 /** A retry key: 48 hex characters from the browser's own random source (`randomUUID` is not there on a plain-http page). */
@@ -75,7 +77,7 @@ export interface Toast {
 
 const CODE0 = ["", "", "", "", "", ""];
 export const blankDetails = (): Details => ({ first: "", last: "", email: "", mobile: "", arrivalTime: "15:00", note: "", extras: {}, textsOk: false });
-export const blankForm = (): Form => ({ ...blankDetails(), optIn: false });
+export const blankForm = (): Form => ({ ...blankDetails(), optIn: false, offersOk: false });
 export const blankAuth = (): Auth => ({ stage: "form", email: "", token: null, busy: false, sentAt: 0, code: CODE0.slice(), tries: 5, err: "", emailErr: "", ended: "" });
 
 export function fresh(day: string) {
@@ -382,6 +384,16 @@ export class HouseApp {
       return a.value;
     }
     return this.stale.get(key) as T | undefined;
+  }
+
+  /**
+   * Whether the house's texts are set up in Adminium (a provider and a sender, not switched off), asked once per side:
+   * the boxes for texts are drawn only while they are. Unknown, or a server that cannot say: no.
+   */
+  textsReady(side: "guest" | "desk"): boolean {
+    const port = side === "guest" ? this.ports.guest : this.ports.desk;
+    if (port === undefined || port === null) return false;
+    return this.get(`texts:ready:${side}`, () => port.textsReady().catch(() => false)) === true;
   }
 
   /** An answer Adminium just gave to a question, kept as if it had been asked here. */
@@ -929,7 +941,9 @@ export class HouseApp {
         // Unticked writes nothing in Adminium's consent log: it takes back no yes the guest gave before.
         opt_in: f.optIn,
         // The box for texts, its own: a tick is a yes to texts about this stay, for the mobile typed beside it.
-        texts_ok: textsOkFor(f.textsOk, f.mobile),
+        texts_ok: textsOkFor(f.textsOk, f.mobile, this.textsReady("guest")),
+        // The box for offers, its own: a yes to offers by text, for the same mobile.
+        offers_ok: offersOkFor(f.offersOk, f.mobile, this.textsReady("guest")),
       },
       children: { stay_extras: this.pickedExtras(f).map((extra_id) => ({ values: { extra_id: Number(extra_id) } })), ...this.typedCodes(s.codes) },
       ...(shown ? { expect: { total: shown } } : {}),

@@ -48,9 +48,8 @@
  *   stay-dates-changed-text    the dates moved: the new ones and the
  *                              reference.
  *
- * A text goes to the number the guest last ticked "Text me about my stay"
- * for (`customers.mobile`), or, for a stay nobody signed in for, the mobile on
- * the stay; and only while Adminium's text consent log holds that guest's yes
+ * A text goes to the mobile typed on the stay it is about (`textPhone`), the
+ * number its box was ticked for; and only while Adminium's text consent log holds that guest's yes
  * for that exact number, the number is not on the do-not-text list, and
  * Adminium is connected to a text service. With none of that, the row is
  * skipped and says why. A text carries no link, no code and no phone number
@@ -151,6 +150,7 @@ export const OUTBOX = {
     skipReason: "skip_reason",
     was: "was",
     repeatKey: "repeat_key",
+    textReason: "text_reason",
   },
   links: { stay: "stay_id", customer: "customer_id" },
   recipient: {
@@ -160,7 +160,9 @@ export const OUTBOX = {
     name: "first_name",
     // The reservation's own language, whatever the guest's account says.
     language: { column: "language" },
-    // A text: the number they last ticked the box for.
+    // A text about a stay goes to the mobile typed on that stay, the number its box was ticked for; with none, the
+    // guest's own number. Consent and the do-not-text list are judged for the number it goes to.
+    textPhone: { via: "stay_id", column: "mobile" },
     phone: "mobile",
     // A reservation nobody signed in for — and every desk booking — carries its own details.
     fallback: { via: "stay_id", email: "email", name: "first_name", language: "language", phone: "mobile" },

@@ -870,5 +870,6 @@
   "So the desk can ring you on the day, and text you about your stay.": "用于前台在当天联系您，并通过短信告知您住宿信息。",
   "We can't send texts to numbers in mainland China. Everything else works as usual.": "我们无法向中国大陆号码发送短信。其他功能不受影响。",
   "Check this number so we can text you": "请检查此号码，以便我们向您发送短信",
-  "Ask the guest first. Tick only if they said yes.": "请先询问客人。仅在客人同意后勾选。"
+  "Ask the guest first. Tick only if they said yes.": "请先询问客人。仅在客人同意后勾选。",
+  "Text me offers from {hotel}": "通过短信向我发送{hotel}的优惠"
 }
