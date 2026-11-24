@@ -7,8 +7,9 @@ room, keeps the folio and records what they pay. Adminium decides every price,
 total, reference, room and status — the pages only ask.
 
 **One hotel, one building, settled at the desk.** Unless the house takes
-payments online (below), nobody pays on the site, and nothing is sent by text
-message: the folio is settled at the desk. Stays run
+payments online (below), nobody pays on the site: the folio is settled at the
+desk. Texts go only to a guest who ticked the box for them, and only once
+the house connects Adminium to a text service (below). Stays run
 one night to fourteen, and housekeeping is a room's status (ready, being
 cleaned, out of service), never a list of jobs.
 
@@ -21,7 +22,7 @@ because $1,099.03 is still on the folio.
 
 ## What it needs
 
-- Adminium **0.3.62** or later, on SQLite, Postgres or MySQL.
+- Adminium **0.3.76** or later, on SQLite, Postgres or MySQL.
 - Nothing else. Three add-ons are offered at install, and the house is whole
   with none of them:
 
@@ -48,7 +49,11 @@ of those tables reads all of it.
 - Reserve a room type, with extras (breakfast, parking, a late leaving) and an
   arrival time. The price is Adminium's, asked again as the reservation is
   made: a price that moved in between is shown, never taken unseen.
-- A confirmation email in the guest's language, with the stay's own link.
+- A confirmation email in the guest's language, with the stay's own link; and,
+  the day before they come, a message saying when the room is ready and how
+  to find the house.
+- "Text me about my stay": a box of its own beside the email tick, unticked
+  and never needed to book (see Texts, below).
 - Their stay, by that link or by signing in with a link emailed to them:
   change the arrival time, add or drop an extra, move the dates (re-priced by
   Adminium) or cancel — no charge for cancelling; after the house's notice it
@@ -63,7 +68,8 @@ of those tables reads all of it.
 - The folio: the nights, the extras, charges (from the house's list or
   "something else"), the nights not stayed when a guest leaves early, and
   payments — part payments too, never more than is owed. Voids are a manager's.
-- Taking a booking and changing one, priced by Adminium before it is saved.
+- Taking a booking and changing one, priced by Adminium before it is saved;
+  on a phone booking, the box for texts, ticked only once the guest said yes.
 - The room rack and a fortnight's calendar; moving a guest to another room;
   closing a room for repair; a no-show and "they came after all".
 - Changes made at another desk appear without a reload.
@@ -75,7 +81,7 @@ everything, including voids and the dashboard.
 **In the dashboard** (the Hotel section): the Overview (occupancy and room
 income tonight, arrivals, who is leaving with money owing, rooms out of
 service), the reservations, guests, charges, nights not stayed, payments and
-the emails sent; and the room types, rooms, closures, rate rules, extras,
+the emails and texts sent; and the room types, rooms, closures, rate rules, extras,
 charge items, house notes and settings — the hotel's name and words, its tax,
 its arrival and leaving times, its cancellation notice and the longest stay.
 
@@ -123,6 +129,39 @@ online, and the receipt comes from Adminium in its own email. A manager
 rehearsing it in test mode sees a band saying so, and their stays are sample
 data.
 
+## Texts
+
+Nothing goes by text until someone who sets up text messages connects a
+Twilio or Telnyx account in Adminium (**Studio → Texts**): the house's own
+account, which Adminium only uses. Until then every text is written in the
+Messages list as skipped, saying no text service is connected, and every
+email goes as it always did.
+
+- **The box.** The guest's reservation asks "Text me about my stay — your
+  arrival details, and if your dates change", beside "Email me news and
+  offers" and never the same box. It is unticked, and a reservation goes
+  through the same with it empty. A tick is kept in Adminium's text consent
+  log for the mobile typed beside it, with the words shown and their
+  version; ticking the email box never ticks it. A mainland China number
+  (+86) cannot be texted, so the box is off for one and says so; the number
+  still lets the desk ring them. The desk's booking has the same box, with
+  "Ask the guest first. Tick only if they said yes."
+- **The texts.** Before the arrival (the day before at 10:00 by default: the
+  house's *Arrival message, hours before*, or a room type's own), the same
+  moment as the new email; and when a stay's dates change. Each opens with
+  the house's name and says the date, when the room is ready and the
+  reference: no link, no code, no phone number. Adminium adds the way to
+  stop: "Reply STOP to opt out" from a number, or the house's phone or email
+  from a sender name. The house's *Text guests* switch pauses them.
+- **Replies.** A guest's answer ("running late") reaches the manager in
+  Adminium's Texts page; a STOP stops every text from the house.
+
+The texts go to the number a guest last ticked the box for. **The desk's
+tick is kept on the stay, but Adminium 0.3.76 records only a guest's own
+tick in its text consent log**, so a desk booking is texted only once the
+guest has ticked the box themselves; the desk's tick counts when Adminium
+can record a staff member's yes.
+
 ## Installing it
 
 Install Hotel Reservations from Adminium's app catalog and pick the database it
@@ -134,6 +173,19 @@ Tuesday, or add it later from the app's settings.
 Once installed, the desk is served at `/apps/hotel/staff/` and the guest site
 at `/apps/hotel/customer/`. A hotel can also give the guest site a domain of
 its own.
+
+**Moving from 0.3.3.** 0.3.4 updates a 0.3.3 install in place — update
+Adminium to 0.3.76 first, then the app. The update adds empty columns: the
+box for texts on the stays (unticked on every stay already there), when the
+room is ready on the arrival day (worked out when a stay's dates are next
+moved, so a stay made before the update has no arrival message unless its
+arrival moves), the guest's number for texts, the house's *Text guests*
+switch (on) and *Arrival message, hours before* (24), and a room type's own
+lead (empty). The arrival email starts going to new stays at once, under
+*Email guests*. Nothing is dropped, renamed or rewritten, and nothing is
+written in the text consent log: no guest of 0.3.3 was ever asked. The
+update asks you to allow one new thing on the guest site, the box for texts,
+and gives the manager the texts guests send back.
 
 **Moving from 0.3.2.** 0.3.3 updates a 0.3.2 install in place — update
 Adminium to 0.3.62 first, then the app. The update adds empty columns for
