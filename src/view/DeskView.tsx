@@ -597,8 +597,8 @@ export function DeskView({ v }: { v: any }) {
                               ) : null}
                             </div>
                             {" "}
-                            <div style={st(`display:flex;flex-direction:column;gap:4px;padding:11px 13px;border:1px solid var(--border);border-radius:12px;align-self:start;opacity:${v.nb.textOpacity}`)}>
-                              <label style={st(`display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;cursor:${v.nb.textCursor}`)}>
+                            <div style={st(`display:flex;flex-direction:column;gap:4px;padding:11px 13px;border:1px solid var(--border);border-radius:12px;align-self:start`)}>
+                              <label style={st(`display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;cursor:${v.nb.textCursor};opacity:${v.nb.textOpacity}`)}>
                                 <input id="nb-texts" type="checkbox" checked={v.nb.textOn} disabled={v.nb.textDisabled} onChange={v.nb.onText} aria-describedby="nb-texts-hint" style={st(`inline-size:18px;block-size:18px;margin:0;flex-shrink:0;accent-color:var(--accent);cursor:${v.nb.textCursor}`)} />
                                 {" "}
                                 <span data-icon="message-square-text" aria-hidden="true" style={st("display:inline-flex;inline-size:15px;block-size:15px;flex:0 0 auto;color:var(--fg-muted)")}><Icon name={"message-square-text"} /></span>

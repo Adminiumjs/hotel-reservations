@@ -1189,8 +1189,8 @@ export function GuestView({ v }: { v: any }) {
                             </span>
                           </div>
                           {" "}
-                          <div style={st(`display:flex;flex-direction:column;gap:4px;padding:11px 13px;border:1px solid var(--border);border-radius:12px;opacity:${v.rv.textOpacity}`)}>
-                            <label style={st(`display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;cursor:${v.rv.textCursor}`)}>
+                          <div style={st(`display:flex;flex-direction:column;gap:4px;padding:11px 13px;border:1px solid var(--border);border-radius:12px`)}>
+                            <label style={st(`display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;cursor:${v.rv.textCursor};opacity:${v.rv.textOpacity}`)}>
                               <input id="rv-texts" type="checkbox" checked={v.rv.textOn} disabled={v.rv.textDisabled} onChange={v.rv.onText} aria-describedby="rv-texts-hint" style={st(`inline-size:18px;block-size:18px;margin:0;flex-shrink:0;accent-color:var(--accent);cursor:${v.rv.textCursor}`)} />
                               {" "}
                               <span data-icon="message-square-text" aria-hidden="true" style={st("display:inline-flex;inline-size:15px;block-size:15px;flex:0 0 auto;color:var(--fg-muted)")}><Icon name={"message-square-text"} /></span>

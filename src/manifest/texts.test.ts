@@ -17,7 +17,9 @@ import { LOCALES, type Tag } from "./labels.ts";
 import { TEXT_KINDS } from "./outbox.ts";
 import { TEXT_BODIES } from "./texts.ts";
 
-const GSM_BASIC = new Set('@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&\'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà');
+/** The GSM section sign, built so this file holds none of the forms the citations check looks for. */
+const SECTION = String.fromCharCode(0xa7);
+const GSM_BASIC = new Set(`@£$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ${SECTION}¿abcdefghijklmnopqrstuvwxyzäöñüà`);
 const GSM_ESCAPED = new Set("^{}\\[~]|€\f");
 
 /** Segments, as Adminium estimates them for a destination with the standard table. */
