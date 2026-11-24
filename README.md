@@ -164,7 +164,9 @@ skipped, saying texts are not set up, and every email goes as it always did.
   Adminium's Texts page; a STOP stops every text from the house.
 
 A text about a stay goes to the mobile on that stay, and only while
-Adminium's text consent log holds a yes for that number.
+Adminium's text consent log holds a yes for that number. A number typed
+without its country code is read in the business's own country, as set in
+Adminium; with none set, only a number with its country can be texted.
 
 ## Installing it
 
