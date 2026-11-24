@@ -20,8 +20,8 @@ import zhTW from "../i18n/strings/house/zh-TW.json" with { type: "json" };
 import { mailClassOf } from "../testing/manifest/mail-class.ts";
 import { buildManifest } from "./build.ts";
 import { LOCALES } from "./labels.ts";
-import { KINDS } from "./outbox.ts";
-import { TICK_SENTENCES } from "./people.ts";
+import { KINDS, TEXT_KINDS } from "./outbox.ts";
+import { TEXT_SENTENCES, TICK_SENTENCES } from "./people.ts";
 
 type Json = Record<string, unknown>;
 type Entry = Json & { table: string; key?: string; methods: string[]; writable?: string[]; consent?: Json; identity?: Json; claim?: Json; claimedBy?: Json };
@@ -50,6 +50,7 @@ describe("the house's guests", () => {
         name: "full_name",
         firstName: { column: "first_name" },
         language: "language",
+        phone: "mobile",
         consent: { column: "opt_in", purpose: "newsletter" },
         copies: [
           { table: "stays", column: "first_name", holds: "name", via: "customer_id" },
@@ -60,8 +61,8 @@ describe("the house's guests", () => {
         ],
       },
     ]);
-    // 0.3.38 first read the house's guests; the floor has since moved on (0.3.62, paying online).
-    expect(manifest.compatibility["minAdminiumVersion"]).toBe("0.3.62");
+    // 0.3.38 first read the house's guests; the floor has since moved on (0.3.76, texts and a guest's mobile).
+    expect(manifest.compatibility["minAdminiumVersion"]).toBe("0.3.76");
   });
 
   it("have one address: the outbox's and the one they sign in with", () => {
@@ -104,8 +105,16 @@ describe("the tables the law keeps", () => {
 
 describe("the house's emails", () => {
   it("are every one service mail: the do-not-email list stops none", () => {
-    expect(Object.keys(manifest.outbox.classes).sort()).toEqual([...KINDS].sort());
+    expect(Object.keys(manifest.outbox.classes).sort()).toEqual([...KINDS, ...TEXT_KINDS].sort());
     for (const kind of KINDS) expect([kind, mailClassOf(manifest as never, { outboxKind: kind })]).toEqual([kind, "service"]);
+  });
+
+  it("and every text is a service text, sent as a text and nothing else", () => {
+    const box = manifest.outbox as unknown as { channels: Record<string, string>; classes: Record<string, string> };
+    expect(box.channels).toEqual(Object.fromEntries(TEXT_KINDS.map((kind) => [kind, "sms"])));
+    for (const kind of TEXT_KINDS) expect([kind, box.classes[kind]]).toEqual([kind, "service"]);
+    // One kind, one channel: no email kind is also a text.
+    for (const kind of KINDS) expect(box.channels[kind]).toBeUndefined();
   });
 });
 
@@ -163,5 +172,61 @@ describe("the reservation's tick", () => {
     for (const r of manifest.roles.filter((x) => x.permissions.some((p) => p === "table:@stays:create" || p === "table:@stays:update"))) {
       expect([r.key, r.limits?.["stays"] !== undefined]).toEqual([r.key, true]);
     }
+  });
+});
+
+describe("the reservation's box for texts", () => {
+  const box = () => booking()["textConsent"] as { column: string; phone: string; class: string; wording: { version: number; text: Record<string, string> } };
+
+  it("is declared with the sentences both forms show, in every language, as version 1", () => {
+    const { wording } = box();
+    expect(wording.version).toBe(1);
+    expect(Object.keys(wording.text).sort()).toEqual([...LOCALES].sort());
+    for (const tag of LOCALES) {
+      const shown = TEXT_SENTENCES.map((sentence) => (tag === "en-US" ? sentence : SCREENS[tag]![sentence]));
+      expect(shown.every((s) => typeof s === "string" && s !== "" && !s.includes("\n"))).toBe(true);
+      expect([tag, wording.text[tag]]).toEqual([tag, shown.join("\n")]);
+    }
+    // The box the screens draw says exactly these, by these English keys.
+    const screen = readFileSync(join(__dirname, "..", "app", "textBox.ts"), "utf8");
+    for (const sentence of TEXT_SENTENCES) expect(screen).toContain(`tr(${JSON.stringify(sentence)}`);
+  });
+
+  it("is its own box: the stay's texts_ok for the stay's mobile, a yes to service texts, never the email tick", () => {
+    expect(box()).toMatchObject({ column: "texts_ok", phone: "mobile", class: "service" });
+    expect(box().column).not.toBe((booking().consent as Json)["column"]);
+    // Every reservation door carries it, and no other door of the site.
+    const doors = manifest.publicAccess.filter((e) => (e.writable ?? []).includes("texts_ok"));
+    expect(doors.length).toBe(4);
+    for (const e of doors) expect(e["textConsent"]).toEqual(box());
+    expect(manifest.publicAccess.filter((e) => e["textConsent"] !== undefined)).toEqual(doors);
+  });
+
+  it("starts unticked and is never needed to book", () => {
+    expect(column("stays", "texts_ok")).toMatchObject({ type: "bool", default: false });
+    for (const e of manifest.publicAccess.filter((x) => x["textConsent"] !== undefined)) {
+      expect((e["requires"] as string[] | undefined) ?? []).not.toContain("texts_ok");
+      expect((e["defaults"] as Json | undefined)?.["texts_ok"]).toBeUndefined();
+    }
+    // No rule sets it: no default from elsewhere, no formula, no stamp, no copy.
+    expect(column("stays", "texts_ok")!.rules).toBeUndefined();
+  });
+
+  it("is ticked at the desk only by someone who may take a booking, and never by housekeeping", () => {
+    const writes = (key: string) => manifest.roles.find((r) => r.key === key)!.limits?.["stays"];
+    expect(writes("front-desk")!.writable).toContain("texts_ok");
+    expect(writes("front-desk")!.creatable).toContain("texts_ok");
+    expect(writes("housekeeping")?.writable ?? []).not.toContain("texts_ok");
+  });
+
+  it("names the number a text goes to: the mobile the guest last ticked it for", () => {
+    expect(column("customers", "mobile")).toMatchObject({
+      type: "text",
+      nullable: true,
+      rules: { personal: true, rollup: { from: "stays", via: "customer_id", latest: { of: "mobile", by: "created_at" }, where: { column: "texts_ok", eq: true } } },
+    });
+    expect(manifest.outbox.recipient["phone"]).toBe("mobile");
+    expect((manifest.outbox.recipient["fallback"] as Json)["phone"]).toBe("mobile");
+    expect(manifest.people[0]!["phone"]).toBe("mobile");
   });
 });

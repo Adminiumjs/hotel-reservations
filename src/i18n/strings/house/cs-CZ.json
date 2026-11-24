@@ -863,5 +863,12 @@
   "Your room is still reserved. You can try again, or pay at the desk.": "Pokoj zůstává rezervovaný. Můžete to zkusit znovu, nebo zaplatit na recepci.",
   "No money moves here. The room is kept a few minutes while the guest pays.": "Tady se žádné peníze nepřevádějí. Pokoj se podrží několik minut, než host zaplatí.",
   "Your bank is confirming the payment": "Vaše banka platbu potvrzuje",
-  "Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.": "Některé způsoby platby trvají několik dní. Pokoj vám držíme. Prosím neplaťte znovu. Až bude platba potvrzena, pošleme vám e-mail."
+  "Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.": "Některé způsoby platby trvají několik dní. Pokoj vám držíme. Prosím neplaťte znovu. Až bude platba potvrzena, pošleme vám e-mail.",
+  "Text me about my stay": "Posílejte mi SMS o mém pobytu",
+  "Your arrival details, and if your dates change.": "Podrobnosti o příjezdu a změny termínu.",
+  "Optional. You can stop at any time; each text tells you how.": "Nepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+  "So the desk can ring you on the day, and text you about your stay.": "Aby vám recepce mohla v den příjezdu zavolat a posílat vám SMS o vašem pobytu.",
+  "We can't send texts to numbers in mainland China. Everything else works as usual.": "Na čísla z pevninské Číny nemůžeme posílat SMS. Vše ostatní funguje jako obvykle.",
+  "Check this number so we can text you": "Zkontrolujte toto číslo, abychom vám mohli posílat SMS",
+  "Ask the guest first. Tick only if they said yes.": "Nejdřív se zeptejte hosta. Zaškrtněte, jen pokud souhlasil."
 }

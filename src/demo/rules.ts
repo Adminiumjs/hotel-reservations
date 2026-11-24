@@ -44,6 +44,22 @@ export const MANIFEST_RULES = {
           ]
         }
       },
+      "arrive_at": {
+        "set": {
+          "moment": {
+            "column": "arrive",
+            "time": {
+              "table": "settings",
+              "column": "arrive_from"
+            }
+          }
+        },
+        "on": {
+          "columns": [
+            "arrive"
+          ]
+        }
+      },
       "created_at": {
         "set": "now",
         "on": "create"
@@ -335,7 +351,10 @@ export const MANIFEST_RULES = {
         "stay-folio",
         "stay-folio-owing",
         "stay-made-pay",
-        "stay-folio-owing-pay"
+        "stay-folio-owing-pay",
+        "stay-arriving",
+        "stay-arriving-text",
+        "stay-dates-changed-text"
       ],
       "status": [
         "queued",
@@ -1365,7 +1384,8 @@ export const MANIFEST_RULES = {
         "note",
         "language",
         "client_key",
-        "opt_in"
+        "opt_in",
+        "texts_ok"
       ],
       "requires": [
         "first_name",
@@ -1401,6 +1421,24 @@ export const MANIFEST_RULES = {
             "ar-EG": "راسلوني بالبريد الإلكتروني بأخبار {hotel} وعروضه\nكل رسالة فيها رابط لإيقاف هذه الرسائل.",
             "zh-CN": "通过邮件给我发送{hotel}的消息和优惠\n每封邮件都附有停止接收的链接。",
             "zh-TW": "以電子郵件寄送{hotel}的消息與優惠給我\n每封郵件都附有停止接收的連結。"
+          }
+        }
+      },
+      "textConsent": {
+        "column": "texts_ok",
+        "phone": "mobile",
+        "class": "service",
+        "wording": {
+          "version": 1,
+          "text": {
+            "en-US": "Text me about my stay\nYour arrival details, and if your dates change.\nOptional. You can stop at any time; each text tells you how.",
+            "de-DE": "SMS zu meinem Aufenthalt\nIhre Anreisedetails und Änderungen Ihrer Daten.\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+            "fr-FR": "M'envoyer des SMS au sujet de mon séjour\nLes détails de votre arrivée, et tout changement de vos dates.\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
+            "da-DK": "Send mig sms'er om mit ophold\nDetaljer om din ankomst, og hvis dine datoer ændres.\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+            "cs-CZ": "Posílejte mi SMS o mém pobytu\nPodrobnosti o příjezdu a změny termínu.\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+            "ar-EG": "أرسلوا لي رسائل نصية عن إقامتي\nتفاصيل وصولك، وأي تغيير في مواعيدك.\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+            "zh-CN": "通过短信告知我住宿信息\n您的入住信息，以及日期变更通知。\n可选。您可随时退订，每条短信都会说明退订方式。",
+            "zh-TW": "以簡訊通知我住宿資訊\n您的入住資訊，以及日期異動通知。\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
           }
         }
       },
@@ -1810,7 +1848,8 @@ export const MANIFEST_RULES = {
         "note",
         "language",
         "client_key",
-        "opt_in"
+        "opt_in",
+        "texts_ok"
       ],
       "requires": [
         "first_name",
@@ -1846,6 +1885,24 @@ export const MANIFEST_RULES = {
             "ar-EG": "راسلوني بالبريد الإلكتروني بأخبار {hotel} وعروضه\nكل رسالة فيها رابط لإيقاف هذه الرسائل.",
             "zh-CN": "通过邮件给我发送{hotel}的消息和优惠\n每封邮件都附有停止接收的链接。",
             "zh-TW": "以電子郵件寄送{hotel}的消息與優惠給我\n每封郵件都附有停止接收的連結。"
+          }
+        }
+      },
+      "textConsent": {
+        "column": "texts_ok",
+        "phone": "mobile",
+        "class": "service",
+        "wording": {
+          "version": 1,
+          "text": {
+            "en-US": "Text me about my stay\nYour arrival details, and if your dates change.\nOptional. You can stop at any time; each text tells you how.",
+            "de-DE": "SMS zu meinem Aufenthalt\nIhre Anreisedetails und Änderungen Ihrer Daten.\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+            "fr-FR": "M'envoyer des SMS au sujet de mon séjour\nLes détails de votre arrivée, et tout changement de vos dates.\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
+            "da-DK": "Send mig sms'er om mit ophold\nDetaljer om din ankomst, og hvis dine datoer ændres.\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+            "cs-CZ": "Posílejte mi SMS o mém pobytu\nPodrobnosti o příjezdu a změny termínu.\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+            "ar-EG": "أرسلوا لي رسائل نصية عن إقامتي\nتفاصيل وصولك، وأي تغيير في مواعيدك.\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+            "zh-CN": "通过短信告知我住宿信息\n您的入住信息，以及日期变更通知。\n可选。您可随时退订，每条短信都会说明退订方式。",
+            "zh-TW": "以簡訊通知我住宿資訊\n您的入住資訊，以及日期異動通知。\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
           }
         }
       },
@@ -1987,7 +2044,8 @@ export const MANIFEST_RULES = {
         "note",
         "language",
         "client_key",
-        "opt_in"
+        "opt_in",
+        "texts_ok"
       ],
       "requires": [
         "first_name",
@@ -2023,6 +2081,24 @@ export const MANIFEST_RULES = {
             "ar-EG": "راسلوني بالبريد الإلكتروني بأخبار {hotel} وعروضه\nكل رسالة فيها رابط لإيقاف هذه الرسائل.",
             "zh-CN": "通过邮件给我发送{hotel}的消息和优惠\n每封邮件都附有停止接收的链接。",
             "zh-TW": "以電子郵件寄送{hotel}的消息與優惠給我\n每封郵件都附有停止接收的連結。"
+          }
+        }
+      },
+      "textConsent": {
+        "column": "texts_ok",
+        "phone": "mobile",
+        "class": "service",
+        "wording": {
+          "version": 1,
+          "text": {
+            "en-US": "Text me about my stay\nYour arrival details, and if your dates change.\nOptional. You can stop at any time; each text tells you how.",
+            "de-DE": "SMS zu meinem Aufenthalt\nIhre Anreisedetails und Änderungen Ihrer Daten.\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+            "fr-FR": "M'envoyer des SMS au sujet de mon séjour\nLes détails de votre arrivée, et tout changement de vos dates.\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
+            "da-DK": "Send mig sms'er om mit ophold\nDetaljer om din ankomst, og hvis dine datoer ændres.\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+            "cs-CZ": "Posílejte mi SMS o mém pobytu\nPodrobnosti o příjezdu a změny termínu.\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+            "ar-EG": "أرسلوا لي رسائل نصية عن إقامتي\nتفاصيل وصولك، وأي تغيير في مواعيدك.\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+            "zh-CN": "通过短信告知我住宿信息\n您的入住信息，以及日期变更通知。\n可选。您可随时退订，每条短信都会说明退订方式。",
+            "zh-TW": "以簡訊通知我住宿資訊\n您的入住資訊，以及日期異動通知。\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
           }
         }
       },
@@ -2165,7 +2241,8 @@ export const MANIFEST_RULES = {
         "note",
         "language",
         "client_key",
-        "opt_in"
+        "opt_in",
+        "texts_ok"
       ],
       "requires": [
         "first_name",
@@ -2201,6 +2278,24 @@ export const MANIFEST_RULES = {
             "ar-EG": "راسلوني بالبريد الإلكتروني بأخبار {hotel} وعروضه\nكل رسالة فيها رابط لإيقاف هذه الرسائل.",
             "zh-CN": "通过邮件给我发送{hotel}的消息和优惠\n每封邮件都附有停止接收的链接。",
             "zh-TW": "以電子郵件寄送{hotel}的消息與優惠給我\n每封郵件都附有停止接收的連結。"
+          }
+        }
+      },
+      "textConsent": {
+        "column": "texts_ok",
+        "phone": "mobile",
+        "class": "service",
+        "wording": {
+          "version": 1,
+          "text": {
+            "en-US": "Text me about my stay\nYour arrival details, and if your dates change.\nOptional. You can stop at any time; each text tells you how.",
+            "de-DE": "SMS zu meinem Aufenthalt\nIhre Anreisedetails und Änderungen Ihrer Daten.\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+            "fr-FR": "M'envoyer des SMS au sujet de mon séjour\nLes détails de votre arrivée, et tout changement de vos dates.\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
+            "da-DK": "Send mig sms'er om mit ophold\nDetaljer om din ankomst, og hvis dine datoer ændres.\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+            "cs-CZ": "Posílejte mi SMS o mém pobytu\nPodrobnosti o příjezdu a změny termínu.\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+            "ar-EG": "أرسلوا لي رسائل نصية عن إقامتي\nتفاصيل وصولك، وأي تغيير في مواعيدك.\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+            "zh-CN": "通过短信告知我住宿信息\n您的入住信息，以及日期变更通知。\n可选。您可随时退订，每条短信都会说明退订方式。",
+            "zh-TW": "以簡訊通知我住宿資訊\n您的入住資訊，以及日期異動通知。\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
           }
         }
       },
@@ -2373,7 +2468,8 @@ export const MANIFEST_RULES = {
             "folio_sent_at",
             "folio_so_far_at",
             "cancel_code",
-            "customer_id"
+            "customer_id",
+            "texts_ok"
           ],
           "creatable": [
             "status",
@@ -2394,6 +2490,7 @@ export const MANIFEST_RULES = {
             "folio_so_far_at",
             "cancel_code",
             "customer_id",
+            "texts_ok",
             "channel"
           ],
           "writableValues": {
@@ -2782,6 +2879,7 @@ export const MANIFEST_RULES = {
             "late_cancel",
             "cancel_code",
             "cancel_by",
+            "arrive_at",
             "created_at",
             "checked_in_at",
             "checked_in_by",
@@ -2795,7 +2893,8 @@ export const MANIFEST_RULES = {
             "customer_id",
             "link_token",
             "link_stopped",
-            "client_key"
+            "client_key",
+            "texts_ok"
           ],
           "creatable": [
             "ref_seq",
@@ -2820,6 +2919,7 @@ export const MANIFEST_RULES = {
             "late_cancel",
             "cancel_code",
             "cancel_by",
+            "arrive_at",
             "created_at",
             "checked_in_at",
             "checked_in_by",
@@ -2833,7 +2933,8 @@ export const MANIFEST_RULES = {
             "customer_id",
             "link_token",
             "link_stopped",
-            "client_key"
+            "client_key",
+            "texts_ok"
           ]
         },
         "stay_extras": {
@@ -3210,6 +3311,87 @@ export const MANIFEST_RULES = {
       },
       "repeat": true,
       "payments": "on"
+    },
+    {
+      "kind": "stay-arriving",
+      "link": "stay_id",
+      "gate": {
+        "setting": {
+          "table": "settings",
+          "column": "guest_emails_on"
+        }
+      },
+      "before": {
+        "table": "stays",
+        "at": "arrive_at",
+        "lead": {
+          "via": "room_type_id",
+          "table": "room_types",
+          "column": "arrival_hours",
+          "fallback": {
+            "table": "settings",
+            "column": "arrival_hours"
+          },
+          "max": 72,
+          "at": "10:00"
+        },
+        "where": {
+          "column": "status",
+          "eq": "booked"
+        }
+      }
+    },
+    {
+      "kind": "stay-arriving-text",
+      "link": "stay_id",
+      "gate": {
+        "setting": {
+          "table": "settings",
+          "column": "guest_texts_on"
+        }
+      },
+      "before": {
+        "table": "stays",
+        "at": "arrive_at",
+        "lead": {
+          "via": "room_type_id",
+          "table": "room_types",
+          "column": "arrival_hours",
+          "fallback": {
+            "table": "settings",
+            "column": "arrival_hours"
+          },
+          "max": 72,
+          "at": "10:00"
+        },
+        "where": {
+          "column": "status",
+          "eq": "booked"
+        }
+      }
+    },
+    {
+      "kind": "stay-dates-changed-text",
+      "link": "stay_id",
+      "gate": {
+        "setting": {
+          "table": "settings",
+          "column": "guest_texts_on"
+        }
+      },
+      "onChange": {
+        "table": "stays",
+        "columns": [
+          "arrive",
+          "depart"
+        ],
+        "changed": true,
+        "where": {
+          "column": "status",
+          "eq": "booked"
+        }
+      },
+      "repeat": true
     }
   ],
   "kinds": {
@@ -3226,6 +3408,13 @@ export const MANIFEST_RULES = {
     "stay-folio": "hotel-stay-folio",
     "stay-folio-owing": "hotel-stay-folio-owing",
     "stay-made-pay": "hotel-stay-made-pay",
-    "stay-folio-owing-pay": "hotel-stay-folio-owing-pay"
+    "stay-folio-owing-pay": "hotel-stay-folio-owing-pay",
+    "stay-arriving": "hotel-stay-arriving",
+    "stay-arriving-text": "hotel-stay-arriving-text",
+    "stay-dates-changed-text": "hotel-stay-dates-changed-text"
+  },
+  "channels": {
+    "stay-arriving-text": "sms",
+    "stay-dates-changed-text": "sms"
   }
 } as const;

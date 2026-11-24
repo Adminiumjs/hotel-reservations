@@ -95,7 +95,7 @@ const ROLES = MANIFEST_RULES.roles as unknown as readonly RoleRule[];
 type Producer = {
   kind: string;
   link: string;
-  gate?: unknown;
+  gate?: { setting: { table: string; column: string } };
   onCreate?: { table: string; where?: Json };
   onChange?: { table: string; column?: string; to?: unknown; columns?: readonly string[]; changed?: true; where?: Json };
   repeat?: true;
@@ -105,6 +105,8 @@ type Producer = {
   payments?: "on" | "off";
 };
 const PRODUCERS = MANIFEST_RULES.producers as unknown as readonly Producer[];
+/** The kinds sent as texts. */
+const TEXT_CHANNELS = MANIFEST_RULES.channels as Readonly<Record<string, string>>;
 
 const STAY_PRICE = RULES.perNights.find((rule) => rule.table === "stays") as PerNight;
 const CREDIT_PRICE = RULES.perNights.find((rule) => rule.table === "stay_credits") as PerNight;
@@ -421,6 +423,8 @@ export class Engine {
       language: null,
       late_cancel: false,
       link_stopped: false,
+      // The box for texts: unticked unless the guest (or the desk, having asked) ticked it.
+      texts_ok: false,
       tax_rate: this.setting("tax_rate"),
       tax_label: this.setting("tax_label"),
       // What the house asks a guest to pay as they reserve, kept with the stay as it was made.
@@ -735,9 +739,28 @@ export class Engine {
       // One of a kind per stay — or, with `repeat`, one for each change.
       if (producer.repeat !== true && this.world.where("messages", (m) => m["kind"] === producer.kind && m["stay_id"] === after.id).length > 0) continue;
       const was = producer.was === undefined || before === null ? null : JSON.stringify(Object.fromEntries(producer.was.map((column) => [column, before[column] ?? null])));
+      // The demo has no text service: a text is written down and skipped, saying why, as Adminium does with none connected.
+      if (TEXT_CHANNELS[producer.kind] === "sms") {
+        if (producer.gate !== undefined && this.setting(producer.gate.setting.column) !== true) continue;
+        this.world.insert("messages", {
+          kind: producer.kind,
+          status: "skipped",
+          to_address: null,
+          language: after["language"] ?? null,
+          stay_id: after.id,
+          customer_id: after["customer_id"] ?? null,
+          due: iso(this.now),
+          created_at: iso(this.now),
+          sent_at: null,
+          error: "No text provider is connected",
+          skip_reason: null,
+          was,
+        });
+        continue;
+      }
       const customer = empty(after["customer_id"]) ? undefined : this.world.get("customers", after["customer_id"] as Id);
       const address = customer !== undefined ? customer["email"] : after["email"];
-      const gated = producer.gate !== undefined && this.setting("guest_emails_on") !== true;
+      const gated = producer.gate !== undefined && this.setting(producer.gate.setting.column) !== true;
       this.world.insert("messages", {
         kind: producer.kind,
         status: gated ? "queued" : empty(address) ? "skipped" : "queued",

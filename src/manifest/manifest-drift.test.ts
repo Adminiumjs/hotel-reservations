@@ -383,9 +383,11 @@ describe("the desk writes only what running the day needs", () => {
 });
 
 describe("the emails wait for the house's switch and name who cancelled", () => {
-  it("sends nothing while Email guests is off", () => {
+  it("sends nothing while Email guests is off, and no text while Text guests is", () => {
+    const texts = (manifest.outbox as unknown as { channels: Record<string, string> }).channels;
     for (const producer of manifest.outbox.producers) {
-      expect(producer["gate"], String(producer["kind"])).toEqual({ setting: { table: "settings", column: "guest_emails_on" } });
+      const column = texts[String(producer["kind"])] === "sms" ? "guest_texts_on" : "guest_emails_on";
+      expect(producer["gate"], String(producer["kind"])).toEqual({ setting: { table: "settings", column } });
     }
   });
 

@@ -108,6 +108,29 @@ describe("reserving", () => {
     expect(made).toEqual([["stay-made-pay", "sent"]]);
   });
 
+  it("keeps the box for texts as the guest left it, and books the same either way", async () => {
+    const h = house();
+    const plain = await h.a.guest.reserve({ ...garden(h), values: { ...garden(h).values, mobile: "(207) 555-0123" } }, "t".repeat(43));
+    expect(h.a.world.get("stays", plain.data.id)!["texts_ok"]).toBe(false);
+    const ticked = await h.a.guest.reserve({ ...garden(h), values: { ...garden(h).values, mobile: "(207) 555-0123", texts_ok: true } }, "u".repeat(43));
+    expect(h.a.world.get("stays", ticked.data.id)!["texts_ok"]).toBe(true);
+    // The room is ready from 15:00 on the arrival day, on the house's clock: what the arrival message goes ahead of.
+    expect(h.a.world.get("stays", ticked.data.id)!["arrive_at"]).toBe(new Date(EDT("2026-08-03", "15:00")).toISOString());
+  });
+
+  it("writes a text down and skips it, saying why: the demo has no text service", async () => {
+    const h = house();
+    const nadia = h.stay("WH-S3305");
+    await h.a.guest.requestSignIn("nadia.brightwell@example.com");
+    await h.a.guest.verifyCode("nadia.brightwell@example.com", DEMO_SIGN_IN.code);
+    const quote = await h.a.guest.quoteDates(nadia.id, "2026-07-30", "2026-08-02");
+    await h.a.guest.moveDates(nadia.id, "2026-07-30", "2026-08-02", money(quote.data["total"]));
+    const texts = h.a.world.where("messages", (m) => m["kind"] === "stay-dates-changed-text" && m["stay_id"] === nadia.id);
+    expect(texts.map((m) => [m["status"], m["error"], m["to_address"]])).toEqual([["skipped", "No text provider is connected", null]]);
+    // The email goes as it always did.
+    expect(h.a.world.where("messages", (m) => m["kind"] === "stay-dates-changed" && m["stay_id"] === nadia.id).length).toBe(1);
+  });
+
   it("lands a retry on the same stay, without its link", async () => {
     const h = house();
     const first = await h.a.guest.reserve(garden(h), "r".repeat(43));
@@ -347,6 +370,20 @@ describe("the desk's day", () => {
     h.a.advanceTo(EDT("2026-07-28", "11:30"));
     expect(h.a.world.get("stays", made.data.id)!["status"]).toBe("in_house");
     expect(await outcome(() => h.a.desk.cameAfterAll(h.stay("WH-S3279").id, null))).toBe("STATE_MOVE_REFUSED");
+  });
+
+  it("takes a phone booking with the box for texts ticked once the guest said yes, and refuses it to housekeeping", async () => {
+    const h = house();
+    const made = await h.a.desk.book({
+      values: { room_type_id: h.type("Garden double").id, arrive: "2026-08-03", depart: "2026-08-05", guests: 2, first_name: "Sorcha", last_name: "Lane", mobile: "(207) 555-0199", texts_ok: true },
+      children: { stay_extras: [] },
+    });
+    expect(h.a.world.get("stays", made.data.id)!["texts_ok"]).toBe(true);
+    // Ticked again at the desk later, or taken off when the guest changes their mind: the desk's to change.
+    await h.a.desk.edit(made.data.id, { texts_ok: false }, undefined, []);
+    expect(h.a.world.get("stays", made.data.id)!["texts_ok"]).toBe(false);
+    h.a.desk.person = PEOPLE.housekeeping;
+    expect(await outcome(() => h.a.desk.edit(made.data.id, { texts_ok: true }, undefined, []))).not.toBe("ok");
   });
 
   it("voids only as a manager; voiding the bottle on a paid-up folio is refused", async () => {

@@ -223,7 +223,7 @@ const PAYING_NOW = { and: [{ eq: ["pay_now", true] }, { lt: [{ coalesce: ["paid"
 /** What the stay still owes, never below nothing. */
 const STILL_OWED = { max: [0, { sub: ["total", { coalesce: ["paid", 0] }] }] };
 
-/** The outbox's kinds, as the Emails page names them. */
+/** The outbox's kinds, as the Messages page names them: the emails, and the texts. */
 export const EMAIL_KINDS: Record<string, string> = {
   "stay-made": "Reservation made",
   "stay-made-desk": "Reservation made at the desk",
@@ -239,6 +239,9 @@ export const EMAIL_KINDS: Record<string, string> = {
   "stay-folio-owing": "The folio so far",
   "stay-made-pay": "Reservation made, paying online",
   "stay-folio-owing-pay": "The folio so far, with a pay link",
+  "stay-arriving": "Before the arrival",
+  "stay-arriving-text": "Before the arrival, by text",
+  "stay-dates-changed-text": "Dates changed, by text",
 };
 
 // ── the stay's rules ────────────────────────────────────────────────────────
@@ -415,6 +418,10 @@ export const TABLES: Table[] = [
       int("ref_start", "First reference number", { default: 1001, rules: { validation: { min: 1 } } }),
       text("ref_prefix", 12, "Reference prefix", { default: "R-" }),
       bool("guest_emails_on", "Email guests", true),
+      // Texts go only once Adminium is connected to a text service, and only to a guest who ticked the box for them.
+      bool("guest_texts_on", "Text guests", true),
+      // The message before a stay: so many hours before the room is ready on the arrival day, sent at 10:00 that day.
+      int("arrival_hours", "Arrival message, hours before", { default: 24, rules: { validation: { min: 1, max: 72 } } }),
       // Paying online, once the house takes payments: nothing when booking (the guests settle at the desk), the
       // guest's choice, or before the room is theirs; the first night or the whole stay; how long a room is held
       // while its guest pays; and whether a cancellation in time gives the money back by itself.
@@ -450,6 +457,8 @@ export const TABLES: Table[] = [
       text("icon", 40, "Icon", opt),
       int("position", "Position", { default: 0 }),
       bool("active", "Offered", true),
+      // A room type's own lead for the arrival message; empty, the house's.
+      int("arrival_hours", "Arrival message, hours before", { ...opt, rules: { validation: { min: 1, max: 72 } } }),
     ],
   },
   {
@@ -585,6 +594,12 @@ export const TABLES: Table[] = [
       language("language"),
       // The newsletter's yes, kept in step with Adminium's consent log: set by the tick on a reservation, never by hand on the site.
       bool("opt_in", "News from us", false),
+      // The number they last said the house may text about a stay: the mobile of their newest reservation with the box
+      // ticked. The texts go to it, and only while Adminium's text consent log holds their yes for that exact number.
+      text("mobile", 32, "Mobile for texts", {
+        ...opt,
+        rules: { personal: true, rollup: { from: "stays", via: "customer_id", latest: { of: "mobile", by: "created_at" }, where: { column: "texts_ok", eq: true } } },
+      }),
       at("forgotten_at", "Details deleted", opt),
       at("created_at", "First stay", { ...opt, rules: stamp("now", onCreate) }),
     ],
@@ -749,6 +764,11 @@ export const TABLES: Table[] = [
           { columns: ["arrive"] },
         ),
       }),
+      // When the room is ready on the arrival day, on the house's clock: what the arrival message is sent ahead of.
+      at("arrive_at", "Room ready from", {
+        ...opt,
+        rules: stamp({ moment: { column: "arrive", time: setting("arrive_from") } }, { columns: ["arrive"] }),
+      }),
       at("created_at", "Made", { ...opt, rules: stamp("now", onCreate) }),
       at("checked_in_at", "Checked in", { ...opt, rules: stamp("now", onStatus("in_house")) }),
       text("checked_in_by", 80, "Checked in by", { ...opt, rules: stamp("user-name", onStatus("in_house")) }),
@@ -771,6 +791,9 @@ export const TABLES: Table[] = [
       text("client_key", 64, "Retry key", { ...opt, unique: true }),
       // The tick the guest gave on their reservation ("Email me news and offers"): the guest's own, written by nobody else.
       bool("opt_in", "News from us", false),
+      // The box "Text me about my stay": its own, never the email tick, never ticked for the guest and never needed to book.
+      // A guest's tick is kept in Adminium's text consent log, for the mobile on this reservation.
+      bool("texts_ok", "Texts about the stay", false),
       // ── paying online ──
       // The guest chose to pay as they reserved (or was asked to): what they pay then is the deposit below.
       bool("pay_now", "Paying when booking", false),
@@ -1063,8 +1086,8 @@ export const TABLES: Table[] = [
   },
   {
     ref: "messages",
-    label: l("Email"),
-    labelPlural: l("Emails"),
+    label: l("Message"),
+    labelPlural: l("Messages"),
     keyField: "kind",
     columns: [
       id,
@@ -1073,7 +1096,8 @@ export const TABLES: Table[] = [
         default: "queued",
         tones: { queued: "info", sent: "pos", failed: "danger", skipped: "neutral" },
       }),
-      text("to_address", 254, "To", { ...opt, semantic: "email" }),
+      // An email's address, or a text's number.
+      text("to_address", 254, "To", opt),
       text("language", 16, "Language", opt),
       fk("stay_id", "stays", "Reservation", opt),
       fk("customer_id", "customers", "Guest", opt),

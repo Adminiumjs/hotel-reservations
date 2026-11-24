@@ -863,5 +863,12 @@
   "Your room is still reserved. You can try again, or pay at the desk.": "Dit værelse er stadig reserveret. Du kan prøve igen eller betale i receptionen.",
   "No money moves here. The room is kept a few minutes while the guest pays.": "Her flyttes ingen penge. Værelset holdes et par minutter, mens gæsten betaler.",
   "Your bank is confirming the payment": "Din bank bekræfter betalingen",
-  "Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.": "Nogle betalingsmåder tager et par dage. Dit værelse holdes. Betal venligst ikke igen. Vi sender dig en e-mail, når den er bekræftet."
+  "Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.": "Nogle betalingsmåder tager et par dage. Dit værelse holdes. Betal venligst ikke igen. Vi sender dig en e-mail, når den er bekræftet.",
+  "Text me about my stay": "Send mig sms'er om mit ophold",
+  "Your arrival details, and if your dates change.": "Detaljer om din ankomst, og hvis dine datoer ændres.",
+  "Optional. You can stop at any time; each text tells you how.": "Frivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+  "So the desk can ring you on the day, and text you about your stay.": "Så receptionen kan ringe til dig på dagen og sende dig sms'er om dit ophold.",
+  "We can't send texts to numbers in mainland China. Everything else works as usual.": "Vi kan ikke sende sms'er til numre i Fastlandskina. Alt andet virker som normalt.",
+  "Check this number so we can text you": "Tjek nummeret, så vi kan sende dig sms'er",
+  "Ask the guest first. Tick only if they said yes.": "Spørg gæsten først. Sæt kun flueben, hvis gæsten har sagt ja."
 }

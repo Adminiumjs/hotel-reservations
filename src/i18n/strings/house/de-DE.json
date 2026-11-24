@@ -863,5 +863,12 @@
   "Your room is still reserved. You can try again, or pay at the desk.": "Ihr Zimmer bleibt reserviert. Sie können es erneut versuchen oder an der Rezeption bezahlen.",
   "No money moves here. The room is kept a few minutes while the guest pays.": "Hier fließt kein Geld. Das Zimmer wird ein paar Minuten gehalten, während der Gast bezahlt.",
   "Your bank is confirming the payment": "Ihre Bank bestätigt die Zahlung",
-  "Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.": "Manche Zahlungsarten dauern ein paar Tage. Ihr Zimmer bleibt reserviert. Bitte zahlen Sie nicht noch einmal. Wir schicken Ihnen eine E-Mail, sobald sie bestätigt ist."
+  "Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.": "Manche Zahlungsarten dauern ein paar Tage. Ihr Zimmer bleibt reserviert. Bitte zahlen Sie nicht noch einmal. Wir schicken Ihnen eine E-Mail, sobald sie bestätigt ist.",
+  "Text me about my stay": "SMS zu meinem Aufenthalt",
+  "Your arrival details, and if your dates change.": "Ihre Anreisedetails und Änderungen Ihrer Daten.",
+  "Optional. You can stop at any time; each text tells you how.": "Freiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+  "So the desk can ring you on the day, and text you about your stay.": "Damit die Rezeption Sie am Anreisetag anrufen und Ihnen SMS zu Ihrem Aufenthalt senden kann.",
+  "We can't send texts to numbers in mainland China. Everything else works as usual.": "An Nummern in Festlandchina können wir keine SMS senden. Alles andere funktioniert wie gewohnt.",
+  "Check this number so we can text you": "Prüfen Sie diese Nummer, damit wir Ihnen SMS senden können",
+  "Ask the guest first. Tick only if they said yes.": "Fragen Sie zuerst den Gast. Nur ankreuzen, wenn er zugestimmt hat."
 }

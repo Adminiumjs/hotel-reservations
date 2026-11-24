@@ -47,6 +47,7 @@ export function demoRulesText(manifest: Json): string {
     roles,
     producers: outbox["producers"],
     kinds: outbox["kinds"],
+    channels: outbox["channels"] ?? {},
   };
   return [
     "/**",

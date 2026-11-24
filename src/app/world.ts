@@ -135,6 +135,8 @@ export interface StV {
   name: string;
   email: string;
   mobile: string;
+  /** "Text me about my stay", as it was ticked on the reservation (the guest's, or the desk's after asking them). */
+  textsOk: boolean;
   type: string;
   room: string | null;
   roomId: Id | null;
@@ -344,6 +346,7 @@ export function worldOf(house: House | DeskHouse, stays: StayWithLines[], zone: 
       name: str(s["guest_name"]) || `${first} ${last}`.trim(),
       email: str(s["email"]),
       mobile: str(s["mobile"]),
+      textsOk: yes(s["texts_ok"]),
       type: String(s["room_type_id"]),
       room: roomNumber(s["room_id"]),
       roomId: s["room_id"] === null || s["room_id"] === undefined ? null : (s["room_id"] as Id),

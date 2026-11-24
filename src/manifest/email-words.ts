@@ -60,6 +60,11 @@ function words(
     soFarPre: string;
     soFarHeading: string;
     soFarPara: string;
+    arrivingName: string;
+    arrivingSubject: string;
+    arrivingPre: string;
+    arrivingHeading: string;
+    arrivingPara: string;
   },
 ): EmailWords {
   const cancelled = (name: string, paras: string[]) => ({ name, subject: s.cancelledSubject, preheader: s.nothing.replace(/[.。]$/, ""), heading: s.cancelledHeading, paras });
@@ -77,6 +82,7 @@ function words(
     "stay-new-link": { name: s.linkName, subject: s.linkSubject, preheader: s.linkPre, heading: s.linkHeading, paras: [s.linkPara, s.linkRing], button: s.button },
     "stay-folio": { name: s.folioName, subject: s.folioSubject, preheader: s.folioPre, heading: s.folioHeading, paras: [s.folioPara] },
     "stay-folio-owing": { name: s.soFarName, subject: s.soFarSubject, preheader: s.soFarPre, heading: s.soFarHeading, paras: [s.soFarPara] },
+    "stay-arriving": { name: s.arrivingName, subject: s.arrivingSubject, preheader: s.arrivingPre, heading: s.arrivingHeading, paras: [s.arrivingPara] },
   };
 }
 
@@ -152,6 +158,11 @@ export const EMAIL_DE = words(
     soFarPre: "{{stay.balance.money}} noch offen",
     soFarHeading: "Ihre Zwischenrechnung, {{recipient.first_name}}.",
     soFarPara: "An der Rezeption sind noch {{stay.balance.money}} zu begleichen.",
+    arrivingName: "Vor der Anreise",
+    arrivingSubject: "Bis bald, am {{stay.arrive.day_month}} — {{stay.ref}}",
+    arrivingPre: "Ihr Zimmer ist ab {{practice.arrive_from.time}} bereit",
+    arrivingHeading: "Wir freuen uns auf Sie, {{recipient.first_name}}.",
+    arrivingPara: "Ihr Zimmer ist am {{stay.arrive.day_month}} ab {{practice.arrive_from.time}} bereit und gehört Ihnen bis {{practice.leave_by.time}} am {{stay.depart.day_month}}.",
   },
 );
 
@@ -225,6 +236,11 @@ export const EMAIL_FR = words(
     soFarPre: "{{stay.balance.money}} restent à régler",
     soFarHeading: "Votre note du séjour à ce jour, {{recipient.first_name}}.",
     soFarPara: "Il reste {{stay.balance.money}} à régler à la réception.",
+    arrivingName: "Avant l'arrivée",
+    arrivingSubject: "À bientôt, le {{stay.arrive.day_month}} — {{stay.ref}}",
+    arrivingPre: "Votre chambre est prête à partir de {{practice.arrive_from.time}}",
+    arrivingHeading: "Nous avons hâte de vous accueillir, {{recipient.first_name}}.",
+    arrivingPara: "Votre chambre est prête le {{stay.arrive.day_month}} à partir de {{practice.arrive_from.time}}, et elle est à vous jusqu'à {{practice.leave_by.time}} le {{stay.depart.day_month}}.",
   },
 );
 
@@ -298,6 +314,11 @@ export const EMAIL_DA = words(
     soFarPre: "{{stay.balance.money}} mangler at blive betalt",
     soFarHeading: "Din opholdsregning indtil nu, {{recipient.first_name}}.",
     soFarPara: "Der mangler {{stay.balance.money}} at blive betalt i receptionen.",
+    arrivingName: "Før ankomsten",
+    arrivingSubject: "Vi ses den {{stay.arrive.day_month}} — {{stay.ref}}",
+    arrivingPre: "Dit værelse er klar fra {{practice.arrive_from.time}}",
+    arrivingHeading: "Vi glæder os til at se dig, {{recipient.first_name}}.",
+    arrivingPara: "Dit værelse er klar den {{stay.arrive.day_month}} fra {{practice.arrive_from.time}} og er dit til {{practice.leave_by.time}} den {{stay.depart.day_month}}.",
   },
 );
 
@@ -371,6 +392,11 @@ export const EMAIL_CS = words(
     soFarPre: "Zbývá zaplatit {{stay.balance.money}}",
     soFarHeading: "Váš dosavadní účet pobytu, {{recipient.first_name}}.",
     soFarPara: "Na recepci zbývá zaplatit {{stay.balance.money}}.",
+    arrivingName: "Před příjezdem",
+    arrivingSubject: "Těšíme se na vás {{stay.arrive.day_month}} — {{stay.ref}}",
+    arrivingPre: "Pokoj je připraven od {{practice.arrive_from.time}}",
+    arrivingHeading: "Těšíme se na vás, {{recipient.first_name}}.",
+    arrivingPara: "Pokoj bude připraven {{stay.arrive.day_month}} od {{practice.arrive_from.time}} a je váš do {{practice.leave_by.time}} {{stay.depart.day_month}}.",
   },
 );
 
@@ -444,6 +470,11 @@ export const EMAIL_AR = words(
     soFarPre: "{{stay.balance.money}} متبقية للسداد",
     soFarHeading: "حساب إقامتك حتى الآن يا {{recipient.first_name}}.",
     soFarPara: "يتبقى {{stay.balance.money}} للسداد في الاستقبال.",
+    arrivingName: "قبل الوصول",
+    arrivingSubject: "نراك في {{stay.arrive.day_month}} — {{stay.ref}}",
+    arrivingPre: "غرفتك جاهزة من {{practice.arrive_from.time}}",
+    arrivingHeading: "نتطلع إلى استقبالك، {{recipient.first_name}}.",
+    arrivingPara: "غرفتك جاهزة يوم {{stay.arrive.day_month}} من {{practice.arrive_from.time}}، وهي لك حتى {{practice.leave_by.time}} يوم {{stay.depart.day_month}}.",
   },
 );
 
@@ -510,6 +541,11 @@ export const EMAIL_ZH_CN = words(
     soFarPre: "待结清 {{stay.balance.money}}",
     soFarHeading: "{{recipient.first_name}}，这是您目前的住宿结算单。",
     soFarPara: "尚有 {{stay.balance.money}} 需在前台结清。",
+    arrivingName: "入住前",
+    arrivingSubject: "{{stay.arrive.day_month}}见 — {{stay.ref}}",
+    arrivingPre: "您的房间 {{practice.arrive_from.time}} 起可入住",
+    arrivingHeading: "{{recipient.first_name}}，我们期待您的光临。",
+    arrivingPara: "您的房间将于 {{stay.arrive.day_month}} {{practice.arrive_from.time}} 起准备就绪，可住到 {{stay.depart.day_month}} {{practice.leave_by.time}}。",
   },
 );
 
@@ -576,5 +612,10 @@ export const EMAIL_ZH_TW = words(
     soFarPre: "待結清 {{stay.balance.money}}",
     soFarHeading: "{{recipient.first_name}}，這是您目前的住宿結算單。",
     soFarPara: "尚有 {{stay.balance.money}} 需在櫃檯結清。",
+    arrivingName: "入住前",
+    arrivingSubject: "{{stay.arrive.day_month}}見 — {{stay.ref}}",
+    arrivingPre: "您的房間 {{practice.arrive_from.time}} 起可入住",
+    arrivingHeading: "{{recipient.first_name}}，我們期待您的光臨。",
+    arrivingPara: "您的房間將於 {{stay.arrive.day_month}} {{practice.arrive_from.time}} 起準備就緒，可住到 {{stay.depart.day_month}} {{practice.leave_by.time}}。",
   },
 );

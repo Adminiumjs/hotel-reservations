@@ -587,7 +587,40 @@ export function DeskView({ v }: { v: any }) {
                                 {tr("Mobile")}
                               </label>
                               {" "}
-                              <input id="nb-mobile" type="tel" inputMode="tel" value={v.nb.mobile ?? ""} onChange={v.nb.onMobile} placeholder="(207) 555-0199" style={st("padding:10px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2);font-family:var(--mono);font-size:13px")} />
+                              <input id="nb-mobile" type="tel" inputMode="tel" dir="ltr" value={v.nb.mobile ?? ""} onChange={v.nb.onMobile} placeholder="(207) 555-0199" aria-describedby={v.nb.textCheckOn ? "nb-mobile-check" : undefined} style={st("padding:10px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2);font-family:var(--mono);font-size:13px")} />
+                              {v.nb.textCheckOn ? (
+                                <>
+                                  <span id="nb-mobile-check" style={st("font-size:12px;font-weight:700;color:var(--warn)")}>
+                                    {v.nb.textCheck}
+                                  </span>
+                                </>
+                              ) : null}
+                            </div>
+                            {" "}
+                            <div style={st(`display:flex;flex-direction:column;gap:4px;padding:11px 13px;border:1px solid var(--border);border-radius:12px;align-self:start;opacity:${v.nb.textOpacity}`)}>
+                              <label style={st(`display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;cursor:${v.nb.textCursor}`)}>
+                                <input id="nb-texts" type="checkbox" checked={v.nb.textOn} disabled={v.nb.textDisabled} onChange={v.nb.onText} aria-describedby="nb-texts-hint" style={st(`inline-size:18px;block-size:18px;margin:0;flex-shrink:0;accent-color:var(--accent);cursor:${v.nb.textCursor}`)} />
+                                {" "}
+                                <span data-icon="message-square-text" aria-hidden="true" style={st("display:inline-flex;inline-size:15px;block-size:15px;flex:0 0 auto;color:var(--fg-muted)")}><Icon name={"message-square-text"} /></span>
+                                {" "}
+                                {v.nb.textLabel}
+                              </label>
+                              {" "}
+                              <span id="nb-texts-hint" aria-live="polite" style={st("display:flex;flex-direction:column;gap:2px;font-size:11.5px;color:var(--fg-subtle);padding-inline-start:28px")}>
+                                <span style={st("color:var(--fg-muted);font-weight:700")}>{v.nb.textDesk}</span>
+                                {" "}
+                                {v.nb.textHintOn ? (
+                                  <>
+                                    <span>{v.nb.textSub}</span>
+                                    {" "}
+                                    <span>{v.nb.textOptional}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span style={st("color:var(--fg-muted);font-weight:600")}>{v.nb.textChina}</span>
+                                  </>
+                                )}
+                              </span>
                             </div>
                             {" "}
                             <label style={st("display:flex;flex-direction:column;gap:6px")}>

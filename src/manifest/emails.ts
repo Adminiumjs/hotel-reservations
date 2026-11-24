@@ -21,6 +21,10 @@
  * folio so far carries a button to pay it online only while Adminium fills
  * `{{pay_url}}`, the stay's own live pay link.
  *
+ * The message before the arrival says when the room is ready and until when
+ * it is theirs, how to find the house (its own words, when it has them) and
+ * who to tell when plans change.
+ *
  * Only the online confirmation and a new link the signed-in guest asked for
  * carry the reservation's own link: a code is sent only to the person it
  * opens the stay for. A change of dates says the dates before (`was.*`, kept
@@ -176,6 +180,13 @@ export const EMAIL_EN: EmailWords = {
     heading: "Thank you for staying with us, {{recipient.first_name}}.",
     paras: ["We hope to see you again."],
   },
+  "stay-arriving": {
+    name: "Before the arrival",
+    subject: "See you on {{stay.arrive.day_month}} — {{stay.ref}}",
+    preheader: "Your room is ready from {{practice.arrive_from.time}}",
+    heading: "We look forward to seeing you, {{recipient.first_name}}.",
+    paras: ["Your room is ready from {{practice.arrive_from.time}} on {{stay.arrive.day_month}}, and yours until {{practice.leave_by.time}} on {{stay.depart.day_month}}."],
+  },
   "stay-folio-owing": {
     name: "The folio so far",
     subject: "Your folio so far — {{stay.ref}}",
@@ -300,6 +311,11 @@ function layout(kind: Kind, all: AllWords, pay: PayWords) {
     });
     blocks.push(...settleBlocks(all, pay));
     blocks.push(para("cancel", all.cancelBy, all.lateOrEarly));
+  }
+  if (kind === "stay-arriving") {
+    // How to find the house, in its own words, when it has written them; then who to tell when plans change.
+    blocks.push({ ...para("finding", "{{practice.finding}}"), showWhen: { var: "practice.finding" } });
+    blocks.push(para("late", all.lateOrEarly));
   }
   if (kind === "stay-dates-changed") {
     blocks.push({ block: "email.tax-breakdown", id: "totals", data: { lines: [{ label: all.totalWas, amount: "{{stay.total.money}}" }] } });

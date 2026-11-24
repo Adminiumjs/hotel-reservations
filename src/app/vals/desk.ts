@@ -11,6 +11,7 @@ import { tr } from "../../i18n/tr.ts";
 import { dow, fD, fDW, fLong, fT, fWd, guestsW, fsi, iso, money, nights, nightsOf, pct, plus, runMoney, strip, taxWords } from "../fmt.ts";
 import { codeVals } from "../codes.ts";
 import { okEmail, type HouseApp, type View } from "../house.ts";
+import { textBoxVals } from "../textBox.ts";
 import type { RoomV, StV, WorldV } from "../world.ts";
 import { creditLabel, extraDetail, pillOf, timeOptions } from "./guest.ts";
 import { backTo, blankNb, cameAfterAll, copyPayLink, counts, deskCodeAsk, emailFolio, folio as folioOf, linen, markNoShow, nbChanged, onlineChip, openCheckin, openEdit, openFolio, openGiveBackToCard, openLinen, openRefund, openRoom, openSettle, payLinkOn, printFolio, refundable, saveNb, setRoomStatus, signOutStaff } from "../desk.ts";
@@ -850,6 +851,9 @@ function nbVals(app: HouseApp, w: WorldV): V {
     onEmail: setN("email"),
     onMobile: setN("mobile"),
     onNote: setN("note"),
+    // The guest's box for texts: the desk ticks it only after asking them.
+    ...textBoxVals(nb.textsOk, nb.mobile, () => app.setState({ nb: { ...app.state.nb!, textsOk: !app.state.nb!.textsOk } })),
+    textDesk: tr("Ask the guest first. Tick only if they said yes."),
     onTime: setN("arrivalTime"),
     // the language their emails are written in.
     language: nb.language,

@@ -12,22 +12,23 @@
 import { ADD_ONS } from "./add-ons.ts";
 import { DOCUMENTS } from "./documents.ts";
 import { emailTemplates } from "./emails.ts";
-import { KINDS, OUTBOX } from "./outbox.ts";
+import { KINDS, OUTBOX, TEXT_KINDS } from "./outbox.ts";
 import { NAV_GROUPS, pages } from "./pages.ts";
 import { PAYMENTS } from "./payments.ts";
 import { PEOPLE } from "./people.ts";
 import { PUBLIC_ACCESS, PUBLIC_KEYS } from "./public.ts";
 import { ROLES } from "./roles.ts";
 import { TABLES } from "./tables.ts";
+import { textTemplates } from "./texts.ts";
 
 /**
- * This release: a booking and a folio paid online, once the house takes
- * payments in Adminium — one night or the whole stay as a guest reserves, if
- * they want or before the room is theirs; what is left on a folio by a pay
- * link; refunds as the house's own rows, given back by themselves after a
- * cancellation in time. Payments off, every screen reads as it did in 0.3.2.
+ * This release: texts. A message before the arrival, as an email and as a
+ * text; a text when the dates change; and the box "Text me about my stay" on
+ * the guest's reservation and on the desk's booking — its own, unticked,
+ * never needed to book. Nothing goes by text until Adminium is connected to a
+ * text service and the guest has said yes for that number.
  */
-export const VERSION = "0.3.3";
+export const VERSION = "0.3.4";
 
 /**
  * The Adminium release that first reads everything below: rooms counted night
@@ -42,10 +43,13 @@ export const VERSION = "0.3.3";
  * booking and a folio paid online, refunds kept as the house's own rows, and a
  * stay made waiting for its payment; and (0.3.61) how a guest's payment stands
  * when they come back from the pay page; and (0.3.62) the booking doors and
- * the emails that follow whether the house takes payments online right now.
+ * the emails that follow whether the house takes payments online right now;
+ * and (0.3.76) texts: text templates, text kinds of the outbox and their
+ * number, the reservation's box for texts, a guest's mobile in `people`, and
+ * the manager's reading of the texts guests send back.
  * Written from the version actually released, never guessed.
  */
-export const MIN_ADMINIUM = "0.3.62";
+export const MIN_ADMINIUM = "0.3.76";
 
 const ENV = {
   VITE_ADMINIUM_API_BASE_URL: { required: false, example: "https://admin.example.com" },
@@ -109,6 +113,10 @@ export function buildManifest(): Record<string, unknown> {
     outbox: OUTBOX,
     people: PEOPLE,
     emailTemplates: emailTemplates(KINDS),
+    // The texts: before the arrival, and when the dates change. Adminium adds each one's opt-out line.
+    textTemplates: textTemplates(TEXT_KINDS),
+    // A guest's answer ("running late") reaches the manager in Adminium's Texts page.
+    textReplies: "on",
     // A stay paid online: one night or the whole stay as it is reserved, and what is left on its folio. Switched on in Adminium's Payments.
     payments: PAYMENTS,
     // The house's own sample; and, while Inventory's sample is in, each room type linked to its "Room turnover" kit.

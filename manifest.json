@@ -3,7 +3,7 @@
   "manifestVersion": 1,
   "key": "hotel",
   "name": "Hotel Reservations",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "publisher": {
     "id": "adminium",
     "name": "Adminium",
@@ -18,7 +18,7 @@
     "hospitality"
   ],
   "compatibility": {
-    "minAdminiumVersion": "0.3.62",
+    "minAdminiumVersion": "0.3.76",
     "engines": [
       "sqlite",
       "postgres",
@@ -922,6 +922,42 @@
             }
           },
           {
+            "ref": "guest_texts_on",
+            "type": "bool",
+            "default": true,
+            "label": {
+              "en-US": "Text guests",
+              "de-DE": "Gästen SMS senden",
+              "fr-FR": "Envoyer des SMS aux clients",
+              "da-DK": "Send sms til gæster",
+              "cs-CZ": "Posílat hostům SMS",
+              "ar-EG": "مراسلة الضيوف نصيًا",
+              "zh-CN": "给客人发短信",
+              "zh-TW": "傳簡訊給客人"
+            }
+          },
+          {
+            "ref": "arrival_hours",
+            "type": "int",
+            "label": {
+              "en-US": "Arrival message, hours before",
+              "de-DE": "Anreise-Nachricht, Stunden vorher",
+              "fr-FR": "Message avant l'arrivée, heures avant",
+              "da-DK": "Besked før ankomst, timer før",
+              "cs-CZ": "Zpráva před příjezdem, hodin předem",
+              "ar-EG": "رسالة ما قبل الوصول، بالساعات",
+              "zh-CN": "到店前消息，提前小时数",
+              "zh-TW": "入住前訊息，提前小時數"
+            },
+            "default": 24,
+            "rules": {
+              "validation": {
+                "min": 1,
+                "max": 72
+              }
+            }
+          },
+          {
             "ref": "pay_at_booking",
             "type": "enum",
             "enum": [
@@ -1351,6 +1387,27 @@
               "ar-EG": "معروض",
               "zh-CN": "提供中",
               "zh-TW": "提供中"
+            }
+          },
+          {
+            "ref": "arrival_hours",
+            "type": "int",
+            "label": {
+              "en-US": "Arrival message, hours before",
+              "de-DE": "Anreise-Nachricht, Stunden vorher",
+              "fr-FR": "Message avant l'arrivée, heures avant",
+              "da-DK": "Besked før ankomst, timer før",
+              "cs-CZ": "Zpráva před příjezdem, hodin předem",
+              "ar-EG": "رسالة ما قبل الوصول، بالساعات",
+              "zh-CN": "到店前消息，提前小时数",
+              "zh-TW": "入住前訊息，提前小時數"
+            },
+            "nullable": true,
+            "rules": {
+              "validation": {
+                "min": 1,
+                "max": 72
+              }
             }
           }
         ]
@@ -2507,6 +2564,37 @@
               "ar-EG": "أخبار منا",
               "zh-CN": "我们的消息",
               "zh-TW": "我們的消息"
+            }
+          },
+          {
+            "ref": "mobile",
+            "type": "text",
+            "maxLength": 32,
+            "label": {
+              "en-US": "Mobile for texts",
+              "de-DE": "Mobilnummer für SMS",
+              "fr-FR": "Portable pour les SMS",
+              "da-DK": "Mobil til sms",
+              "cs-CZ": "Mobil pro SMS",
+              "ar-EG": "الهاتف المحمول للرسائل النصية",
+              "zh-CN": "接收短信的手机",
+              "zh-TW": "接收簡訊的手機"
+            },
+            "nullable": true,
+            "rules": {
+              "personal": true,
+              "rollup": {
+                "from": "stays",
+                "via": "customer_id",
+                "latest": {
+                  "of": "mobile",
+                  "by": "created_at"
+                },
+                "where": {
+                  "column": "texts_ok",
+                  "eq": true
+                }
+              }
             }
           },
           {
@@ -4167,6 +4255,39 @@
             }
           },
           {
+            "ref": "arrive_at",
+            "type": "timestamptz",
+            "label": {
+              "en-US": "Room ready from",
+              "de-DE": "Zimmer bereit ab",
+              "fr-FR": "Chambre prête à partir de",
+              "da-DK": "Værelset klar fra",
+              "cs-CZ": "Pokoj připraven od",
+              "ar-EG": "الغرفة جاهزة من",
+              "zh-CN": "房间可入住时间",
+              "zh-TW": "房間可入住時間"
+            },
+            "nullable": true,
+            "rules": {
+              "stamp": {
+                "set": {
+                  "moment": {
+                    "column": "arrive",
+                    "time": {
+                      "table": "settings",
+                      "column": "arrive_from"
+                    }
+                  }
+                },
+                "on": {
+                  "columns": [
+                    "arrive"
+                  ]
+                }
+              }
+            }
+          },
+          {
             "ref": "created_at",
             "type": "timestamptz",
             "label": {
@@ -4505,6 +4626,21 @@
               "ar-EG": "أخبار منا",
               "zh-CN": "我们的消息",
               "zh-TW": "我們的消息"
+            }
+          },
+          {
+            "ref": "texts_ok",
+            "type": "bool",
+            "default": false,
+            "label": {
+              "en-US": "Texts about the stay",
+              "de-DE": "SMS zum Aufenthalt",
+              "fr-FR": "SMS au sujet du séjour",
+              "da-DK": "Sms'er om opholdet",
+              "cs-CZ": "SMS o pobytu",
+              "ar-EG": "رسائل نصية عن الإقامة",
+              "zh-CN": "住宿短信通知",
+              "zh-TW": "住宿簡訊通知"
             }
           },
           {
@@ -7481,24 +7617,24 @@
       {
         "ref": "messages",
         "label": {
-          "en-US": "Email",
-          "de-DE": "E-Mail",
-          "fr-FR": "E-mail",
-          "da-DK": "E-mail",
-          "cs-CZ": "E-mail",
-          "ar-EG": "البريد الإلكتروني",
-          "zh-CN": "电子邮件",
-          "zh-TW": "電子郵件"
+          "en-US": "Message",
+          "de-DE": "Nachricht",
+          "fr-FR": "Message",
+          "da-DK": "Besked",
+          "cs-CZ": "Zpráva",
+          "ar-EG": "رسالة",
+          "zh-CN": "消息",
+          "zh-TW": "訊息"
         },
         "labelPlural": {
-          "en-US": "Emails",
-          "de-DE": "E-Mails",
-          "fr-FR": "E-mails",
-          "da-DK": "E-mails",
-          "cs-CZ": "E-maily",
-          "ar-EG": "رسائل البريد",
-          "zh-CN": "邮件",
-          "zh-TW": "郵件"
+          "en-US": "Messages",
+          "de-DE": "Nachrichten",
+          "fr-FR": "Messages",
+          "da-DK": "Beskeder",
+          "cs-CZ": "Zprávy",
+          "ar-EG": "الرسائل",
+          "zh-CN": "消息",
+          "zh-TW": "訊息"
         },
         "keyField": "kind",
         "columns": [
@@ -7524,7 +7660,10 @@
               "stay-folio",
               "stay-folio-owing",
               "stay-made-pay",
-              "stay-folio-owing-pay"
+              "stay-folio-owing-pay",
+              "stay-arriving",
+              "stay-arriving-text",
+              "stay-dates-changed-text"
             ],
             "label": {
               "en-US": "Kind",
@@ -7678,6 +7817,36 @@
                     "ar-EG": "حساب الإقامة حتى الآن، مع رابط الدفع",
                     "zh-CN": "目前的住宿结算单，附付款链接",
                     "zh-TW": "目前的住宿結算單，附付款連結"
+                  },
+                  "stay-arriving": {
+                    "en-US": "Before the arrival",
+                    "de-DE": "Vor der Anreise",
+                    "fr-FR": "Avant l'arrivée",
+                    "da-DK": "Før ankomsten",
+                    "cs-CZ": "Před příjezdem",
+                    "ar-EG": "قبل الوصول",
+                    "zh-CN": "入住前",
+                    "zh-TW": "入住前"
+                  },
+                  "stay-arriving-text": {
+                    "en-US": "Before the arrival, by text",
+                    "de-DE": "Vor der Anreise, per SMS",
+                    "fr-FR": "Avant l'arrivée, par SMS",
+                    "da-DK": "Før ankomsten, som sms",
+                    "cs-CZ": "Před příjezdem, SMS",
+                    "ar-EG": "قبل الوصول، برسالة نصية",
+                    "zh-CN": "入住前，短信",
+                    "zh-TW": "入住前，簡訊"
+                  },
+                  "stay-dates-changed-text": {
+                    "en-US": "Dates changed, by text",
+                    "de-DE": "Daten geändert, per SMS",
+                    "fr-FR": "Dates modifiées, par SMS",
+                    "da-DK": "Datoer ændret, som sms",
+                    "cs-CZ": "Termín změněn, SMS",
+                    "ar-EG": "تغيّرت التواريخ، برسالة نصية",
+                    "zh-CN": "日期已更改，短信",
+                    "zh-TW": "日期已變更，簡訊"
                   }
                 }
               }
@@ -7770,8 +7939,7 @@
               "zh-CN": "收件人",
               "zh-TW": "收件人"
             },
-            "nullable": true,
-            "semantic": "email"
+            "nullable": true
           },
           {
             "ref": "language",
@@ -9045,6 +9213,10 @@
                   "control": "phone"
                 },
                 {
+                  "column": "texts_ok",
+                  "control": "toggle-row"
+                },
+                {
                   "column": "note",
                   "control": "textarea",
                   "span": 2
@@ -9173,6 +9345,10 @@
                   "control": "datetime"
                 },
                 {
+                  "column": "arrive_at",
+                  "control": "datetime"
+                },
+                {
                   "column": "checked_in_at",
                   "control": "datetime"
                 },
@@ -9236,6 +9412,10 @@
                 {
                   "column": "email",
                   "control": "email"
+                },
+                {
+                  "column": "mobile",
+                  "control": "phone"
                 },
                 {
                   "column": "created_at",
@@ -9560,8 +9740,7 @@
                   "control": "select"
                 },
                 {
-                  "column": "to_address",
-                  "control": "email"
+                  "column": "to_address"
                 },
                 {
                   "column": "language"
@@ -9696,6 +9875,10 @@
                 {
                   "column": "active",
                   "control": "toggle-row"
+                },
+                {
+                  "column": "arrival_hours",
+                  "control": "stepper"
                 }
               ]
             }
@@ -10193,6 +10376,14 @@
                 {
                   "column": "guest_emails_on",
                   "control": "toggle-row"
+                },
+                {
+                  "column": "guest_texts_on",
+                  "control": "toggle-row"
+                },
+                {
+                  "column": "arrival_hours",
+                  "control": "stepper"
                 }
               ]
             },
@@ -10333,7 +10524,8 @@
             "folio_sent_at",
             "folio_so_far_at",
             "cancel_code",
-            "customer_id"
+            "customer_id",
+            "texts_ok"
           ],
           "creatable": [
             "status",
@@ -10354,6 +10546,7 @@
             "folio_so_far_at",
             "cancel_code",
             "customer_id",
+            "texts_ok",
             "channel"
           ],
           "writableValues": {
@@ -10967,7 +11160,9 @@
         "table:@stays:read_pii",
         "table:@customers:read_pii",
         "table:@messages:read_pii",
-        "payments:@:refund"
+        "payments:@:refund",
+        "texts:@:read",
+        "texts:@:reply"
       ],
       "limits": {
         "stay_codes": {
@@ -11080,6 +11275,7 @@
             "late_cancel",
             "cancel_code",
             "cancel_by",
+            "arrive_at",
             "created_at",
             "checked_in_at",
             "checked_in_by",
@@ -11093,7 +11289,8 @@
             "customer_id",
             "link_token",
             "link_stopped",
-            "client_key"
+            "client_key",
+            "texts_ok"
           ],
           "creatable": [
             "ref_seq",
@@ -11118,6 +11315,7 @@
             "late_cancel",
             "cancel_code",
             "cancel_by",
+            "arrive_at",
             "created_at",
             "checked_in_at",
             "checked_in_by",
@@ -11131,7 +11329,8 @@
             "customer_id",
             "link_token",
             "link_stopped",
-            "client_key"
+            "client_key",
+            "texts_ok"
           ]
         },
         "stay_extras": {
@@ -11915,7 +12114,8 @@
         "note",
         "language",
         "client_key",
-        "opt_in"
+        "opt_in",
+        "texts_ok"
       ],
       "requires": [
         "first_name",
@@ -11951,6 +12151,24 @@
             "ar-EG": "راسلوني بالبريد الإلكتروني بأخبار {hotel} وعروضه\nكل رسالة فيها رابط لإيقاف هذه الرسائل.",
             "zh-CN": "通过邮件给我发送{hotel}的消息和优惠\n每封邮件都附有停止接收的链接。",
             "zh-TW": "以電子郵件寄送{hotel}的消息與優惠給我\n每封郵件都附有停止接收的連結。"
+          }
+        }
+      },
+      "textConsent": {
+        "column": "texts_ok",
+        "phone": "mobile",
+        "class": "service",
+        "wording": {
+          "version": 1,
+          "text": {
+            "en-US": "Text me about my stay\nYour arrival details, and if your dates change.\nOptional. You can stop at any time; each text tells you how.",
+            "de-DE": "SMS zu meinem Aufenthalt\nIhre Anreisedetails und Änderungen Ihrer Daten.\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+            "fr-FR": "M'envoyer des SMS au sujet de mon séjour\nLes détails de votre arrivée, et tout changement de vos dates.\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
+            "da-DK": "Send mig sms'er om mit ophold\nDetaljer om din ankomst, og hvis dine datoer ændres.\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+            "cs-CZ": "Posílejte mi SMS o mém pobytu\nPodrobnosti o příjezdu a změny termínu.\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+            "ar-EG": "أرسلوا لي رسائل نصية عن إقامتي\nتفاصيل وصولك، وأي تغيير في مواعيدك.\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+            "zh-CN": "通过短信告知我住宿信息\n您的入住信息，以及日期变更通知。\n可选。您可随时退订，每条短信都会说明退订方式。",
+            "zh-TW": "以簡訊通知我住宿資訊\n您的入住資訊，以及日期異動通知。\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
           }
         }
       },
@@ -12360,7 +12578,8 @@
         "note",
         "language",
         "client_key",
-        "opt_in"
+        "opt_in",
+        "texts_ok"
       ],
       "requires": [
         "first_name",
@@ -12396,6 +12615,24 @@
             "ar-EG": "راسلوني بالبريد الإلكتروني بأخبار {hotel} وعروضه\nكل رسالة فيها رابط لإيقاف هذه الرسائل.",
             "zh-CN": "通过邮件给我发送{hotel}的消息和优惠\n每封邮件都附有停止接收的链接。",
             "zh-TW": "以電子郵件寄送{hotel}的消息與優惠給我\n每封郵件都附有停止接收的連結。"
+          }
+        }
+      },
+      "textConsent": {
+        "column": "texts_ok",
+        "phone": "mobile",
+        "class": "service",
+        "wording": {
+          "version": 1,
+          "text": {
+            "en-US": "Text me about my stay\nYour arrival details, and if your dates change.\nOptional. You can stop at any time; each text tells you how.",
+            "de-DE": "SMS zu meinem Aufenthalt\nIhre Anreisedetails und Änderungen Ihrer Daten.\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+            "fr-FR": "M'envoyer des SMS au sujet de mon séjour\nLes détails de votre arrivée, et tout changement de vos dates.\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
+            "da-DK": "Send mig sms'er om mit ophold\nDetaljer om din ankomst, og hvis dine datoer ændres.\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+            "cs-CZ": "Posílejte mi SMS o mém pobytu\nPodrobnosti o příjezdu a změny termínu.\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+            "ar-EG": "أرسلوا لي رسائل نصية عن إقامتي\nتفاصيل وصولك، وأي تغيير في مواعيدك.\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+            "zh-CN": "通过短信告知我住宿信息\n您的入住信息，以及日期变更通知。\n可选。您可随时退订，每条短信都会说明退订方式。",
+            "zh-TW": "以簡訊通知我住宿資訊\n您的入住資訊，以及日期異動通知。\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
           }
         }
       },
@@ -12537,7 +12774,8 @@
         "note",
         "language",
         "client_key",
-        "opt_in"
+        "opt_in",
+        "texts_ok"
       ],
       "requires": [
         "first_name",
@@ -12573,6 +12811,24 @@
             "ar-EG": "راسلوني بالبريد الإلكتروني بأخبار {hotel} وعروضه\nكل رسالة فيها رابط لإيقاف هذه الرسائل.",
             "zh-CN": "通过邮件给我发送{hotel}的消息和优惠\n每封邮件都附有停止接收的链接。",
             "zh-TW": "以電子郵件寄送{hotel}的消息與優惠給我\n每封郵件都附有停止接收的連結。"
+          }
+        }
+      },
+      "textConsent": {
+        "column": "texts_ok",
+        "phone": "mobile",
+        "class": "service",
+        "wording": {
+          "version": 1,
+          "text": {
+            "en-US": "Text me about my stay\nYour arrival details, and if your dates change.\nOptional. You can stop at any time; each text tells you how.",
+            "de-DE": "SMS zu meinem Aufenthalt\nIhre Anreisedetails und Änderungen Ihrer Daten.\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+            "fr-FR": "M'envoyer des SMS au sujet de mon séjour\nLes détails de votre arrivée, et tout changement de vos dates.\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
+            "da-DK": "Send mig sms'er om mit ophold\nDetaljer om din ankomst, og hvis dine datoer ændres.\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+            "cs-CZ": "Posílejte mi SMS o mém pobytu\nPodrobnosti o příjezdu a změny termínu.\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+            "ar-EG": "أرسلوا لي رسائل نصية عن إقامتي\nتفاصيل وصولك، وأي تغيير في مواعيدك.\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+            "zh-CN": "通过短信告知我住宿信息\n您的入住信息，以及日期变更通知。\n可选。您可随时退订，每条短信都会说明退订方式。",
+            "zh-TW": "以簡訊通知我住宿資訊\n您的入住資訊，以及日期異動通知。\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
           }
         }
       },
@@ -12715,7 +12971,8 @@
         "note",
         "language",
         "client_key",
-        "opt_in"
+        "opt_in",
+        "texts_ok"
       ],
       "requires": [
         "first_name",
@@ -12751,6 +13008,24 @@
             "ar-EG": "راسلوني بالبريد الإلكتروني بأخبار {hotel} وعروضه\nكل رسالة فيها رابط لإيقاف هذه الرسائل.",
             "zh-CN": "通过邮件给我发送{hotel}的消息和优惠\n每封邮件都附有停止接收的链接。",
             "zh-TW": "以電子郵件寄送{hotel}的消息與優惠給我\n每封郵件都附有停止接收的連結。"
+          }
+        }
+      },
+      "textConsent": {
+        "column": "texts_ok",
+        "phone": "mobile",
+        "class": "service",
+        "wording": {
+          "version": 1,
+          "text": {
+            "en-US": "Text me about my stay\nYour arrival details, and if your dates change.\nOptional. You can stop at any time; each text tells you how.",
+            "de-DE": "SMS zu meinem Aufenthalt\nIhre Anreisedetails und Änderungen Ihrer Daten.\nFreiwillig. Sie können jederzeit abbestellen; jede SMS sagt Ihnen, wie.",
+            "fr-FR": "M'envoyer des SMS au sujet de mon séjour\nLes détails de votre arrivée, et tout changement de vos dates.\nFacultatif. Vous pouvez arrêter à tout moment ; chaque SMS vous indique comment.",
+            "da-DK": "Send mig sms'er om mit ophold\nDetaljer om din ankomst, og hvis dine datoer ændres.\nFrivilligt. Du kan stoppe når som helst; hver sms fortæller dig hvordan.",
+            "cs-CZ": "Posílejte mi SMS o mém pobytu\nPodrobnosti o příjezdu a změny termínu.\nNepovinné. Kdykoli můžete přestat; každá SMS vám řekne jak.",
+            "ar-EG": "أرسلوا لي رسائل نصية عن إقامتي\nتفاصيل وصولك، وأي تغيير في مواعيدك.\nاختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+            "zh-CN": "通过短信告知我住宿信息\n您的入住信息，以及日期变更通知。\n可选。您可随时退订，每条短信都会说明退订方式。",
+            "zh-TW": "以簡訊通知我住宿資訊\n您的入住資訊，以及日期異動通知。\n可選。您可隨時退訂，每則簡訊都會說明退訂方式。"
           }
         }
       },
@@ -12857,11 +13132,13 @@
       "language": {
         "column": "language"
       },
+      "phone": "mobile",
       "fallback": {
         "via": "stay_id",
         "email": "email",
         "name": "first_name",
-        "language": "language"
+        "language": "language",
+        "phone": "mobile"
       }
     },
     "settings": {
@@ -12888,7 +13165,10 @@
       "stay-folio": "hotel-stay-folio",
       "stay-folio-owing": "hotel-stay-folio-owing",
       "stay-made-pay": "hotel-stay-made-pay",
-      "stay-folio-owing-pay": "hotel-stay-folio-owing-pay"
+      "stay-folio-owing-pay": "hotel-stay-folio-owing-pay",
+      "stay-arriving": "hotel-stay-arriving",
+      "stay-arriving-text": "hotel-stay-arriving-text",
+      "stay-dates-changed-text": "hotel-stay-dates-changed-text"
     },
     "classes": {
       "stay-made": "service",
@@ -12904,7 +13184,14 @@
       "stay-folio": "service",
       "stay-folio-owing": "service",
       "stay-made-pay": "service",
-      "stay-folio-owing-pay": "service"
+      "stay-folio-owing-pay": "service",
+      "stay-arriving": "service",
+      "stay-arriving-text": "service",
+      "stay-dates-changed-text": "service"
+    },
+    "channels": {
+      "stay-arriving-text": "sms",
+      "stay-dates-changed-text": "sms"
     },
     "producers": [
       {
@@ -13253,6 +13540,87 @@
         },
         "repeat": true,
         "payments": "on"
+      },
+      {
+        "kind": "stay-arriving",
+        "link": "stay_id",
+        "gate": {
+          "setting": {
+            "table": "settings",
+            "column": "guest_emails_on"
+          }
+        },
+        "before": {
+          "table": "stays",
+          "at": "arrive_at",
+          "lead": {
+            "via": "room_type_id",
+            "table": "room_types",
+            "column": "arrival_hours",
+            "fallback": {
+              "table": "settings",
+              "column": "arrival_hours"
+            },
+            "max": 72,
+            "at": "10:00"
+          },
+          "where": {
+            "column": "status",
+            "eq": "booked"
+          }
+        }
+      },
+      {
+        "kind": "stay-arriving-text",
+        "link": "stay_id",
+        "gate": {
+          "setting": {
+            "table": "settings",
+            "column": "guest_texts_on"
+          }
+        },
+        "before": {
+          "table": "stays",
+          "at": "arrive_at",
+          "lead": {
+            "via": "room_type_id",
+            "table": "room_types",
+            "column": "arrival_hours",
+            "fallback": {
+              "table": "settings",
+              "column": "arrival_hours"
+            },
+            "max": 72,
+            "at": "10:00"
+          },
+          "where": {
+            "column": "status",
+            "eq": "booked"
+          }
+        }
+      },
+      {
+        "kind": "stay-dates-changed-text",
+        "link": "stay_id",
+        "gate": {
+          "setting": {
+            "table": "settings",
+            "column": "guest_texts_on"
+          }
+        },
+        "onChange": {
+          "table": "stays",
+          "columns": [
+            "arrive",
+            "depart"
+          ],
+          "changed": true,
+          "where": {
+            "column": "status",
+            "eq": "booked"
+          }
+        },
+        "repeat": true
       }
     ]
   },
@@ -13266,6 +13634,7 @@
         "column": "first_name"
       },
       "language": "language",
+      "phone": "mobile",
       "consent": {
         "column": "opt_in",
         "purpose": "newsletter"
@@ -23878,8 +24247,564 @@
           "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到這封郵件，是因為您在我們這裡預訂了房間。"
         }
       }
+    },
+    {
+      "key": "hotel-stay-arriving",
+      "name": {
+        "en-US": "Before the arrival",
+        "de-DE": "Vor der Anreise",
+        "fr-FR": "Avant l'arrivée",
+        "da-DK": "Før ankomsten",
+        "cs-CZ": "Před příjezdem",
+        "ar-EG": "قبل الوصول",
+        "zh-CN": "入住前",
+        "zh-TW": "入住前"
+      },
+      "vars": [
+        "practice.address",
+        "practice.arrive_from.time",
+        "practice.email",
+        "practice.finding",
+        "practice.leave_by.time",
+        "practice.phone",
+        "recipient.first_name",
+        "stay.arrive.day_month",
+        "stay.depart.day_month",
+        "stay.ref"
+      ],
+      "locales": {
+        "en-US": {
+          "subject": "See you on {{stay.arrive.day_month}} — {{stay.ref}}",
+          "preheader": "Your room is ready from {{practice.arrive_from.time}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "We look forward to seeing you, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Your reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Your room is ready from {{practice.arrive_from.time}} on {{stay.arrive.day_month}}, and yours until {{practice.leave_by.time}} on {{stay.depart.day_month}}."
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "finding",
+              "data": {
+                "paras": [
+                  "{{practice.finding}}"
+                ]
+              },
+              "showWhen": {
+                "var": "practice.finding"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "late",
+              "data": {
+                "paras": [
+                  "Late or early? Write to {{practice.email}} or ring us on {{practice.phone}}."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. You are getting this because you reserved a room with us."
+        },
+        "de-DE": {
+          "subject": "Bis bald, am {{stay.arrive.day_month}} — {{stay.ref}}",
+          "preheader": "Ihr Zimmer ist ab {{practice.arrive_from.time}} bereit",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Wir freuen uns auf Sie, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Ihre Referenz",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Ihr Zimmer ist am {{stay.arrive.day_month}} ab {{practice.arrive_from.time}} bereit und gehört Ihnen bis {{practice.leave_by.time}} am {{stay.depart.day_month}}."
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "finding",
+              "data": {
+                "paras": [
+                  "{{practice.finding}}"
+                ]
+              },
+              "showWhen": {
+                "var": "practice.finding"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "late",
+              "data": {
+                "paras": [
+                  "Später oder früher? Schreiben Sie an {{practice.email}} oder rufen Sie uns an: {{practice.phone}}."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Sie erhalten diese E-Mail, weil Sie bei uns ein Zimmer reserviert haben."
+        },
+        "fr-FR": {
+          "subject": "À bientôt, le {{stay.arrive.day_month}} — {{stay.ref}}",
+          "preheader": "Votre chambre est prête à partir de {{practice.arrive_from.time}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Nous avons hâte de vous accueillir, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Votre référence",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Votre chambre est prête le {{stay.arrive.day_month}} à partir de {{practice.arrive_from.time}}, et elle est à vous jusqu'à {{practice.leave_by.time}} le {{stay.depart.day_month}}."
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "finding",
+              "data": {
+                "paras": [
+                  "{{practice.finding}}"
+                ]
+              },
+              "showWhen": {
+                "var": "practice.finding"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "late",
+              "data": {
+                "paras": [
+                  "En retard ou en avance ? Écrivez à {{practice.email}} ou appelez-nous au {{practice.phone}}."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Vous recevez cet e-mail parce que vous avez réservé une chambre chez nous."
+        },
+        "da-DK": {
+          "subject": "Vi ses den {{stay.arrive.day_month}} — {{stay.ref}}",
+          "preheader": "Dit værelse er klar fra {{practice.arrive_from.time}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Vi glæder os til at se dig, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Din reference",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Dit værelse er klar den {{stay.arrive.day_month}} fra {{practice.arrive_from.time}} og er dit til {{practice.leave_by.time}} den {{stay.depart.day_month}}."
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "finding",
+              "data": {
+                "paras": [
+                  "{{practice.finding}}"
+                ]
+              },
+              "showWhen": {
+                "var": "practice.finding"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "late",
+              "data": {
+                "paras": [
+                  "Sent eller tidligt? Skriv til {{practice.email}}, eller ring til os på {{practice.phone}}."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Du får denne e-mail, fordi du har reserveret et værelse hos os."
+        },
+        "cs-CZ": {
+          "subject": "Těšíme se na vás {{stay.arrive.day_month}} — {{stay.ref}}",
+          "preheader": "Pokoj je připraven od {{practice.arrive_from.time}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "Těšíme se na vás, {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "Číslo vaší rezervace",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "Pokoj bude připraven {{stay.arrive.day_month}} od {{practice.arrive_from.time}} a je váš do {{practice.leave_by.time}} {{stay.depart.day_month}}."
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "finding",
+              "data": {
+                "paras": [
+                  "{{practice.finding}}"
+                ]
+              },
+              "showWhen": {
+                "var": "practice.finding"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "late",
+              "data": {
+                "paras": [
+                  "Přijedete později nebo dříve? Napište na {{practice.email}} nebo nám zavolejte na {{practice.phone}}."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. Tento e-mail dostáváte, protože jste si u nás rezervovali pokoj."
+        },
+        "ar-EG": {
+          "subject": "نراك في {{stay.arrive.day_month}} — {{stay.ref}}",
+          "preheader": "غرفتك جاهزة من {{practice.arrive_from.time}}",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "نتطلع إلى استقبالك، {{recipient.first_name}}."
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "رقم حجزك",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "غرفتك جاهزة يوم {{stay.arrive.day_month}} من {{practice.arrive_from.time}}، وهي لك حتى {{practice.leave_by.time}} يوم {{stay.depart.day_month}}."
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "finding",
+              "data": {
+                "paras": [
+                  "{{practice.finding}}"
+                ]
+              },
+              "showWhen": {
+                "var": "practice.finding"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "late",
+              "data": {
+                "paras": [
+                  "ستتأخر أو تصل مبكرًا؟ راسلنا على {{practice.email}} أو اتصل بنا على {{practice.phone}}."
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}. تصلك هذه الرسالة لأنك حجزت غرفة لدينا."
+        },
+        "zh-CN": {
+          "subject": "{{stay.arrive.day_month}}见 — {{stay.ref}}",
+          "preheader": "您的房间 {{practice.arrive_from.time}} 起可入住",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "{{recipient.first_name}}，我们期待您的光临。"
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "您的预订号",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "您的房间将于 {{stay.arrive.day_month}} {{practice.arrive_from.time}} 起准备就绪，可住到 {{stay.depart.day_month}} {{practice.leave_by.time}}。"
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "finding",
+              "data": {
+                "paras": [
+                  "{{practice.finding}}"
+                ]
+              },
+              "showWhen": {
+                "var": "practice.finding"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "late",
+              "data": {
+                "paras": [
+                  "会晚到或早到？请发邮件至 {{practice.email}} 或致电 {{practice.phone}}。"
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到此邮件，是因为您在我们这里预订了房间。"
+        },
+        "zh-TW": {
+          "subject": "{{stay.arrive.day_month}}見 — {{stay.ref}}",
+          "preheader": "您的房間 {{practice.arrive_from.time}} 起可入住",
+          "blocks": [
+            {
+              "block": "email.heading",
+              "id": "heading",
+              "data": {
+                "text": "{{recipient.first_name}}，我們期待您的光臨。"
+              }
+            },
+            {
+              "block": "email.stats",
+              "id": "reference",
+              "data": {
+                "items": [
+                  {
+                    "label": "訂房編號",
+                    "value": "{{stay.ref}}"
+                  }
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "body",
+              "data": {
+                "paras": [
+                  "您的房間將於 {{stay.arrive.day_month}} {{practice.arrive_from.time}} 起準備就緒，可住到 {{stay.depart.day_month}} {{practice.leave_by.time}}。"
+                ]
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "finding",
+              "data": {
+                "paras": [
+                  "{{practice.finding}}"
+                ]
+              },
+              "showWhen": {
+                "var": "practice.finding"
+              }
+            },
+            {
+              "block": "email.text",
+              "id": "late",
+              "data": {
+                "paras": [
+                  "會晚到或早到？請寄信至 {{practice.email}} 或來電 {{practice.phone}}。"
+                ]
+              }
+            }
+          ],
+          "footer": "{{appName}} · {{practice.address}} · {{practice.phone}} · {{practice.email}}。您收到這封郵件，是因為您在我們這裡預訂了房間。"
+        }
+      }
     }
   ],
+  "textTemplates": [
+    {
+      "key": "hotel-stay-arriving-text",
+      "name": {
+        "en-US": "Before the arrival, by text",
+        "de-DE": "Vor der Anreise, per SMS",
+        "fr-FR": "Avant l'arrivée, par SMS",
+        "da-DK": "Før ankomsten, som sms",
+        "cs-CZ": "Před příjezdem, SMS",
+        "ar-EG": "قبل الوصول، برسالة نصية",
+        "zh-CN": "入住前，短信",
+        "zh-TW": "入住前，簡訊"
+      },
+      "locales": {
+        "en-US": {
+          "body": "{{appName}}: see you on {{stay.arrive.day_month}}. Your room is ready from {{practice.arrive_from.time}}. Reference {{stay.ref}}."
+        },
+        "de-DE": {
+          "body": "{{appName}}: Bis bald am {{stay.arrive.day_month}}. Ihr Zimmer ist ab {{practice.arrive_from.time}} bereit. Referenz {{stay.ref}}."
+        },
+        "fr-FR": {
+          "body": "{{appName}} : à bientôt, le {{stay.arrive.day_month}}. Votre chambre vous attend dès {{practice.arrive_from.time}}. Référence {{stay.ref}}."
+        },
+        "da-DK": {
+          "body": "{{appName}}: Vi ses den {{stay.arrive.day_month}}. Dit værelse er klar fra {{practice.arrive_from.time}}. Reference {{stay.ref}}."
+        },
+        "cs-CZ": {
+          "body": "{{appName}}: Těšíme se na vás {{stay.arrive.day_month}}. Pokoj je připraven od {{practice.arrive_from.time}}. Číslo rezervace {{stay.ref}}."
+        },
+        "ar-EG": {
+          "body": "{{appName}}: نراك يوم {{stay.arrive.day_month}}. غرفتك جاهزة من {{practice.arrive_from.time}}. رقم الحجز {{stay.ref}}."
+        },
+        "zh-CN": {
+          "body": "{{appName}}：期待{{stay.arrive.day_month}}与您相见。房间{{practice.arrive_from.time}}起可入住。预订号{{stay.ref}}。"
+        },
+        "zh-TW": {
+          "body": "{{appName}}：期待{{stay.arrive.day_month}}與您相見。房間{{practice.arrive_from.time}}起可入住。訂房編號{{stay.ref}}。"
+        }
+      }
+    },
+    {
+      "key": "hotel-stay-dates-changed-text",
+      "name": {
+        "en-US": "Dates changed, by text",
+        "de-DE": "Daten geändert, per SMS",
+        "fr-FR": "Dates modifiées, par SMS",
+        "da-DK": "Datoer ændret, som sms",
+        "cs-CZ": "Termín změněn, SMS",
+        "ar-EG": "تغيّرت التواريخ، برسالة نصية",
+        "zh-CN": "日期已更改，短信",
+        "zh-TW": "日期已變更，簡訊"
+      },
+      "locales": {
+        "en-US": {
+          "body": "{{appName}}: your dates have changed. Now {{stay.arrive.day_month}} to {{stay.depart.day_month}}. Reference {{stay.ref}}."
+        },
+        "de-DE": {
+          "body": "{{appName}}: Ihre Daten haben sich geändert. Jetzt {{stay.arrive.day_month}} bis {{stay.depart.day_month}}. Referenz {{stay.ref}}."
+        },
+        "fr-FR": {
+          "body": "{{appName}} : vos dates ont changé. Désormais du {{stay.arrive.day_month}} au {{stay.depart.day_month}}. Référence {{stay.ref}}."
+        },
+        "da-DK": {
+          "body": "{{appName}}: Dine datoer er ændret. Nu {{stay.arrive.day_month}} til {{stay.depart.day_month}}. Reference {{stay.ref}}."
+        },
+        "cs-CZ": {
+          "body": "{{appName}}: Termín vašeho pobytu se změnil. Nově {{stay.arrive.day_month}} až {{stay.depart.day_month}}. Číslo rezervace {{stay.ref}}."
+        },
+        "ar-EG": {
+          "body": "{{appName}}: تغيّرت مواعيد إقامتك. الآن من {{stay.arrive.day_month}} إلى {{stay.depart.day_month}}. رقم الحجز {{stay.ref}}."
+        },
+        "zh-CN": {
+          "body": "{{appName}}：您的住宿日期已更改，现为{{stay.arrive.day_month}}至{{stay.depart.day_month}}。预订号{{stay.ref}}。"
+        },
+        "zh-TW": {
+          "body": "{{appName}}：您的住宿日期已變更，現為{{stay.arrive.day_month}}至{{stay.depart.day_month}}。訂房編號{{stay.ref}}。"
+        }
+      }
+    }
+  ],
+  "textReplies": "on",
   "payments": {
     "payables": [
       {

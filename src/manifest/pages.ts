@@ -70,7 +70,7 @@ const SPECS: PageSpec[] = [
     config: form(
       [title("ref"), f("status", { control: "segmented" }), day("arrive"), day("depart"), f("nights"), f("guests", { control: "stepper" })],
       [ref("room_type_id"), ref("room_id"), f("arrival_time"), day("expect_by"), f("channel", { control: "segmented" }), f("language")],
-      [f("first_name"), f("last_name"), f("email", { control: "email" }), f("mobile", { control: "phone" }), wide("note"), ref("customer_id")],
+      [f("first_name"), f("last_name"), f("email", { control: "email" }), f("mobile", { control: "phone" }), toggle("texts_ok"), wide("note"), ref("customer_id")],
       [
         rows("stay_extras", [
           { column: "extra_id", control: "reference", width: "2fr" },
@@ -94,7 +94,7 @@ const SPECS: PageSpec[] = [
         money("balance"),
       ],
       [when("cancel_by"), f("cancel_code", { control: "select" }), toggle("late_cancel"), when("cancelled_at"), f("cancelled_by"), when("no_show_marked_at")],
-      [when("created_at"), when("checked_in_at"), f("checked_in_by"), when("checked_out_at"), f("checked_out_by"), toggle("link_stopped")],
+      [when("created_at"), when("arrive_at"), when("checked_in_at"), f("checked_in_by"), when("checked_out_at"), f("checked_out_by"), toggle("link_stopped")],
     ),
   },
   {
@@ -105,7 +105,7 @@ const SPECS: PageSpec[] = [
     icon: "contact",
     order: 2,
     table: "customers",
-    config: form([f("first_name"), f("last_name"), f("email", { control: "email" }), when("created_at"), when("forgotten_at")]),
+    config: form([f("first_name"), f("last_name"), f("email", { control: "email" }), f("mobile", { control: "phone" }), when("created_at"), when("forgotten_at")]),
   },
   {
     ref: "hotel-charges",
@@ -157,7 +157,8 @@ const SPECS: PageSpec[] = [
     config: form([
       f("kind"),
       f("status", { control: "select" }),
-      f("to_address", { control: "email" }),
+      // An email's address, or a text's number.
+      f("to_address"),
       f("language"),
       ref("stay_id"),
       ref("customer_id"),
@@ -186,7 +187,7 @@ const SPECS: PageSpec[] = [
           { column: "position", width: "80px" },
         ]),
       ],
-      [f("color"), f("icon"), f("position", { control: "stepper" }), toggle("active")],
+      [f("color"), f("icon"), f("position", { control: "stepper" }), toggle("active"), f("arrival_hours", { control: "stepper" })],
     ),
   },
   {
@@ -263,7 +264,7 @@ const SPECS: PageSpec[] = [
         f("ref_prefix"),
         f("ref_start", { control: "number" }),
       ],
-      [toggle("guest_emails_on")],
+      [toggle("guest_emails_on"), toggle("guest_texts_on"), f("arrival_hours", { control: "stepper" })],
       // Paying online: what a guest pays as they reserve, how long their room is held while they pay, and whether a
       // cancellation in time gives the money back by itself. None of it does anything until the house takes payments.
       [f("pay_at_booking"), f("pay_how_much", { control: "segmented" }), f("pay_hold_minutes", { control: "stepper" }), toggle("auto_refund")],

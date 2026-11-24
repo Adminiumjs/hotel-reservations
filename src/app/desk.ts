@@ -12,6 +12,7 @@ import { tr } from "../i18n/tr.ts";
 import { mailable } from "../lib/mail.ts";
 import { money, nightsOf, plus, strip } from "./fmt.ts";
 import { blankDetails, mintKey, NO_CODES, type HouseApp, type Nb, type View } from "./house.ts";
+import { textsOkFor } from "./textBox.ts";
 import type { StV } from "./world.ts";
 
 export function openFolio(app: HouseApp, id: Id, from?: View): void {
@@ -284,6 +285,7 @@ export function openEdit(app: HouseApp, st: StV): void {
       note: st.note,
       extras,
       language: st.language ?? "en-US",
+      textsOk: st.textsOk,
     },
   });
 }
@@ -311,6 +313,8 @@ export function nbValues(nb: Nb): Record<string, unknown> {
     arrival_time: nb.arrivalTime,
     note: nb.note.trim() === "" ? null : nb.note.trim(),
     language: nb.language,
+    // Ticked only once the guest said yes on the telephone or at the desk; never for a number no text can go to.
+    texts_ok: textsOkFor(nb.textsOk, nb.mobile),
   };
 }
 
@@ -337,6 +341,7 @@ export function nbChanged(old: StV, nb: Nb): Record<string, unknown> {
     arrival_time: old.arrivalTime,
     note: old.note || null,
     language: old.language ?? "en-US",
+    texts_ok: old.textsOk,
   };
   const changed = Object.fromEntries(Object.entries(nbValues(nb)).filter(([k, v]) => v !== was[k]));
   if ("arrive" in changed && old.expectBy !== null) changed["expect_by"] = null;

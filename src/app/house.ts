@@ -13,6 +13,7 @@ import { isApiError, yes, type CardCheck, type Id, type LiveFrame, type NightAns
 import { tr, setLocale } from "../i18n/tr.ts";
 import { venueDay, venueMinutes } from "../lib/venueTime.ts";
 import { fDW, money, nightsOf, plus, setCurrency, strip } from "./fmt.ts";
+import { textsOkFor } from "./textBox.ts";
 import { worldOf, type StV, type WorldV } from "./world.ts";
 
 import type { View } from "./views.ts";
@@ -27,6 +28,8 @@ export interface Details {
   arrivalTime: string;
   note: string;
   extras: Record<string, boolean>;
+  /** "Text me about my stay": its own box, off until it is ticked, never needed to book (`textBox.ts`). */
+  textsOk: boolean;
 }
 /** The guest site's reservation form. */
 export interface Form extends Details {
@@ -71,7 +74,7 @@ export interface Toast {
 }
 
 const CODE0 = ["", "", "", "", "", ""];
-export const blankDetails = (): Details => ({ first: "", last: "", email: "", mobile: "", arrivalTime: "15:00", note: "", extras: {} });
+export const blankDetails = (): Details => ({ first: "", last: "", email: "", mobile: "", arrivalTime: "15:00", note: "", extras: {}, textsOk: false });
 export const blankForm = (): Form => ({ ...blankDetails(), optIn: false });
 export const blankAuth = (): Auth => ({ stage: "form", email: "", token: null, busy: false, sentAt: 0, code: CODE0.slice(), tries: 5, err: "", emailErr: "", ended: "" });
 
@@ -925,6 +928,8 @@ export class HouseApp {
         client_key: this.clientKey,
         // Unticked writes nothing in Adminium's consent log: it takes back no yes the guest gave before.
         opt_in: f.optIn,
+        // The box for texts, its own: a tick is a yes to texts about this stay, for the mobile typed beside it.
+        texts_ok: textsOkFor(f.textsOk, f.mobile),
       },
       children: { stay_extras: this.pickedExtras(f).map((extra_id) => ({ values: { extra_id: Number(extra_id) } })), ...this.typedCodes(s.codes) },
       ...(shown ? { expect: { total: shown } } : {}),

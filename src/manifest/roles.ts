@@ -5,7 +5,8 @@
  *                  house, the rooms and every reservation (with the guest's
  *                  name, email and mobile, to find them and ring them). Takes
  *                  a booking with its extras, edits it, checks guests in and
- *                  out, cancels (saying who asked), marks a no-show, records a
+ *                  out, cancels (saying who asked), marks a no-show, ticks
+ *                  "Text me about my stay" once the guest said yes, records a
  *                  charge, a payment, money given back and the nights not
  *                  stayed; moves a room between ready and being cleaned, and
  *                  takes one out of service. Never voids: that is a manager's;
@@ -16,8 +17,9 @@
  *                  figure;
  *   manager        everything: the dashboard section, the room types, rooms,
  *                  rates, extras, charge items, settings and house notes; voids
- *                  a charge, a payment or a credit; the guests, the emails;
- *                  and gives back what a guest paid online.
+ *                  a charge, a payment or a credit; the guests, the emails and
+ *                  texts; gives back what a guest paid online; and reads and
+ *                  answers the texts guests send back.
  *
  * Nobody types what a payment taken online carries — its reference, the
  * service, a card's last four, where a refund stands: Adminium writes those.
@@ -61,6 +63,8 @@ const DESK_STAY_COLUMNS = [
   "folio_so_far_at",
   "cancel_code",
   "customer_id",
+  // "Text me about my stay", ticked on a phone booking only after the guest said yes.
+  "texts_ok",
 ];
 
 /**
@@ -199,6 +203,9 @@ export const ROLES = [
       ...["stays", "customers", "messages"].map(pii),
       // Gives back what guests paid online for the house's own stays (the install review shows it, and may untick it).
       "payments:@:refund",
+      // The texts guests send back ("running late"), in Adminium's Texts page, and the answers: every read audited.
+      "texts:@:read",
+      "texts:@:reply",
     ],
     limits: {
       // A code's whole text is typed and never read back, by a manager either.

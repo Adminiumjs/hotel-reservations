@@ -12,6 +12,11 @@
  * unsubscribe clears it, and "Delete my details" records the withdrawal
  * before it empties it.
  *
+ * The box "Text me about my stay" is the texts' own (`TEXT_BOX`): a yes to
+ * texts about the guest's stays, for the mobile typed beside it, kept in
+ * Adminium's text consent log. `customers.mobile` is the number they last
+ * ticked it for, and the one a text goes to.
+ *
  * A guest is also copied onto every reservation of theirs: its first name,
  * surname, the two joined, the address and the mobile. Each copy is declared,
  * so that finding, exporting and erasing a person reaches it; a reservation
@@ -29,6 +34,12 @@ import { LOCALES, type Tag } from "./labels.ts";
 
 /** The tick, and the line under it: what a guest is shown on the reservation, as the screens say it. */
 export const TICK_SENTENCES = ["Email me news and offers from {hotel}", "Every email has a link to stop them."] as const;
+/** The box for texts, and the two lines under it, as the screens say them (`app/textBox.ts`). */
+export const TEXT_SENTENCES = [
+  "Text me about my stay",
+  "Your arrival details, and if your dates change.",
+  "Optional. You can stop at any time; each text tells you how.",
+] as const;
 
 const SCREENS: Record<Exclude<Tag, "en-US">, Record<string, string>> = {
   "de-DE": de,
@@ -40,12 +51,12 @@ const SCREENS: Record<Exclude<Tag, "en-US">, Record<string, string>> = {
   "zh-TW": zhTW,
 };
 
-/** The two sentences in one language, one a line, from the screens' own words. */
-function shown(tag: Tag): string {
-  return TICK_SENTENCES.map((sentence) => {
+/** The sentences in one language, one a line, from the screens' own words. */
+function shown(tag: Tag, sentences: readonly string[] = TICK_SENTENCES): string {
+  return sentences.map((sentence) => {
     if (tag === "en-US") return sentence;
     const said = SCREENS[tag][sentence];
-    if (said === undefined) throw new Error(`the reservation's tick has no ${tag} words for "${sentence}"`);
+    if (said === undefined) throw new Error(`the reservation's box has no ${tag} words for "${sentence}"`);
     return said;
   }).join("\n");
 }
@@ -62,6 +73,18 @@ export const NEWS_TICK = {
   wording: { version: 1, text: Object.fromEntries(LOCALES.map((tag) => [tag, shown(tag)])) },
 };
 
+/**
+ * The reservation's box for texts, as the text consent log keeps it: the stay's `texts_ok`, a yes to texts about
+ * what was booked (`service`), for the mobile typed on it, with the sentences shown beside the box. It is never
+ * the email tick and never needed to book. A new wording is a new version.
+ */
+export const TEXT_BOX = {
+  column: "texts_ok",
+  phone: "mobile",
+  class: "service",
+  wording: { version: 1, text: Object.fromEntries(LOCALES.map((tag) => [tag, shown(tag, TEXT_SENTENCES)])) },
+};
+
 export const PEOPLE = [
   {
     table: "customers",
@@ -70,6 +93,8 @@ export const PEOPLE = [
     name: "full_name",
     firstName: { column: "first_name" },
     language: "language",
+    // The number a text goes to, and the do-not-text list and an erasure by phone find them by.
+    phone: "mobile",
     consent: { column: "opt_in", purpose: "newsletter" },
     // Every reservation keeps its guest's own details: the account's, or the ones typed at the desk for a guest with none.
     copies: [

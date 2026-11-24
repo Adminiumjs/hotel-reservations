@@ -863,5 +863,12 @@
   "Your room is still reserved. You can try again, or pay at the desk.": "غرفتك لا تزال محجوزة. يمكنك المحاولة مرة أخرى، أو الدفع في مكتب الاستقبال.",
   "No money moves here. The room is kept a few minutes while the guest pays.": "لا تُنقل أي أموال هنا. تُحجز الغرفة بضع دقائق أثناء دفع الضيف.",
   "Your bank is confirming the payment": "مصرفك يؤكد الدفع",
-  "Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.": "بعض طرق الدفع تستغرق بضعة أيام. غرفتك محجوزة. من فضلك لا تدفع مرة أخرى. سنرسل لك رسالة عند التأكيد."
+  "Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.": "بعض طرق الدفع تستغرق بضعة أيام. غرفتك محجوزة. من فضلك لا تدفع مرة أخرى. سنرسل لك رسالة عند التأكيد.",
+  "Text me about my stay": "أرسلوا لي رسائل نصية عن إقامتي",
+  "Your arrival details, and if your dates change.": "تفاصيل وصولك، وأي تغيير في مواعيدك.",
+  "Optional. You can stop at any time; each text tells you how.": "اختياري. يمكنك الإيقاف في أي وقت، وكل رسالة توضح لك الطريقة.",
+  "So the desk can ring you on the day, and text you about your stay.": "ليتمكن الاستقبال من الاتصال بك يوم الوصول، ومراسلتك نصيًا بشأن إقامتك.",
+  "We can't send texts to numbers in mainland China. Everything else works as usual.": "لا يمكننا إرسال رسائل نصية إلى أرقام في البر الرئيسي للصين. كل شيء آخر يعمل كالمعتاد.",
+  "Check this number so we can text you": "تحقق من هذا الرقم لنتمكن من مراسلتك نصيًا",
+  "Ask the guest first. Tick only if they said yes.": "اسأل الضيف أولًا. ضع العلامة فقط إذا وافق."
 }

@@ -35,7 +35,28 @@
  *   stay-folio(-owing)         the desk emails the folio, with Invoices &
  *                              Receipts' document attached: settled ("thank
  *                              you for staying") or so far, with what is still
- *                              to settle — the desk picks by Adminium's balance.
+ *                              to settle — the desk picks by Adminium's balance;
+ *   stay-arriving              before the arrival: when the room is ready, how
+ *                              to find the house, the reference — a day ahead
+ *                              by default, at 10:00 (the house's
+ *                              `arrival_hours`, or the room type's own).
+ *
+ * And two texts, each a kind of its own (one kind has one channel):
+ *
+ *   stay-arriving-text         the same moment, in a line: the date, when the
+ *                              room is ready, the reference;
+ *   stay-dates-changed-text    the dates moved: the new ones and the
+ *                              reference.
+ *
+ * A text goes to the number the guest last ticked "Text me about my stay"
+ * for (`customers.mobile`), or, for a stay nobody signed in for, the mobile on
+ * the stay; and only while Adminium's text consent log holds that guest's yes
+ * for that exact number, the number is not on the do-not-text list, and
+ * Adminium is connected to a text service. With none of that, the row is
+ * skipped and says why. A text carries no link, no code and no phone number
+ * (a country where the opt-out goes through the house has none in the body);
+ * Adminium adds the opt-out line. The house's "Text guests" switch pauses
+ * them.
  *
  * Every kind is service mail: each is about the guest's own reservation, its
  * link or its folio. "We missed you" and "We hope to see you again" are said
@@ -51,6 +72,7 @@
  * both written in the same write as the move to `cancelled`.
  */
 
+/** The emails. */
 export const KINDS = [
   "stay-made",
   "stay-made-desk",
@@ -66,12 +88,17 @@ export const KINDS = [
   "stay-folio-owing",
   "stay-made-pay",
   "stay-folio-owing-pay",
+  "stay-arriving",
 ] as const;
+/** The texts, each sent as a text and nothing else. */
+export const TEXT_KINDS = ["stay-arriving-text", "stay-dates-changed-text"] as const;
 /** The kinds sent only while the house takes payments online, each the payments-on twin of another. */
 export const PAY_KINDS = ["stay-made-pay", "stay-folio-owing-pay"] as const;
 export type Kind = (typeof KINDS)[number];
+export type TextKind = (typeof TEXT_KINDS)[number];
 
 const GATE = { gate: { setting: { table: "settings", column: "guest_emails_on" } } };
+const TEXT_GATE = { gate: { setting: { table: "settings", column: "guest_texts_on" } } };
 const onStay = (column: string, to: unknown, where?: Record<string, unknown>) => ({
   onChange: { table: "stays", column, to, ...(where === undefined ? {} : { where }) },
 });
@@ -98,6 +125,19 @@ function madeProducers(kind: Kind, payments: "on" | "off") {
   ];
 }
 
+/**
+ * Before the arrival: the room type's own lead, else the house's, in hours before the room is ready on the arrival day,
+ * sent at 10:00 on the day it reaches. Only a stay still booked: a cancelled one, or one already in the house, hears nothing.
+ */
+const ARRIVING = {
+  table: "stays",
+  at: "arrive_at",
+  lead: { via: "room_type_id", table: "room_types", column: "arrival_hours", fallback: { table: "settings", column: "arrival_hours" }, max: 72, at: "10:00" },
+  where: { column: "status", eq: "booked" },
+};
+/** The dates of a stay still to come moved: whatever they became. */
+const DATES_MOVED = { table: "stays", columns: ["arrive", "depart"], changed: true, where: { column: "status", eq: "booked" } };
+
 export const OUTBOX = {
   table: "messages",
   columns: {
@@ -120,15 +160,19 @@ export const OUTBOX = {
     name: "first_name",
     // The reservation's own language, whatever the guest's account says.
     language: { column: "language" },
+    // A text: the number they last ticked the box for.
+    phone: "mobile",
     // A reservation nobody signed in for — and every desk booking — carries its own details.
-    fallback: { via: "stay_id", email: "email", name: "first_name", language: "language" },
+    fallback: { via: "stay_id", email: "email", name: "first_name", language: "language", phone: "mobile" },
   },
   settings: { table: "settings", name: "name", phone: "phone", replyTo: "email" },
   // A reservation's own link opens it on the guest site; its code rides the fragment.
   pages: { manage: "/r", booking: "/" },
-  kinds: Object.fromEntries(KINDS.map((kind) => [kind, `hotel-${kind}`])),
-  // Every email is about a guest's own reservation: none is stopped by the do-not-email list.
-  classes: Object.fromEntries(KINDS.map((kind) => [kind, "service"])),
+  kinds: Object.fromEntries([...KINDS, ...TEXT_KINDS].map((kind) => [kind, `hotel-${kind}`])),
+  // Every message is about a guest's own reservation: none is stopped by the do-not-email list, and a text needs the
+  // guest's yes to texts about their stay.
+  classes: Object.fromEntries([...KINDS, ...TEXT_KINDS].map((kind) => [kind, "service"])),
+  channels: Object.fromEntries(TEXT_KINDS.map((kind) => [kind, "sms"])),
   producers: [
     // The confirmation: as ever while the house takes no payments online; its twin while it does.
     ...(["off", "on"] as const).flatMap((payments) => madeProducers(payments === "off" ? "stay-made" : "stay-made-pay", payments)),
@@ -140,18 +184,16 @@ export const OUTBOX = {
     { kind: "stay-cancelled-house", link: "stay_id", ...GATE, ...cancelled("house") },
     { kind: "stay-no-show", link: "stay_id", ...GATE, ...onStay("status", "no_show") },
     // Dates moved on a stay still to come: the old ones and the old total kept on the message.
-    {
-      kind: "stay-dates-changed",
-      link: "stay_id",
-      ...GATE,
-      onChange: { table: "stays", columns: ["arrive", "depart"], changed: true, where: { column: "status", eq: "booked" } },
-      repeat: true,
-      was: ["arrive", "depart", "total"],
-    },
+    { kind: "stay-dates-changed", link: "stay_id", ...GATE, onChange: DATES_MOVED, repeat: true, was: ["arrive", "depart", "total"] },
     // "stay-new-link" is sent by Adminium when a signed-in guest makes a new link (no producer).
     // The folio, each time the desk sends it.
     { kind: "stay-folio", link: "stay_id", ...GATE, onChange: { table: "stays", columns: ["folio_sent_at"], changed: true }, repeat: true },
     { kind: "stay-folio-owing", link: "stay_id", ...GATE, onChange: { table: "stays", columns: ["folio_so_far_at"], changed: true }, repeat: true, payments: "off" },
     { kind: "stay-folio-owing-pay", link: "stay_id", ...GATE, onChange: { table: "stays", columns: ["folio_so_far_at"], changed: true }, repeat: true, payments: "on" },
+    // Before the arrival: an email, and a text.
+    { kind: "stay-arriving", link: "stay_id", ...GATE, before: ARRIVING },
+    { kind: "stay-arriving-text", link: "stay_id", ...TEXT_GATE, before: ARRIVING },
+    // The dates moved, by text too.
+    { kind: "stay-dates-changed-text", link: "stay_id", ...TEXT_GATE, onChange: DATES_MOVED, repeat: true },
   ],
 };

@@ -15,6 +15,10 @@
  * arrival time or the extras, or cancel, without signing in. Moving the dates
  * needs a signed-in guest: a forwarded link cannot move a stay.
  *
+ * The box "Text me about my stay" is a yes to texts about the stay, its own
+ * (`textConsent`): unticked, never required, kept in Adminium's text consent
+ * log for the mobile typed on the reservation, with its words and version.
+ *
  * The tick "Email me news and offers" is the newsletter's consent, given on
  * the reservation and kept for its guest (`consent`): the guest account the
  * address finds or makes, or the guest signed in. A box left unticked takes
@@ -34,7 +38,7 @@
  * guest account behind it, the link code and the retry key, anyone else's
  * stay, the rooms' status, the rate rules.
  */
-import { NEWS_TICK } from "./people.ts";
+import { NEWS_TICK, TEXT_BOX } from "./people.ts";
 import { ARRIVAL_TIMES } from "./tables.ts";
 
 /** What a guest sees of their reservation: the stay, their details, what it costs. */
@@ -205,12 +209,15 @@ const RESERVE = {
     "language",
     "client_key",
     "opt_in",
+    "texts_ok",
   ],
   requires: ["first_name", "last_name", "email"],
   claimedBy: { table: "customers", column: "customer_id", optional: true },
   // A guest met for the first time is made with the names and the language of this reservation.
   identity: { table: "customers", email: "email", link: "customer_id", fill: { first_name: "first_name", last_name: "last_name", language: "language" } },
   consent: NEWS_TICK,
+  // "Text me about my stay": a box of its own beside the email tick, unticked, never needed to book.
+  textConsent: TEXT_BOX,
   shareLink: "link_token",
   // No more guests than the room type sleeps — and, at the desk, than a room given ahead sleeps.
   agrees: [

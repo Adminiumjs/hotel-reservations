@@ -863,5 +863,12 @@
   "Your room is still reserved. You can try again, or pay at the desk.": "你的房间仍为你保留。你可以再试一次，或在前台付款。",
   "No money moves here. The room is kept a few minutes while the guest pays.": "这里不会有资金流动。客人付款期间，房间会保留几分钟。",
   "Your bank is confirming the payment": "你的银行正在确认这笔付款",
-  "Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.": "有些付款方式需要几天时间。你的房间会为你保留。请不要重复付款。确认后我们会发邮件通知你。"
+  "Some ways to pay take a few days. Your room is kept. Please don’t pay again. We’ll email you when it’s confirmed.": "有些付款方式需要几天时间。你的房间会为你保留。请不要重复付款。确认后我们会发邮件通知你。",
+  "Text me about my stay": "通过短信告知我住宿信息",
+  "Your arrival details, and if your dates change.": "您的入住信息，以及日期变更通知。",
+  "Optional. You can stop at any time; each text tells you how.": "可选。您可随时退订，每条短信都会说明退订方式。",
+  "So the desk can ring you on the day, and text you about your stay.": "用于前台在当天联系您，并通过短信告知您住宿信息。",
+  "We can't send texts to numbers in mainland China. Everything else works as usual.": "我们无法向中国大陆号码发送短信。其他功能不受影响。",
+  "Check this number so we can text you": "请检查此号码，以便我们向您发送短信",
+  "Ask the guest first. Tick only if they said yes.": "请先询问客人。仅在客人同意后勾选。"
 }

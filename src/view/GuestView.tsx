@@ -1159,24 +1159,59 @@ export function GuestView({ v }: { v: any }) {
                               {tr("Mobile")}
                             </label>
                             {" "}
-                            <input id="rv-mobile" type="tel" inputMode="tel" autoComplete="tel" value={v.rv.mobile ?? ""} onChange={v.rv.onMobile} placeholder="(207) 555-0123" aria-describedby="rv-mobile-hint" style={st("padding:10px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2);font-family:var(--mono);font-size:13px")} />
+                            <input id="rv-mobile" type="tel" inputMode="tel" autoComplete="tel" dir="ltr" value={v.rv.mobile ?? ""} onChange={v.rv.onMobile} placeholder="(207) 555-0123" aria-describedby={v.rv.textCheckOn ? "rv-mobile-hint rv-mobile-check" : "rv-mobile-hint"} style={st("padding:10px 12px;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface-2);font-family:var(--mono);font-size:13px")} />
                             {" "}
-                            <span id="rv-mobile-hint" style={st("font-size:11.5px;color:var(--fg-subtle)")}>
-                              {tr("Only so the desk can ring you on the day.")}
+                            <span id="rv-mobile-hint" aria-live="polite" style={st("font-size:11.5px;color:var(--fg-subtle)")}>
+                              {v.rv.mobileHint}
                             </span>
+                            {v.rv.textCheckOn ? (
+                              <>
+                                <span id="rv-mobile-check" style={st("font-size:12px;font-weight:700;color:var(--warn)")}>
+                                  {v.rv.textCheck}
+                                </span>
+                              </>
+                            ) : null}
                           </div>
                         </div>
                         {" "}
-                        <div style={st("display:flex;flex-direction:column;gap:4px;margin-block-start:14px")}>
-                          <label style={st("display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;cursor:pointer")}>
-                            <input id="rv-opt-in" type="checkbox" checked={v.rv.optIn} onChange={v.rv.onOptIn} aria-describedby="rv-opt-in-hint" style={st("inline-size:18px;block-size:18px;margin:0;flex-shrink:0;accent-color:var(--accent);cursor:pointer")} />
+                        <div style={st(`display:grid;grid-template-columns:${v.rv.twoCols};gap:10px 14px;margin-block-start:14px`)}>
+                          <div style={st("display:flex;flex-direction:column;gap:4px;padding:11px 13px;border:1px solid var(--border);border-radius:12px")}>
+                            <label style={st("display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;cursor:pointer")}>
+                              <input id="rv-opt-in" type="checkbox" checked={v.rv.optIn} onChange={v.rv.onOptIn} aria-describedby="rv-opt-in-hint" style={st("inline-size:18px;block-size:18px;margin:0;flex-shrink:0;accent-color:var(--accent);cursor:pointer")} />
+                              {" "}
+                              <span data-icon="mail" aria-hidden="true" style={st("display:inline-flex;inline-size:15px;block-size:15px;flex:0 0 auto;color:var(--fg-muted)")}><Icon name={"mail"} /></span>
+                              {" "}
+                              {v.rv.optLabel}
+                            </label>
                             {" "}
-                            {v.rv.optLabel}
-                          </label>
+                            <span id="rv-opt-in-hint" style={st("font-size:11.5px;color:var(--fg-subtle);padding-inline-start:28px")}>
+                              {v.rv.optNote}
+                            </span>
+                          </div>
                           {" "}
-                          <span id="rv-opt-in-hint" style={st("font-size:11.5px;color:var(--fg-subtle);padding-inline-start:28px")}>
-                            {v.rv.optNote}
-                          </span>
+                          <div style={st(`display:flex;flex-direction:column;gap:4px;padding:11px 13px;border:1px solid var(--border);border-radius:12px;opacity:${v.rv.textOpacity}`)}>
+                            <label style={st(`display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:600;cursor:${v.rv.textCursor}`)}>
+                              <input id="rv-texts" type="checkbox" checked={v.rv.textOn} disabled={v.rv.textDisabled} onChange={v.rv.onText} aria-describedby="rv-texts-hint" style={st(`inline-size:18px;block-size:18px;margin:0;flex-shrink:0;accent-color:var(--accent);cursor:${v.rv.textCursor}`)} />
+                              {" "}
+                              <span data-icon="message-square-text" aria-hidden="true" style={st("display:inline-flex;inline-size:15px;block-size:15px;flex:0 0 auto;color:var(--fg-muted)")}><Icon name={"message-square-text"} /></span>
+                              {" "}
+                              {v.rv.textLabel}
+                            </label>
+                            {" "}
+                            <span id="rv-texts-hint" aria-live="polite" style={st("display:flex;flex-direction:column;gap:2px;font-size:11.5px;color:var(--fg-subtle);padding-inline-start:28px")}>
+                              {v.rv.textHintOn ? (
+                                <>
+                                  <span>{v.rv.textSub}</span>
+                                  {" "}
+                                  <span>{v.rv.textOptional}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span style={st("color:var(--fg-muted);font-weight:600")}>{v.rv.textChina}</span>
+                                </>
+                              )}
+                            </span>
+                          </div>
                         </div>
                         {" "}
                         <label style={st("display:flex;flex-direction:column;gap:6px;margin-block-start:12px")}>
