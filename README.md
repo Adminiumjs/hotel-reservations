@@ -147,7 +147,9 @@ skipped, saying texts are not set up, and every email goes as it always did.
   still lets the desk ring them. The desk's booking has the same box, with
   "Ask the guest first. Tick only if they said yes."; the desk's tick is
   kept in the same log as the staff member's yes, in the box's words, and
-  unticking it as their no.
+  unticking it as their no. On a stay with no guest account behind it, a
+  change made after the booking is recorded from Adminium 0.3.77; on 0.3.76
+  only the tick given as the booking is made is.
 - **Offers.** A second box, "Text me offers from Wren House", also unticked
   and optional, is a yes to offers by text, kept on its own. It is not shown
   for a number in mainland China, the UAE, Egypt, Saudi Arabia or Taiwan.
